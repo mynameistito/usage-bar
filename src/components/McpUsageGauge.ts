@@ -5,11 +5,16 @@ export interface McpGaugeProps {
   total: number;
 }
 
+const WARNING_THRESHOLD = 0.70; // 70%
+const DANGER_THRESHOLD = 0.90; // 90%
+
 export function createMcpUsageGauge(props: McpGaugeProps): HTMLElement {
   const gauge = document.createElement('div');
-  gauge.className = 'gauge';
+  gauge.className = 'gauge mcp-gauge';
 
-  const status = getStatusClass(props.percentage);
+  // percentage is already 0-100 from backend, but we need to convert to 0-1 for status check
+  const utilizationRatio = props.percentage / 100;
+  const status = getStatusClass(utilizationRatio);
 
   // Title (own line)
   const title = document.createElement('div');
@@ -57,7 +62,7 @@ export function createMcpUsageGauge(props: McpGaugeProps): HTMLElement {
 }
 
 function getStatusClass(utilization: number): string {
-  if (utilization < 50) return 'status-success';
-  if (utilization < 75) return 'status-warning';
+  if (utilization < WARNING_THRESHOLD) return 'status-success';
+  if (utilization < DANGER_THRESHOLD) return 'status-warning';
   return 'status-danger';
 }

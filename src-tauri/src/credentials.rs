@@ -138,13 +138,21 @@ impl CredentialManager {
     pub fn read_zai_api_key() -> Result<String> {
         let credential = Self::read_credential(Self::ZAI_TARGET)?;
 
+        // Extract blob data BEFORE calling CredFree to avoid use-after-free
         let blob_slice = unsafe {
             std::slice::from_raw_parts(
                 credential.CredentialBlob,
                 credential.CredentialBlobSize as usize,
             )
         };
-        let key = String::from_utf8(blob_slice.to_vec())
+
+        // Clone the data to owned Vec<u8> while the credential is still valid
+        let blob_vec = blob_slice.to_vec();
+
+        // Now CredFree is called inside read_credential, which is safe
+        // because we've already cloned the data we need
+
+        let key = String::from_utf8(blob_vec)
             .map_err(|e| anyhow!("Failed to decode API key: {}", e))?;
 
         Ok(key)

@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { createUsageGauge } from './components/UsageGauge';
 import { createMcpUsageGauge } from './components/McpUsageGauge';
-import { createZaiSettings, checkZaiApiKey, createZaiConnectionBadge, setRefreshZaiUI, openZaiModal } from './components/ZaiSettings';
+import { createZaiSettings, checkZaiApiKey, createZaiConnectionBadge, setZaiCallbacks, openZaiModal } from './components/ZaiSettings';
 
 const POLL_INTERVAL = 300000; // 5 minutes
 
@@ -83,8 +83,22 @@ async function loadContent() {
     loading.style.display = 'none';
     content.style.display = 'flex';
 
-    // Register refresh function with ZaiSettings
-    setRefreshZaiUI(refreshZaiUI);
+    // Register callbacks with ZaiSettings
+    setZaiCallbacks({
+      checkZaiApiKey: async () => {
+        return await invoke<boolean>('check_zai_api_key');
+      },
+      validateZaiApiKey: async (apiKey: string) => {
+        await invoke('validate_zai_api_key', { apiKey });
+      },
+      saveZaiApiKey: async (apiKey: string) => {
+        await invoke('save_zai_api_key', { apiKey });
+      },
+      deleteZaiApiKey: async () => {
+        await invoke('delete_zai_api_key');
+      },
+      refreshZaiUI: refreshZaiUI,
+    });
 
     setupTabSwitching();
     startPolling();
@@ -274,8 +288,8 @@ async function fetchZaiUsage(forceRefresh = false): Promise<void> {
     if (data.token_usage) {
       const tokenGauge = createUsageGauge({
         title: 'Token Usage (5hr)',
-        utilization: data.token_usage.percentage,
-        resetsAt: data.token_usage.resets_at || '',
+        utilization: data.token_usage.percentage / 100, // Convert percentage to 0-1 ratio
+        resetsAt: data.token_usage.resets_at ? new Date(data.token_usage.resets_at).toISOString() : '',
       });
       dataContainer.appendChild(tokenGauge);
     }

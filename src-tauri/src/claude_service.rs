@@ -50,7 +50,34 @@ impl ClaudeService {
                     .await?;
 
                 debug_net!("Retry response status: {}", retry_response.status());
-                Self::handle_response(retry_response).await
+
+                // Check retry response status before handling
+                match retry_response.status() {
+                    status if status.is_success() => {
+                        debug_claude!("Successfully fetched usage data after retry");
+                        Self::handle_response(retry_response).await
+                    }
+                    StatusCode::UNAUTHORIZED => {
+                        debug_error!("Still unauthorized after token refresh");
+                        Err(anyhow!("Authentication failed — please log in again"))
+                    }
+                    StatusCode::FORBIDDEN => {
+                        debug_error!("Access denied after token refresh");
+                        Err(anyhow!("Access denied — check your permissions"))
+                    }
+                    StatusCode::TOO_MANY_REQUESTS => {
+                        debug_error!("Rate limited after token refresh");
+                        Err(anyhow!("Rate limited — please wait and try again"))
+                    }
+                    status if status.is_server_error() => {
+                        debug_error!("Server error after token refresh");
+                        Err(anyhow!("Server error — try again later"))
+                    }
+                    _ => {
+                        debug_error!("Failed to fetch usage data after token refresh");
+                        Err(anyhow!("Failed to fetch usage data"))
+                    }
+                }
             }
             status if status.is_success() => {
                 debug_claude!("Successfully fetched usage data");
@@ -205,7 +232,34 @@ impl ClaudeService {
                     .await?;
 
                 debug_net!("Retry response status: {}", retry_response.status());
-                Self::handle_tier_response(retry_response).await
+
+                // Check retry response status before handling
+                match retry_response.status() {
+                    status if status.is_success() => {
+                        debug_claude!("Successfully fetched tier data after retry");
+                        Self::handle_tier_response(retry_response).await
+                    }
+                    StatusCode::UNAUTHORIZED => {
+                        debug_error!("Still unauthorized after token refresh");
+                        Err(anyhow!("Authentication failed — please log in again"))
+                    }
+                    StatusCode::FORBIDDEN => {
+                        debug_error!("Access denied after token refresh");
+                        Err(anyhow!("Access denied — check your permissions"))
+                    }
+                    StatusCode::TOO_MANY_REQUESTS => {
+                        debug_error!("Rate limited after token refresh");
+                        Err(anyhow!("Rate limited — please wait and try again"))
+                    }
+                    status if status.is_server_error() => {
+                        debug_error!("Server error after token refresh");
+                        Err(anyhow!("Server error — try again later"))
+                    }
+                    _ => {
+                        debug_error!("Failed to fetch tier data after token refresh");
+                        Err(anyhow!("Failed to fetch tier data"))
+                    }
+                }
             }
             status if status.is_success() => {
                 debug_claude!("Successfully fetched tier data");

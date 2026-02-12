@@ -1,7 +1,14 @@
 import fs from 'fs';
 import path from 'path';
 import pngToIco from 'png-to-ico';
-import sharp from 'sharp';
+
+// Try to import sharp, but handle if it's not installed
+let sharp;
+try {
+  sharp = (await import('sharp')).default;
+} catch {
+  sharp = null;
+}
 
 const sourcePng = path.join(process.cwd(), 'src-tauri/icons/icon.png');
 const outputIco = path.join(process.cwd(), 'src-tauri/icons/icon.ico');
@@ -12,6 +19,9 @@ const sizes = [16, 20, 24, 32, 48, 64];
 const pngBuffers = [];
 
 async function createScaledPng(size) {
+  if (!sharp) {
+    throw new Error('sharp not installed');
+  }
   return await sharp(sourcePng)
     .resize(size, size, { fit: 'cover' })
     .png()
@@ -20,21 +30,31 @@ async function createScaledPng(size) {
 
 async function generateIcon() {
   try {
-    console.log('Creating multiple resolutions...');
-    for (const size of sizes) {
-      const buffer = await createScaledPng(size);
-      pngBuffers.push(buffer);
-    }
+    if (sharp) {
+      console.log('Creating multiple resolutions with sharp...');
+      for (const size of sizes) {
+        const buffer = await createScaledPng(size);
+        pngBuffers.push(buffer);
+      }
 
-    const icoBuffer = await pngToIco(pngBuffers);
-    fs.writeFileSync(outputIco, icoBuffer);
-    console.log('✓ Icon generated successfully at:', outputIco);
+      const icoBuffer = await pngToIco(pngBuffers);
+      fs.writeFileSync(outputIco, icoBuffer);
+      console.log('✓ Icon generated successfully at:', outputIco);
+    } else {
+      console.log('sharp not installed, creating single-resolution icon...');
+      const sourceBuffer = fs.readFileSync(sourcePng);
+      const icoBuffer = await pngToIco(sourceBuffer);
+      fs.writeFileSync(outputIco, icoBuffer);
+      console.log('✓ Icon generated successfully at:', outputIco);
+      console.log('  (Single resolution - install sharp for multi-resolution support)');
+    }
   } catch (error) {
     console.error('✗ Error generating icon:', error.message);
     console.log('');
     console.log('If this fails, you can manually convert icon.png to icon.ico using:');
     console.log('1. Online tools: https://convertio.co/png-ico/');
     console.log('2. ImageMagick: magick convert icon.png -define icon:auto-resize=256,128,64,48,32,16 icon.ico');
+    process.exit(1);
   }
 }
 

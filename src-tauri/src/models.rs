@@ -70,7 +70,7 @@ pub struct ZaiTierData {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TokenUsage {
     pub percentage: f64,
-    pub resets_at: Option<String>,
+    pub resets_at: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

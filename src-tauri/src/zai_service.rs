@@ -71,7 +71,7 @@ impl ZaiService {
                 "TOKENS_LIMIT" => {
                     token_usage = Some(TokenUsage {
                         percentage: limit.percentage,
-                        resets_at: limit.next_reset_time.map(Self::format_timestamp),
+                        resets_at: limit.next_reset_time,
                     });
                 }
                 "TIME_LIMIT" => {
@@ -109,56 +109,6 @@ impl ZaiService {
             mcp_usage,
             tier_name,
         })
-    }
-
-    fn format_timestamp(ts: i64) -> String {
-        use std::time::Duration;
-        use std::time::UNIX_EPOCH;
-
-        // Convert milliseconds to seconds and nanoseconds
-        let secs = (ts / 1000) as u64;
-        let nanos = ((ts % 1000) * 1_000_000) as u32;
-        let duration = Duration::new(secs, nanos);
-
-        // Convert to SystemTime
-        let system_time = UNIX_EPOCH + duration;
-
-        // Format as RFC3339-like string (2024-01-15T10:30:00Z)
-        let secs_since_epoch = system_time
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
-
-        // Simple RFC3339 formatting without chrono
-        let days_since_epoch = secs_since_epoch / 86400;
-        let secs_of_day = secs_since_epoch % 86400;
-        let hours = secs_of_day / 3600;
-        let mins = (secs_of_day % 3600) / 60;
-        let secs = secs_of_day % 60;
-
-        // Convert days since epoch to YYYY-MM-DD
-        let (year, month, day) = Self::days_to_ymd(days_since_epoch);
-
-        format!(
-            "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
-            year, month, day, hours, mins, secs
-        )
-    }
-
-    fn days_to_ymd(days: u64) -> (u32, u32, u32) {
-        // Algorithm from https://howardhinnant.github.io/date_algorithms.html
-        let z = days as i64 + 719468;
-        let era = (if z >= 0 { z } else { z - 146096 }) / 146097;
-        let doe = (z - era * 146097) as u64;
-        let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
-        let y = (yoe as i64) + era * 400;
-        let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-        let mp = (5 * doy + 2) / 153;
-        let d = doy - (153 * mp + 2) / 5 + 1;
-        let m = if mp < 10 { mp + 3 } else { mp - 9 };
-        let year = if m <= 2 { y + 1 } else { y };
-
-        (year as u32, m as u32, d as u32)
     }
 
     pub fn has_api_key() -> bool {

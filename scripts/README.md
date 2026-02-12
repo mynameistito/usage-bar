@@ -11,13 +11,13 @@ Automatically converts `src-tauri/icons/icon.png` to `src-tauri/icons/icon.ico` 
 The script runs automatically as part of the build process:
 
 ```bash
-npm run build
+bun run build
 ```
 
 Or run it manually:
 
 ```bash
-npm run generate-icon
+bun run generate-icon
 ```
 
 ### Dependencies
@@ -28,7 +28,7 @@ npm run generate-icon
 If `sharp` is not installed, the script will create a single-resolution icon. To install sharp:
 
 ```bash
-npm install --save-dev sharp
+bun add --dev sharp
 ```
 
 ### Manual Conversion

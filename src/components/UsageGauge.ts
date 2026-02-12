@@ -4,10 +4,15 @@ export interface GaugeProps {
   resetsAt: string;
 }
 
+const WARNING_THRESHOLD = 0.70; // 70%
+const DANGER_THRESHOLD = 0.90; // 90%
+
 export function createUsageGauge(props: GaugeProps): HTMLElement {
   const gauge = document.createElement('div');
   gauge.className = 'gauge';
 
+  // Convert 0-1 ratio to 0-100 percentage
+  const percentage = props.utilization * 100;
   const status = getStatusClass(props.utilization);
 
   // Title (own line)
@@ -21,7 +26,7 @@ export function createUsageGauge(props: GaugeProps): HTMLElement {
 
   const fill = document.createElement('div');
   fill.className = `progress-fill ${status}`;
-  fill.style.width = `${props.utilization}%`;
+  fill.style.width = `${percentage}%`;
 
   track.appendChild(fill);
 
@@ -36,7 +41,7 @@ export function createUsageGauge(props: GaugeProps): HTMLElement {
   dot.className = `gauge-dot ${status}`;
 
   const usedText = document.createElement('span');
-  usedText.textContent = `${props.utilization.toFixed(0)}% used`;
+  usedText.textContent = `${percentage.toFixed(0)}% used`;
 
   usedContainer.appendChild(dot);
   usedContainer.appendChild(usedText);
@@ -56,8 +61,8 @@ export function createUsageGauge(props: GaugeProps): HTMLElement {
 }
 
 function getStatusClass(utilization: number): string {
-  if (utilization < 50) return 'status-success';
-  if (utilization < 75) return 'status-warning';
+  if (utilization < WARNING_THRESHOLD) return 'status-success';
+  if (utilization < DANGER_THRESHOLD) return 'status-warning';
   return 'status-danger';
 }
 

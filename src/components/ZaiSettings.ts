@@ -1,12 +1,24 @@
-import { invoke } from "@tauri-apps/api/core";
-
 let modalElement: HTMLElement | null = null;
 
-// Function to refresh Z.ai UI - will be attached by main.ts
-let refreshZaiUI: (() => Promise<void>) | null = null;
+// Callbacks for Z.ai operations - will be attached by main.ts
+let checkZaiApiKeyCallback: (() => Promise<boolean>) | null = null;
+let validateZaiApiKeyCallback: ((apiKey: string) => Promise<void>) | null = null;
+let saveZaiApiKeyCallback: ((apiKey: string) => Promise<void>) | null = null;
+let deleteZaiApiKeyCallback: (() => Promise<void>) | null = null;
+let refreshZaiUICallback: (() => Promise<void>) | null = null;
 
-export function setRefreshZaiUI(fn: () => Promise<void>): void {
-	refreshZaiUI = fn;
+export function setZaiCallbacks(callbacks: {
+	checkZaiApiKey: () => Promise<boolean>;
+	validateZaiApiKey: (apiKey: string) => Promise<void>;
+	saveZaiApiKey: (apiKey: string) => Promise<void>;
+	deleteZaiApiKey: () => Promise<void>;
+	refreshZaiUI: () => Promise<void>;
+}): void {
+	checkZaiApiKeyCallback = callbacks.checkZaiApiKey;
+	validateZaiApiKeyCallback = callbacks.validateZaiApiKey;
+	saveZaiApiKeyCallback = callbacks.saveZaiApiKey;
+	deleteZaiApiKeyCallback = callbacks.deleteZaiApiKey;
+	refreshZaiUICallback = callbacks.refreshZaiUI;
 }
 
 export function openZaiModal(isConnected: boolean): void {
@@ -14,7 +26,10 @@ export function openZaiModal(isConnected: boolean): void {
 }
 
 export async function checkZaiApiKey(): Promise<boolean> {
-	return await invoke<boolean>("check_zai_api_key");
+	if (!checkZaiApiKeyCallback) {
+		throw new Error("checkZaiApiKeyCallback not set");
+	}
+	return await checkZaiApiKeyCallback();
 }
 
 export function createZaiConnectionBadge(isConnected: boolean): HTMLElement {
@@ -25,9 +40,42 @@ export function createZaiConnectionBadge(isConnected: boolean): HTMLElement {
 	icon.className = "zai-header-badge-icon";
 
 	if (isConnected) {
-		icon.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+		const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+		svg.setAttribute("width", "12");
+		svg.setAttribute("height", "12");
+		svg.setAttribute("viewBox", "0 0 24 24");
+		svg.setAttribute("fill", "none");
+		svg.setAttribute("stroke", "currentColor");
+		svg.setAttribute("stroke-width", "3");
+		svg.setAttribute("stroke-linecap", "round");
+		svg.setAttribute("stroke-linejoin", "round");
+		const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+		polyline.setAttribute("points", "20 6 9 17 4 12");
+		svg.appendChild(polyline);
+		icon.appendChild(svg);
 	} else {
-		icon.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+		const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+		svg.setAttribute("width", "12");
+		svg.setAttribute("height", "12");
+		svg.setAttribute("viewBox", "0 0 24 24");
+		svg.setAttribute("fill", "none");
+		svg.setAttribute("stroke", "currentColor");
+		svg.setAttribute("stroke-width", "2");
+		svg.setAttribute("stroke-linecap", "round");
+		svg.setAttribute("stroke-linejoin", "round");
+		const line1 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+		line1.setAttribute("x1", "12");
+		line1.setAttribute("y1", "5");
+		line1.setAttribute("x2", "12");
+		line1.setAttribute("y2", "19");
+		const line2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+		line2.setAttribute("x1", "5");
+		line2.setAttribute("y1", "12");
+		line2.setAttribute("x2", "19");
+		line2.setAttribute("y2", "12");
+		svg.appendChild(line1);
+		svg.appendChild(line2);
+		icon.appendChild(svg);
 	}
 
 	const label = document.createElement("span");
@@ -46,7 +94,7 @@ export async function createZaiSettings(): Promise<HTMLElement> {
 	const settings = document.createElement("div");
 	settings.className = "zai-settings";
 
-	const hasApiKey = await invoke<boolean>("check_zai_api_key");
+	const hasApiKey = await checkZaiApiKey();
 
 	if (!hasApiKey) {
 		settings.style.display = "none";
@@ -66,12 +114,39 @@ function openModal(isConnected: boolean): void {
 
 	const header = document.createElement("div");
 	header.className = "zai-modal-header";
-	header.innerHTML = `
-		<h2 class="zai-modal-title">${isConnected ? "Manage z.ai API Key" : "Connect z.ai Coding Plan"}</h2>
-		<button class="zai-modal-close" aria-label="Close modal">
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-		</button>
-	`;
+
+	const title = document.createElement("h2");
+	title.className = "zai-modal-title";
+	title.textContent = isConnected ? "Manage z.ai API Key" : "Connect z.ai Coding Plan";
+
+	const closeButton = document.createElement("button");
+	closeButton.className = "zai-modal-close";
+	closeButton.setAttribute("aria-label", "Close modal");
+	const closeSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+	closeSvg.setAttribute("width", "20");
+	closeSvg.setAttribute("height", "20");
+	closeSvg.setAttribute("viewBox", "0 0 24 24");
+	closeSvg.setAttribute("fill", "none");
+	closeSvg.setAttribute("stroke", "currentColor");
+	closeSvg.setAttribute("stroke-width", "2");
+	closeSvg.setAttribute("stroke-linecap", "round");
+	closeSvg.setAttribute("stroke-linejoin", "round");
+	const closeLine1 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+	closeLine1.setAttribute("x1", "18");
+	closeLine1.setAttribute("y1", "6");
+	closeLine1.setAttribute("x2", "6");
+	closeLine1.setAttribute("y2", "18");
+	const closeLine2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+	closeLine2.setAttribute("x1", "6");
+	closeLine2.setAttribute("y1", "6");
+	closeLine2.setAttribute("x2", "18");
+	closeLine2.setAttribute("y2", "18");
+	closeSvg.appendChild(closeLine1);
+	closeSvg.appendChild(closeLine2);
+	closeButton.appendChild(closeSvg);
+
+	header.appendChild(title);
+	header.appendChild(closeButton);
 
 	const content = document.createElement("div");
 	content.className = "zai-modal-content";
@@ -92,7 +167,7 @@ function openModal(isConnected: boolean): void {
 		if (e.target === backdrop) closeModal();
 	});
 
-	header.querySelector(".zai-modal-close")?.addEventListener("click", (e) => {
+	closeButton.addEventListener("click", (e) => {
 		e.stopPropagation();
 		closeModal();
 	});
@@ -122,12 +197,21 @@ function createConnectedState(): HTMLElement {
 
 	const info = document.createElement("div");
 	info.className = "zai-modal-info";
-	info.innerHTML = `
-		<div class="zai-modal-info-text">
-			<div class="zai-modal-info-title">API Key Configured</div>
-			<div class="zai-modal-info-desc">Your Z.ai API key is set up and ready to use.</div>
-		</div>
-	`;
+
+	const infoText = document.createElement("div");
+	infoText.className = "zai-modal-info-text";
+
+	const infoTitle = document.createElement("div");
+	infoTitle.className = "zai-modal-info-title";
+	infoTitle.textContent = "API Key Configured";
+
+	const infoDesc = document.createElement("div");
+	infoDesc.className = "zai-modal-info-desc";
+	infoDesc.textContent = "Your Z.ai API key is set up and ready to use.";
+
+	infoText.appendChild(infoTitle);
+	infoText.appendChild(infoDesc);
+	info.appendChild(infoText);
 
 	const actions = document.createElement("div");
 	actions.className = "zai-modal-actions";
@@ -153,10 +237,13 @@ function createConnectedState(): HTMLElement {
 	deleteButton.textContent = "Remove";
 	deleteButton.addEventListener("click", async () => {
 		try {
-			await invoke("delete_zai_api_key");
+			if (!deleteZaiApiKeyCallback) {
+				throw new Error("deleteZaiApiKeyCallback not set");
+			}
+			await deleteZaiApiKeyCallback();
 			closeModal();
-			if (refreshZaiUI) {
-				await refreshZaiUI();
+			if (refreshZaiUICallback) {
+				await refreshZaiUICallback();
 			} else {
 				// Fallback to reload if refresh function not available
 				window.location.reload();
@@ -182,12 +269,27 @@ function createInputState(): HTMLElement {
 
 	const info = document.createElement("div");
 	info.className = "zai-modal-info";
-	info.innerHTML = `
-		<div class="zai-modal-info-text">
-			<div class="zai-modal-info-title">Enter Your API Key</div>
-			<div class="zai-modal-info-desc">Get your API key from <a href="https://z.ai/manage-apikey/apikey-list" target="_blank" class="zai-link">z.ai/manage-apikey</a></div>
-		</div>
-	`;
+
+	const infoText = document.createElement("div");
+	infoText.className = "zai-modal-info-text";
+
+	const infoTitle = document.createElement("div");
+	infoTitle.className = "zai-modal-info-title";
+	infoTitle.textContent = "Enter Your API Key";
+
+	const infoDesc = document.createElement("div");
+	infoDesc.className = "zai-modal-info-desc";
+	infoDesc.textContent = "Get your API key from ";
+	const link = document.createElement("a");
+	link.href = "https://z.ai/manage-apikey/apikey-list";
+	link.target = "_blank";
+	link.className = "zai-link";
+	link.textContent = "z.ai/manage-apikey";
+	infoDesc.appendChild(link);
+
+	infoText.appendChild(infoTitle);
+	infoText.appendChild(infoDesc);
+	info.appendChild(infoText);
 
 	const inputContainer = document.createElement("div");
 	inputContainer.className = "zai-modal-input-container";
@@ -238,11 +340,14 @@ function createInputState(): HTMLElement {
 		setValidationState(true);
 
 		try {
-			await invoke("validate_zai_api_key", { apiKey });
-			await invoke("save_zai_api_key", { apiKey });
+			if (!validateZaiApiKeyCallback || !saveZaiApiKeyCallback) {
+				throw new Error("Zai API callbacks not set");
+			}
+			await validateZaiApiKeyCallback(apiKey);
+			await saveZaiApiKeyCallback(apiKey);
 			closeModal();
-			if (refreshZaiUI) {
-				await refreshZaiUI();
+			if (refreshZaiUICallback) {
+				await refreshZaiUICallback();
 			} else {
 				window.location.reload();
 			}
