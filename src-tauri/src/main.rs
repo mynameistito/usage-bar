@@ -79,12 +79,10 @@ async fn main() -> anyhow::Result<()> {
                         _ => {}
                     },
                 )
-                .icon(
                 .icon(match app.default_window_icon() {
                     Some(icon) => icon.clone(),
                     None => return Err(anyhow::anyhow!("Missing window icon").into()),
                 })
-                )
                 .build(app)?;
 
             debug_app!("System tray icon registered");
