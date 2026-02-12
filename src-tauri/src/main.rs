@@ -35,7 +35,10 @@ async fn main() -> anyhow::Result<()> {
             // Initialize shared HTTP client
             let client = reqwest::Client::builder()
                 .timeout(Duration::from_secs(15))
-                .build()
+                .unwrap_or_else(|e| {
+                    eprintln!("Failed to build HTTP client: {}", e);
+                    std::process::exit(1);
+                })
                 .map_err(|e| anyhow::anyhow!("Failed to build HTTP client: {}", e))?;
             app.manage(HttpClient(Arc::new(client)));
             debug_app!("HTTP client initialized (timeout: 15s)");
