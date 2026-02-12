@@ -103,7 +103,10 @@ async fn main() -> anyhow::Result<()> {
             commands::refresh_all,
             commands::quit_app,
         ])
-        .run(tauri::generate_context!())
+        .unwrap_or_else(|e| {
+            eprintln!("error while running tauri application: {}", e);
+            std::process::exit(1);
+        });
         .map_err(|e| {
             eprintln!("error while running tauri application: {}", e);
             std::process::exit(1);
