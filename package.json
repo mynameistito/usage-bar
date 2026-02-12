@@ -27,11 +27,11 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.18",
     "@tauri-apps/cli": "^2.10.0",
-    "png-to-ico": "^2.1.2",
+    "png-to-ico": "^3.0.1",
     "serve": "^14.2.5",
-    "sharp": "^0.33.0",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4.1.18",
-    "typescript": "^5.3.3",
+    "typescript": "^5.9.3",
     "vite": "^7.3.1"
   },
   "author": "",
