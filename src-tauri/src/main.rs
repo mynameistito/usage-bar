@@ -25,10 +25,10 @@ pub struct ClaudeUsageCache(pub ResponseCache<UsageData>);
 pub struct ZaiUsageCache(pub ResponseCache<ZaiUsageData>);
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     debug_app!("Usage Bar starting...");
 
-    tauri::Builder::default()
+    let _ = tauri::Builder::default()
         .setup(|app| {
             debug_app!("Initializing application state");
 
@@ -36,7 +36,7 @@ async fn main() {
             let client = reqwest::Client::builder()
                 .timeout(Duration::from_secs(15))
                 .build()
-                .expect("Failed to build HTTP client");
+                .map_err(|e| anyhow::anyhow!("Failed to build HTTP client: {}", e))?;
             app.manage(HttpClient(Arc::new(client)));
             debug_app!("HTTP client initialized (timeout: 15s)");
 
@@ -65,8 +65,12 @@ async fn main() {
                     move |app: &tauri::AppHandle, event| match event.id.as_ref() {
                         "open" => {
                             if let Some(window) = app.get_webview_window("main") {
-                                window.show().unwrap();
-                                window.set_focus().unwrap();
+                                if let Err(e) = window.show() {
+                                    debug_error!("Failed to show window: {}", e);
+                                }
+                                if let Err(e) = window.set_focus() {
+                                    debug_error!("Failed to focus window: {}", e);
+                                }
                             }
                         }
                         "quit" => {
@@ -75,7 +79,11 @@ async fn main() {
                         _ => {}
                     },
                 )
-                .icon(app.default_window_icon().unwrap().clone())
+                .icon(
+                    app.default_window_icon()
+                        .ok_or_else(|| anyhow::anyhow!("Missing window icon"))?
+                        .clone(),
+                )
                 .build(app)?;
 
             debug_app!("System tray icon registered");
@@ -97,5 +105,9 @@ async fn main() {
             commands::quit_app,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .map_err(|e| {
+            eprintln!("error while running tauri application: {}", e);
+            std::process::exit(1);
+        });
+    Ok(())
 }

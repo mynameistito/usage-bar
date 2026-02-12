@@ -196,7 +196,6 @@ impl CredentialManager {
 
     fn write_credential(target_name: &str, data: &str) -> Result<()> {
         let target_name_wide: Vec<u16> = target_name.encode_utf16().chain(Some(0)).collect();
-
         let blob: Vec<u8> = data.as_bytes().to_vec();
 
         let credential = CREDENTIALW {
@@ -215,6 +214,7 @@ impl CredentialManager {
         };
 
         unsafe {
+            // Vectors are still alive here because credential borrows from them
             let result = CredWriteW(&credential, 0);
 
             if result.is_err() {
@@ -222,7 +222,7 @@ impl CredentialManager {
             }
 
             Ok(())
-        }
+        } // Vectors dropped here, after CredWriteW completes
     }
 
     fn delete_credential(target_name: &str) -> Result<()> {

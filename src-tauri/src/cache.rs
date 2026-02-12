@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use crate::debug_cache;
+use crate::{debug_cache, debug_error};
 
 pub struct CacheEntry<T> {
     data: T,
@@ -22,7 +22,11 @@ impl<T: Clone> ResponseCache<T> {
     }
 
     pub fn get(&self) -> Option<T> {
-        let guard = self.entry.lock().ok()?;
+        let guard = self.entry.lock().unwrap_or_else(|poisoned| {
+            debug_error!("Cache mutex poisoned, recovering...");
+            poisoned.into_inner()
+        });
+
         guard.as_ref().and_then(|entry| {
             if Instant::now() < entry.expires_at {
                 debug_cache!("Hit: Returning cached data");
@@ -35,19 +39,25 @@ impl<T: Clone> ResponseCache<T> {
     }
 
     pub fn set(&self, data: T) {
-        if let Ok(mut guard) = self.entry.lock() {
-            *guard = Some(CacheEntry {
-                data,
-                expires_at: Instant::now() + self.ttl,
-            });
-            debug_cache!("Set: Cached data (TTL: {}s)", self.ttl.as_secs());
-        }
+        let mut guard = self.entry.lock().unwrap_or_else(|poisoned| {
+            debug_error!("Cache mutex poisoned, recovering...");
+            poisoned.into_inner()
+        });
+
+        *guard = Some(CacheEntry {
+            data,
+            expires_at: Instant::now() + self.ttl,
+        });
+        debug_cache!("Set: Cached data (TTL: {}s)", self.ttl.as_secs());
     }
 
     pub fn clear(&self) {
-        if let Ok(mut guard) = self.entry.lock() {
-            *guard = None;
-            debug_cache!("Clear: Cache invalidated");
-        }
+        let mut guard = self.entry.lock().unwrap_or_else(|poisoned| {
+            debug_error!("Cache mutex poisoned, recovering...");
+            poisoned.into_inner()
+        });
+
+        *guard = None;
+        debug_cache!("Clear: Cache invalidated");
     }
 }

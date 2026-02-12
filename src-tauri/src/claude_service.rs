@@ -14,11 +14,11 @@ const TOKEN_REFRESH_URL: &str = "https://console.anthropic.com/v1/oauth/token";
 pub struct ClaudeService;
 
 impl ClaudeService {
-    fn now_millis() -> i64 {
+    fn now_millis() -> Result<i64> {
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as i64
+            .map(|d| d.as_millis() as i64)
+            .map_err(|e| anyhow!("System clock error: {}", e))
     }
 
     pub async fn fetch_usage(client: Arc<reqwest::Client>) -> Result<UsageData> {
@@ -151,7 +151,7 @@ impl ClaudeService {
 
         let refresh_response: TokenRefreshResponse = response.json().await?;
 
-        let now = Self::now_millis();
+        let now = Self::now_millis()?;
         let expires_at = now + (refresh_response.expires_in * 1000);
 
         debug_claude!(
@@ -172,16 +172,23 @@ impl ClaudeService {
         match CredentialManager::read_claude_credentials() {
             Ok(credentials) => {
                 if let Some(expires_at) = credentials.claude_ai_oauth.expires_at {
-                    let now = Self::now_millis();
-                    let buffer: i64 = 60 * 1000; // 60 second buffer
-                    let expired = now + buffer >= expires_at;
-                    debug_claude!(
-                        "Token expiry check: now={}, expires_at={}, expired={}",
-                        now,
-                        expires_at,
-                        expired
-                    );
-                    expired
+                    match Self::now_millis() {
+                        Ok(now) => {
+                            let buffer: i64 = 60 * 1000; // 60 second buffer
+                            let expired = now + buffer >= expires_at;
+                            debug_claude!(
+                                "Token expiry check: now={}, expires_at={}, expired={}",
+                                now,
+                                expires_at,
+                                expired
+                            );
+                            expired
+                        }
+                        Err(_) => {
+                            debug_error!("System clock error, treating token as expired");
+                            true
+                        }
+                    }
                 } else {
                     debug_claude!("Token has no expiry date, treating as expired");
                     true

@@ -245,11 +245,26 @@ function createConnectedState(): HTMLElement {
 			if (refreshZaiUICallback) {
 				await refreshZaiUICallback();
 			} else {
-				// Fallback to reload if refresh function not available
-				window.location.reload();
+				throw new Error("refreshZaiUICallback not set");
 			}
 		} catch (error) {
 			console.error("Failed to delete API key:", error);
+			// Show error in modal instead of closing
+			const errorDiv = document.createElement("div");
+			errorDiv.className = "zai-modal-error";
+			errorDiv.textContent = String(error);
+			errorDiv.style.display = "block";
+
+			// Add error to the modal content
+			const content = modalElement?.querySelector(".zai-modal-content");
+			if (content) {
+				// Remove any existing error
+				const existingError = content.querySelector(".zai-modal-error");
+				if (existingError) {
+					existingError.remove();
+				}
+				content.appendChild(errorDiv);
+			}
 		}
 	});
 
@@ -349,7 +364,7 @@ function createInputState(): HTMLElement {
 			if (refreshZaiUICallback) {
 				await refreshZaiUICallback();
 			} else {
-				window.location.reload();
+				throw new Error("refreshZaiUICallback not set");
 			}
 		} catch (error) {
 			setValidationState(false, String(error));
