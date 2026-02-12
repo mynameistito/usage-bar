@@ -20,3 +20,7 @@ package-lock.json
 .opencode
 usage-bar.xcodeproj/
 usage-bar/
+*.old
+*.bak
+*.backup
+.temp/

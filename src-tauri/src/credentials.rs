@@ -6,6 +6,8 @@ use windows::core::{PCWSTR, PWSTR};
 use windows::Win32::Foundation::FILETIME;
 use windows::Win32::Security::Credentials::*;
 
+use crate::debug_cred;
+
 pub struct CredentialManager;
 
 impl CredentialManager {
@@ -14,50 +16,50 @@ impl CredentialManager {
     // ── Claude credentials (file-based: ~/.claude/.credentials.json) ──
 
     fn claude_credentials_path() -> Result<PathBuf> {
-        println!("[DEBUG] claude_credentials_path called");
+        debug_cred!("claude_credentials_path called");
         let home = std::env::var_os("USERPROFILE")
             .map(PathBuf::from)
             .ok_or_else(|| anyhow!("USERPROFILE environment variable not set"))?;
-        println!("[DEBUG] USERPROFILE: {:?}", home);
+        debug_cred!("USERPROFILE: {:?}", home);
 
         let claude_dir = home.join(".claude");
-        println!("[DEBUG] claude_dir: {:?}", claude_dir);
+        debug_cred!("claude_dir: {:?}", claude_dir);
 
         // Check both possible filenames — .credentials.json (dot prefix) and credentials.json
         let dot_path = claude_dir.join(".credentials.json");
         let plain_path = claude_dir.join("credentials.json");
 
-        println!(
-            "[DEBUG] Checking dot_path: {:?} exists: {}",
+        debug_cred!(
+            "Checking dot_path: {:?} exists: {}",
             dot_path,
             dot_path.exists()
         );
-        println!(
-            "[DEBUG] Checking plain_path: {:?} exists: {}",
+        debug_cred!(
+            "Checking plain_path: {:?} exists: {}",
             plain_path,
             plain_path.exists()
         );
 
         if dot_path.exists() {
-            println!("[DEBUG] Using dot_path");
+            debug_cred!("Using dot_path");
             Ok(dot_path)
         } else if plain_path.exists() {
-            println!("[DEBUG] Using plain_path");
+            debug_cred!("Using plain_path");
             Ok(plain_path)
         } else {
-            println!("[DEBUG] Neither exists, defaulting to dot_path");
+            debug_cred!("Neither exists, defaulting to dot_path");
             // Default to .credentials.json when neither exists (for error messages)
             Ok(dot_path)
         }
     }
 
     pub fn read_claude_credentials() -> Result<ClaudeOAuthCredentials> {
-        println!("[DEBUG] read_claude_credentials called");
+        debug_cred!("read_claude_credentials called");
         let path = Self::claude_credentials_path()?;
-        println!("[DEBUG] Reading credentials from: {:?}", path);
+        debug_cred!("Reading credentials from: {:?}", path);
 
         let json_str = fs::read_to_string(&path).map_err(|e| {
-            println!("[DEBUG] Failed to read file: {}", e);
+            debug_cred!("Failed to read file: {}", e);
             anyhow!(
                 "Credential not found: failed to read {}. {}. \
                  Make sure you are logged in to Claude Code.",
@@ -65,16 +67,13 @@ impl CredentialManager {
                 e
             )
         })?;
-        println!(
-            "[DEBUG] Read {} bytes from credentials file",
-            json_str.len()
-        );
+        debug_cred!("Read {} bytes from credentials file", json_str.len());
 
         let credentials: ClaudeOAuthCredentials = serde_json::from_str(&json_str).map_err(|e| {
-            println!("[DEBUG] Failed to parse JSON: {}", e);
+            debug_cred!("Failed to parse JSON: {}", e);
             anyhow!("Failed to parse Claude credentials: {}", e)
         })?;
-        println!("[DEBUG] Successfully parsed credentials");
+        debug_cred!("Successfully parsed credentials");
 
         Ok(credentials)
     }
@@ -84,8 +83,11 @@ impl CredentialManager {
 
         // Read existing file to preserve fields we don't model (file belongs to Claude Code)
         let mut root: serde_json::Value = if path.exists() {
-            let existing = fs::read_to_string(&path).unwrap_or_else(|_| "{}".to_string());
-            serde_json::from_str(&existing).unwrap_or_else(|_| serde_json::json!({}))
+            let existing = fs::read_to_string(&path)
+                .map_err(|e| anyhow!("Failed to read credentials file: {}", e))?;
+            serde_json::from_str(&existing).map_err(|e| {
+                anyhow!("Failed to parse credentials file (may be corrupted): {}", e)
+            })?
         } else {
             serde_json::json!({})
         };
@@ -177,7 +179,7 @@ impl CredentialManager {
                 return Err(anyhow!("Credential not found: {}", target_name));
             }
 
-            let credential_data = (*credential_ptr).clone();
+            let credential_data = *credential_ptr;
             CredFree(credential_ptr as *const _);
 
             Ok(credential_data)

@@ -4,6 +4,12 @@
 	"description": "Usage Bar for Windows - System tray application for monitoring Claude and Z.ai API usage",
 	"type": "module",
 	"scripts": {
+		"cargo:check": "cd src-tauri && cargo check",
+		"cargo:build": "cd src-tauri && cargo build",
+		"cargo:build:release": "cd src-tauri && cargo build --release",
+		"cargo:clippy": "cd src-tauri && cargo clippy",
+		"cargo:test": "cd src-tauri && cargo test",
+		"cargo:clean": "cd src-tauri && cargo clean",
 		"tauri": "tauri",
 		"dev": "tauri dev",
 		"vite:dev": "vite",
