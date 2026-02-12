@@ -24,6 +24,7 @@ opt-level = 0
 debug = true
 lto = false
 codegen-units = 256
+incremental = true
 
 # Release profile - smaller binary with good performance
 [profile.release]

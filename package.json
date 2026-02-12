@@ -11,6 +11,7 @@
     "cargo:test": "cd src-tauri && cargo test",
     "cargo:clean": "cd src-tauri && cargo clean",
     "cargo:fmt": "cd src-tauri && cargo fmt",
+    "cargo:tree": "cd src-tauri && cargo tree",
     "tauri": "tauri",
     "dev": "tauri dev",
     "vite:dev": "vite",
