@@ -80,9 +80,10 @@ async fn main() -> anyhow::Result<()> {
                     },
                 )
                 .icon(
-                    app.default_window_icon()
-                        .ok_or_else(|| anyhow::anyhow!("Missing window icon"))?
-                        .clone(),
+                .icon(match app.default_window_icon() {
+                    Some(icon) => icon.clone(),
+                    None => return Err(anyhow::anyhow!("Missing window icon").into()),
+                })
                 )
                 .build(app)?;
 
