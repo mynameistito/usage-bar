@@ -103,14 +103,11 @@ async fn main() -> anyhow::Result<()> {
             commands::validate_zai_api_key,
             commands::save_zai_api_key,
             commands::delete_zai_api_key,
-            commands::refresh_all,
-            commands::quit_app,
-        ])
-        .unwrap_or_else(|e| {
+        .run(tauri::Context::default())
+        .map_err(|e| {
             eprintln!("error while running tauri application: {}", e);
             std::process::exit(1);
         });
-        .map_err(|e| {
             eprintln!("error while running tauri application: {}", e);
             std::process::exit(1);
         });
