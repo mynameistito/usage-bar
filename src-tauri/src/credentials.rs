@@ -152,8 +152,8 @@ impl CredentialManager {
         // Now CredFree is called inside read_credential, which is safe
         // because we've already cloned the data we need
 
-        let key = String::from_utf8(blob_vec)
-            .map_err(|e| anyhow!("Failed to decode API key: {}", e))?;
+        let key =
+            String::from_utf8(blob_vec).map_err(|e| anyhow!("Failed to decode API key: {}", e))?;
 
         Ok(key)
     }

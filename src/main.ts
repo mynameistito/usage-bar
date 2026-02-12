@@ -62,9 +62,29 @@ async function loadContent() {
   content.style.display = 'none';
 
   try {
-    fetchClaudeTier(); // fire-and-forget on startup
-    fetchZaiTier(); // fire-and-forget on startup
+    // Register callbacks with ZaiSettings FIRST, before any Z.ai operations
+    setZaiCallbacks({
+      checkZaiApiKey: async () => {
+        return await invoke<boolean>('check_zai_api_key');
+      },
+      validateZaiApiKey: async (apiKey: string) => {
+        await invoke('validate_zai_api_key', { apiKey });
+      },
+      saveZaiApiKey: async (apiKey: string) => {
+        await invoke('save_zai_api_key', { apiKey });
+      },
+      deleteZaiApiKey: async () => {
+        await invoke('delete_zai_api_key');
+      },
+      refreshZaiUI: refreshZaiUI,
+    });
+
+    // Fire-and-forget tier updates (don't await, don't block loading)
+    fetchClaudeTier().catch(err => console.error('Claude tier fetch failed:', err));
+    fetchZaiTier().catch(err => console.error('Z.ai tier fetch failed:', err));
+
     await fetchClaudeUsage();
+    // fetchZaiUsage handles "not configured" gracefully - it won't throw
     await fetchZaiUsage();
 
     const hasZaiApiKey = await checkZaiApiKey();
@@ -82,23 +102,6 @@ async function loadContent() {
 
     loading.style.display = 'none';
     content.style.display = 'flex';
-
-    // Register callbacks with ZaiSettings
-    setZaiCallbacks({
-      checkZaiApiKey: async () => {
-        return await invoke<boolean>('check_zai_api_key');
-      },
-      validateZaiApiKey: async (apiKey: string) => {
-        await invoke('validate_zai_api_key', { apiKey });
-      },
-      saveZaiApiKey: async (apiKey: string) => {
-        await invoke('save_zai_api_key', { apiKey });
-      },
-      deleteZaiApiKey: async () => {
-        await invoke('delete_zai_api_key');
-      },
-      refreshZaiUI: refreshZaiUI,
-    });
 
     setupTabSwitching();
     startPolling();
@@ -215,13 +218,13 @@ async function fetchClaudeUsage() {
 
     const sessionGauge = createUsageGauge({
       title: 'Session',
-      utilization: data.five_hour_utilization,
+      utilization: data.five_hour_utilization / 100, // Convert percentage to 0-1 ratio
       resetsAt: data.five_hour_resets_at,
     });
 
     const weeklyGauge = createUsageGauge({
       title: 'Weekly',
-      utilization: data.seven_day_utilization,
+      utilization: data.seven_day_utilization / 100, // Convert percentage to 0-1 ratio
       resetsAt: data.seven_day_resets_at,
     });
 
