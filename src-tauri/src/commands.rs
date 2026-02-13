@@ -148,12 +148,11 @@ pub async fn zai_get_all(
     match ZaiService::zai_fetch_quota(client).await {
         Ok(data) => {
             debug_zai!("zai_fetch_quota succeeded, caching result");
-            let tier_name = data
-                .tier_name
-                .clone()
-                .unwrap_or_else(|| "Unknown".to_string());
             let tier_data = crate::models::ZaiTierData {
-                plan_name: tier_name.clone(),
+                plan_name: data
+                    .tier_name
+                    .clone()
+                    .unwrap_or_else(|| "Unknown".to_string()),
             };
             usage_cache.0.set(data.clone());
             tier_cache.0.set(tier_data.clone());

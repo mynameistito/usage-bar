@@ -254,17 +254,17 @@ impl CredentialManager {
     }
 
     pub fn zai_write_api_key(api_key: &str) -> Result<()> {
-        let result = Self::write_credential(Self::ZAI_TARGET, api_key);
+        Self::write_credential(Self::ZAI_TARGET, api_key)?;
         // Invalidate cache after writing
         with_cache(|c| c.zai_invalidate());
-        result
+        Ok(())
     }
 
     pub fn zai_delete_api_key() -> Result<()> {
-        let result = Self::delete_credential(Self::ZAI_TARGET);
+        Self::delete_credential(Self::ZAI_TARGET)?;
         // Invalidate cache after deleting
         with_cache(|c| c.zai_invalidate());
-        result
+        Ok(())
     }
 
     pub fn zai_has_api_key() -> bool {
