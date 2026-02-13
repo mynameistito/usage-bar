@@ -869,6 +869,10 @@
   padding: 16px;
 }
 
+.settings-section + .settings-section {
+  border-top: 1px solid var(--color-border);
+}
+
 .settings-section-title {
   font-size: 12px;
   font-weight: 600;
