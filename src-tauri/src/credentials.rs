@@ -14,7 +14,7 @@ use crate::debug_cred;
 /// TTL is intentionally short (5 seconds) since credentials can change externally.
 struct CredentialCache {
     claude_credentials: Option<(Instant, ClaudeOAuthCredentials)>,
-    zai_api_key: Option<(Instant, String)>,
+    zai_api_key: Option<(Instant, Result<String, String>)>,
 }
 
 impl CredentialCache {
@@ -47,18 +47,18 @@ impl CredentialCache {
         self.claude_credentials = None;
     }
 
-    fn zai_get(&self) -> Option<String> {
-        self.zai_api_key.as_ref().and_then(|(instant, key)| {
+    fn zai_get(&self) -> Option<Result<String, String>> {
+        self.zai_api_key.as_ref().and_then(|(instant, result)| {
             if instant.elapsed() < Self::TTL {
-                Some(key.clone())
+                Some(result.clone())
             } else {
                 None
             }
         })
     }
 
-    fn zai_set(&mut self, key: String) {
-        self.zai_api_key = Some((Instant::now(), key));
+    fn zai_set(&mut self, result: Result<String, String>) {
+        self.zai_api_key = Some((Instant::now(), result));
     }
 
     fn zai_invalidate(&mut self) {
@@ -267,14 +267,10 @@ impl CredentialManager {
     }
 
     pub fn zai_read_api_key() -> Result<String> {
-        // Check cache first - cache stores the resolved API key
+        // Check cache first - cache stores the resolved API key result
         if let Some(cached) = with_cache(|c| c.zai_get()) {
             debug_cred!("Returning cached Z.ai API key");
-            // Return empty string as error if cached value is empty (means resolution failed)
-            if cached.is_empty() {
-                return Err(anyhow!("Cached Z.ai API key resolution failed"));
-            }
-            return Ok(cached);
+            return cached.map_err(|e| anyhow!("Cached Z.ai API key resolution failed: {}", e));
         }
 
         let credential = Self::read_credential(Self::ZAI_TARGET)?;
@@ -301,7 +297,7 @@ impl CredentialManager {
 
         // Cache the resolved value (not the raw env var reference)
         // This avoids repeated resolution and log spam
-        with_cache(|c| c.zai_set(key.clone()));
+        with_cache(|c| c.zai_set(Ok(key.clone())));
 
         Ok(key)
     }
@@ -322,10 +318,10 @@ impl CredentialManager {
 
     pub fn zai_has_api_key() -> bool {
         // Check cache first to avoid double reading
-        // Cache stores the resolved API key (empty string means resolution failed)
+        // Cache stores the resolved API key result
         if let Some(cached) = with_cache(|c| c.zai_get()) {
             debug_cred!("Returning cached Z.ai API key for has_api_key check");
-            return !cached.is_empty();
+            return cached.is_ok();
         }
 
         // Cache miss - need to read credential
@@ -337,9 +333,9 @@ impl CredentialManager {
         // This will cache the resolved result (or empty string on failure)
         match Self::zai_read_api_key() {
             Ok(_) => true,
-            Err(_) => {
-                // Cache the failure as empty string to avoid repeated resolution attempts
-                with_cache(|c| c.zai_set(String::new()));
+            Err(e) => {
+                // Cache the failure to avoid repeated resolution attempts
+                with_cache(|c| c.zai_set(Err(e.to_string())));
                 false
             }
         }

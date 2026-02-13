@@ -1,41 +1,42 @@
 {
-	"$schema": "https://schema.tauri.app/config/2.0.0",
-	"productName": "Usage Bar",
-	"version": "1.0.0",
-	"identifier": "com.usage-bar.windows",
-	"build": {
-		"beforeDevCommand": "bun run vite:dev",
-		"beforeBuildCommand": "bun run vite:build",
-		"frontendDist": "../dist",
-		"devUrl": "http://localhost:1421"
-	},
-	"app": {
-		"withGlobalTauri": true,
-		"windows": [
-			{
-				"title": "Usage Bar",
-				"label": "main",
-				"width": 320,
-				"height": 560,
-				"minWidth": 320,
-				"minHeight": 560,
-				"maxWidth": 480,
-				"maxHeight": 800,
-				"resizable": true,
-				"decorations": true,
-				"alwaysOnTop": true,
-				"skipTaskbar": false,
-				"visible": false,
-				"backgroundColor": "#0a0a0a"
-			}
-		],
-		"security": {
-			"csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost"
-		}
-	},
-	"bundle": {
-		"active": true,
-		"icon": ["icons/icon.ico"],
-		"targets": "all"
-	}
+  "$schema": "https://schema.tauri.app/config/2.0.0",
+  "productName": "Usage Bar",
+  "version": "1.0.0",
+  "identifier": "com.usage-bar.windows",
+  "build": {
+    "beforeDevCommand": "bun run vite:dev",
+    "beforeBuildCommand": "bun run vite:build",
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1421"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "Usage Bar",
+        "label": "main",
+        "width": 320,
+        "height": 560,
+        "minWidth": 320,
+        "maximizable": false,
+        "minHeight": 560,
+        "maxWidth": 480,
+        "maxHeight": 800,
+        "resizable": true,
+        "decorations": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": false,
+        "visible": false,
+        "backgroundColor": "#0a0a0a"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "icon": ["icons/icon.ico"],
+    "targets": "all"
+  }
 }

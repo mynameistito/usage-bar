@@ -136,8 +136,9 @@ impl ZaiService {
             return Err(anyhow!("API key cannot be empty"));
         }
 
-        // Skip validation for environment variable syntax
-        if api_key.starts_with("{env:") || api_key.starts_with("$env:") {
+        // Skip validation for environment variable syntax (case-insensitive)
+        let api_key_lower = api_key.to_lowercase();
+        if api_key_lower.starts_with("{env:") || api_key_lower.starts_with("$env:") {
             debug_zai!("Skipping validation for env var reference");
             return Ok(());
         }

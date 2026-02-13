@@ -181,7 +181,8 @@ async function openSettings(): Promise<void> {
 
     // Hide content when settings opens
     if (content) {
-      content.style.visibility = "hidden";
+      content.dataset.originalDisplay = content.style.display || "flex";
+      content.style.display = "none";
     }
 
     app?.appendChild(settingsView);
@@ -200,7 +201,8 @@ function closeSettings(): void {
 
   // Show content immediately when close starts
   if (content) {
-    content.style.visibility = "visible";
+    content.style.display = content.dataset.originalDisplay || "flex";
+    delete content.dataset.originalDisplay;
   }
 
   settingsView.style.animation = "settings-slide-out 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards";
