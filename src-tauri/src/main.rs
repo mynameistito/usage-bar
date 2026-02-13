@@ -91,15 +91,15 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            commands::get_claude_usage,
-            commands::get_claude_tier,
-            commands::get_zai_usage,
+            commands::claude_get_usage,
+            commands::claude_get_tier,
+            commands::zai_get_usage,
             commands::get_zai_tier,
             commands::refresh_zai_usage,
-            commands::check_zai_api_key,
+            commands::zai_check_api_key,
             commands::validate_zai_api_key,
-            commands::save_zai_api_key,
-            commands::delete_zai_api_key,
+            commands::zai_save_api_key,
+            commands::zai_delete_api_key,
             commands::quit_app,
             commands::refresh_all,
         ])

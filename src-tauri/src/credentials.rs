@@ -162,7 +162,7 @@ impl CredentialManager {
         Self::write_credential(Self::ZAI_TARGET, api_key)
     }
 
-    pub fn delete_zai_api_key() -> Result<()> {
+    pub fn zai_delete_api_key() -> Result<()> {
         Self::delete_credential(Self::ZAI_TARGET)
     }
 

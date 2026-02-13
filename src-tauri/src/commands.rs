@@ -8,11 +8,11 @@ use tauri::{AppHandle, State};
 use crate::{debug_cache, debug_claude, debug_cred, debug_zai};
 
 #[tauri::command]
-pub async fn get_claude_usage(
+pub async fn claude_get_usage(
     client: State<'_, HttpClient>,
     cache: State<'_, ClaudeUsageCache>,
 ) -> Result<crate::models::UsageData, String> {
-    debug_claude!("get_claude_usage called");
+    debug_claude!("claude_get_usage called");
 
     // Check cache first
     if let Some(data) = cache.0.get() {
@@ -44,10 +44,10 @@ pub async fn get_claude_usage(
 }
 
 #[tauri::command]
-pub async fn get_claude_tier(
+pub async fn claude_get_tier(
     client: State<'_, HttpClient>,
 ) -> Result<crate::models::ClaudeTierData, String> {
-    debug_claude!("get_claude_tier called");
+    debug_claude!("claude_get_tier called");
     let client = Arc::clone(&client.0);
 
     debug_claude!("Calling check_and_refresh_if_needed for tier...");
@@ -71,11 +71,11 @@ pub async fn get_claude_tier(
 }
 
 #[tauri::command]
-pub async fn get_zai_usage(
+pub async fn zai_get_usage(
     client: State<'_, HttpClient>,
     cache: State<'_, ZaiUsageCache>,
 ) -> Result<crate::models::ZaiUsageData, String> {
-    debug_zai!("get_zai_usage called");
+    debug_zai!("zai_get_usage called");
 
     // Check cache first
     if let Some(data) = cache.0.get() {
@@ -85,7 +85,7 @@ pub async fn get_zai_usage(
 
     let client = Arc::clone(&client.0);
 
-    if !ZaiService::has_api_key() {
+    if !ZaiService::zai_has_api_key() {
         debug_zai!("Z.ai API key not configured");
         return Err("Z.ai API key not configured".to_string());
     }
@@ -116,7 +116,7 @@ pub async fn refresh_zai_usage(
 
     let client = Arc::clone(&client.0);
 
-    if !ZaiService::has_api_key() {
+    if !ZaiService::zai_has_api_key() {
         debug_zai!("Z.ai API key not configured");
         return Err("Z.ai API key not configured".to_string());
     }
@@ -141,7 +141,7 @@ pub async fn get_zai_tier(
 ) -> Result<crate::models::ZaiTierData, String> {
     debug_zai!("get_zai_tier called");
 
-    if !ZaiService::has_api_key() {
+    if !ZaiService::zai_has_api_key() {
         debug_zai!("Z.ai API key not configured");
         return Err("Z.ai API key not configured".to_string());
     }
@@ -162,9 +162,9 @@ pub async fn get_zai_tier(
 }
 
 #[tauri::command]
-pub fn check_zai_api_key() -> bool {
-    debug_cred!("check_zai_api_key called");
-    let has_key = ZaiService::has_api_key();
+pub fn zai_check_api_key() -> bool {
+    debug_cred!("zai_check_api_key called");
+    let has_key = ZaiService::zai_has_api_key();
     debug_cred!("has_api_key: {}", has_key);
     has_key
 }
@@ -182,13 +182,13 @@ pub async fn validate_zai_api_key(
 }
 
 #[tauri::command]
-pub fn save_zai_api_key(api_key: String) -> Result<(), String> {
+pub fn zai_save_api_key(api_key: String) -> Result<(), String> {
     CredentialManager::write_zai_api_key(&api_key).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn delete_zai_api_key() -> Result<(), String> {
-    CredentialManager::delete_zai_api_key().map_err(|e| e.to_string())
+pub fn zai_delete_api_key() -> Result<(), String> {
+    CredentialManager::zai_delete_api_key().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -226,7 +226,7 @@ pub async fn refresh_all(
             }
         },
         async {
-            if ZaiService::has_api_key() {
+            if ZaiService::zai_has_api_key() {
                 match ZaiService::fetch_quota(client.clone()).await {
                     Ok(data) => {
                         zai_cache.0.set(data.clone());

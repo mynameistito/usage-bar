@@ -111,7 +111,7 @@ impl ZaiService {
         })
     }
 
-    pub fn has_api_key() -> bool {
+    pub fn zai_has_api_key() -> bool {
         CredentialManager::has_zai_api_key()
     }
 

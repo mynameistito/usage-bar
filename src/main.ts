@@ -71,16 +71,16 @@ async function loadContent() {
     // Register callbacks with ZaiSettings FIRST, before any Z.ai operations
     setZaiCallbacks({
       checkZaiApiKey: async () => {
-        return await invoke<boolean>("check_zai_api_key");
+        return await invoke<boolean>("zai_check_api_key");
       },
       validateZaiApiKey: async (apiKey: string) => {
         await invoke("validate_zai_api_key", { apiKey });
       },
       saveZaiApiKey: async (apiKey: string) => {
-        await invoke("save_zai_api_key", { apiKey });
+        await invoke("zai_save_api_key", { apiKey });
       },
       deleteZaiApiKey: async () => {
-        await invoke("delete_zai_api_key");
+        await invoke("zai_delete_api_key");
       },
       refreshZaiUI: refreshZaiUI,
     });
@@ -170,7 +170,7 @@ function switchTab(tab: "claude" | "zai") {
 
 async function fetchClaudeTier() {
   try {
-    const data = await invoke<ClaudeTierData>("get_claude_tier");
+    const data = await invoke<ClaudeTierData>("claude_get_tier");
     const tierEl = document.getElementById("claude-tier");
     if (tierEl) {
       tierEl.textContent = data.plan_name;
@@ -235,7 +235,7 @@ async function fetchClaudeUsage() {
   if (!errorContainer || !dataContainer || !errorMessage) return;
 
   try {
-    const data = await invoke<ClaudeUsageData>("get_claude_usage");
+    const data = await invoke<ClaudeUsageData>("claude_get_usage");
 
     errorContainer.style.display = "none";
     dataContainer.style.display = "block";
@@ -308,7 +308,7 @@ async function fetchZaiUsage(forceRefresh = false): Promise<void> {
   if (!zaiView || !errorContainer || !dataContainer || !errorMessage) return;
 
   try {
-    const command = forceRefresh ? "refresh_zai_usage" : "get_zai_usage";
+    const command = forceRefresh ? "refresh_zai_usage" : "zai_get_usage";
     const data = await invoke<ZaiUsageData>(command);
 
     if (!data) return;
