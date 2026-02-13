@@ -1,0 +1,12 @@
+# Fast linking configuration for Windows
+# Profile settings are now in Cargo.toml
+
+[build]
+rustflags = ["-C", "codegen-units=16"]
+
+# Target-specific optimizations
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-cpu=native", "-C", "codegen-units=16"]
+
+[target.aarch64-pc-windows-msvc]
+rustflags = ["-C", "codegen-units=16"]
