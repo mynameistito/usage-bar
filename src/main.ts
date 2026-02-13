@@ -138,7 +138,10 @@ async function openSettings(): Promise<void> {
 
 function closeSettings(): void {
   const settingsView = document.getElementById("settings-view");
-  settingsView?.remove();
+  if (!settingsView) return;
+
+  settingsView.style.animation = "settings-slide-out 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards";
+  settingsView.addEventListener("animationend", () => settingsView.remove(), { once: true });
 }
 
 async function loadContent() {
