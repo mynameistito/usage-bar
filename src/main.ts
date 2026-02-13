@@ -34,6 +34,11 @@ function updateZaiConnectionBadge(hasApiKey: boolean): void {
     ? "zai-header-badge zai-header-badge-connected"
     : "zai-header-badge zai-header-badge-disconnected";
 
+  if (!hasApiKey) {
+    badge.style.cursor = "pointer";
+    badge.addEventListener("click", () => openSettings());
+  }
+
   const icon = document.createElement("span");
   icon.className = "zai-header-badge-icon";
 
@@ -121,6 +126,7 @@ async function openSettings(): Promise<void> {
 
   try {
   const hasZaiApiKey = await checkZaiApiKey();
+  const content = document.getElementById("content");
 
   const settingsView = createSettingsView({
     checkZaiApiKey,
@@ -138,6 +144,12 @@ async function openSettings(): Promise<void> {
   }, hasZaiApiKey);
 
   const app = document.getElementById("app");
+
+  // Hide content when settings opens
+  if (content) {
+    content.style.visibility = "hidden";
+  }
+
   app?.appendChild(settingsView);
   } finally {
     settingsOpening = false;
@@ -146,9 +158,16 @@ async function openSettings(): Promise<void> {
 
 function closeSettings(): void {
   const settingsView = document.getElementById("settings-view");
+  const content = document.getElementById("content");
+
   if (!settingsView) return;
 
-  settingsView.style.animation = "settings-slide-out 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards";
+  // Show content immediately when close starts
+  if (content) {
+    content.style.visibility = "visible";
+  }
+
+  settingsView.style.animation = "settings-slide-out 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards";
 
   const cleanup = () => {
     settingsView.remove();
@@ -187,6 +206,11 @@ async function loadContent() {
 
     startPolling();
     startTimestampUpdater();
+
+    // Show window after content is loaded
+    const { getCurrentWindow } = await import("@tauri-apps/api/window");
+    const window = getCurrentWindow();
+    await window.show();
   } catch (error) {
     console.error("Failed to load content:", error);
     loading.innerHTML = "<span>Failed to load</span>";

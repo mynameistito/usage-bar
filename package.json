@@ -16,6 +16,7 @@
     "dev": "tauri dev",
     "vite:dev": "vite",
     "vite:build": "vite build",
+    "typecheck": "tsc --noEmit",
     "build": "bun run generate-icon && tauri build",
     "build:nsis": "bun run generate-icon && tauri build --bundles nsis",
     "build:msi": "bun run generate-icon && tauri build --bundles msi",

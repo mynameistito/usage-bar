@@ -84,6 +84,24 @@ pub struct CredentialManager;
 impl CredentialManager {
     const ZAI_TARGET: &'static str = "usage-bar-zai-credentials";
 
+    /// Resolve {env:varname} syntax to environment variable value
+    /// Returns the input string unchanged if it doesn't match the pattern
+    fn resolve_env_reference(input: &str) -> Result<String> {
+        // Case-insensitive check for {env:varname} or {ENV:varname}
+        let input_lower = input.to_lowercase();
+        if let Some(rest) = input_lower.strip_prefix("{env:") {
+            if rest.ends_with('}') {
+                // Get the original casing version of var_name from the original input
+                let original_var_name = &input[6..(input.len() - 1)]; // Skip "{env:" and "}"
+                debug_cred!("Resolving env variable: {}", original_var_name);
+                return std::env::var(original_var_name).map_err(|_| {
+                    anyhow!("Environment variable '{}' not found", original_var_name)
+                });
+            }
+        }
+        Ok(input.to_string())
+    }
+
     // ── Claude credentials (file-based: ~/.claude/.credentials.json) ──
 
     fn claude_credentials_path() -> Result<PathBuf> {
@@ -242,8 +260,11 @@ impl CredentialManager {
         // Now CredFree is called inside read_credential, which is safe
         // because we've already cloned the data we need
 
-        let key =
+        let key_str =
             String::from_utf8(blob_vec).map_err(|e| anyhow!("Failed to decode API key: {}", e))?;
+
+        // Resolve environment variable if using {env:varname} syntax
+        let key = Self::resolve_env_reference(&key_str)?;
 
         // Cache the result
         with_cache(|c| c.zai_set(key.clone()));

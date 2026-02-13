@@ -791,7 +791,7 @@
 
 /* --- Settings View --- */
 .settings-view {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -800,28 +800,24 @@
   z-index: 100;
   display: flex;
   flex-direction: column;
-  animation: settings-slide-in 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: settings-slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes settings-slide-in {
   0% {
-    opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(100%);
   }
   100% {
-    opacity: 1;
     transform: translateY(0);
   }
 }
 
 @keyframes settings-slide-out {
   0% {
-    opacity: 1;
     transform: translateY(0);
   }
   100% {
-    opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(100%);
   }
 }
 
