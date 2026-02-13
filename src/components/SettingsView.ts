@@ -232,8 +232,8 @@ function createZaiInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 	link.textContent = "z.ai/manage-apikey";
 	link.addEventListener("click", async (e) => {
 		e.preventDefault();
-		const { openUrl } = await import("@tauri-apps/plugin-opener");
-		await openUrl("https://z.ai/manage-apikey/apikey-list");
+		const { invoke } = await import("@tauri-apps/api/core");
+		await invoke("open_url", { url: "https://z.ai/manage-apikey/apikey-list" });
 	});
 	desc.appendChild(link);
 

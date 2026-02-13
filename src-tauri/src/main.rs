@@ -31,7 +31,6 @@ async fn main() -> anyhow::Result<()> {
     debug_app!("Usage Bar starting...");
 
     tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             debug_app!("Initializing application state");
 
@@ -110,6 +109,7 @@ async fn main() -> anyhow::Result<()> {
             commands::zai_delete_api_key,
             commands::quit_app,
             commands::refresh_all,
+            commands::open_url,
         ])
         .run(tauri::generate_context!())
         .map_err(|e| {

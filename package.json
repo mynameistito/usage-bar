@@ -12,6 +12,7 @@
     "cargo:clean": "cd src-tauri && cargo clean",
     "cargo:fmt": "cd src-tauri && cargo fmt",
     "cargo:tree": "cd src-tauri && cargo tree",
+    "cargo:precheck": "cd src-tauri && cargo check && cargo clippy && cargo fmt --check",
     "tauri": "tauri",
     "dev": "tauri dev",
     "vite:dev": "vite",

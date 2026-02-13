@@ -358,6 +358,33 @@ pub fn zai_delete_api_key() -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn open_url(url: String) -> Result<(), String> {
+    use std::ffi::OsStr;
+    use std::os::windows::ffi::OsStrExt;
+    use windows::core::PCWSTR;
+    use windows::Win32::System::Com::{CoInitializeEx, COINIT_MULTITHREADED};
+    use windows::Win32::UI::Shell::ShellExecuteW;
+    use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
+
+    unsafe {
+        let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
+
+        let url_wide: Vec<u16> = OsStr::new(&url).encode_wide().chain(Some(0)).collect();
+        let operation_wide: Vec<u16> = OsStr::new("open").encode_wide().chain(Some(0)).collect();
+
+        ShellExecuteW(
+            None,
+            PCWSTR(operation_wide.as_ptr()),
+            PCWSTR(url_wide.as_ptr()),
+            None,
+            None,
+            SW_SHOW,
+        );
+    }
+    Ok(())
+}
+
+#[tauri::command]
 pub fn quit_app(app: AppHandle) {
     app.exit(0);
 }
