@@ -274,10 +274,6 @@ function createAboutSection(): HTMLElement {
 	const section = document.createElement("div");
 	section.className = "settings-section";
 
-	const sectionTitle = document.createElement("div");
-	sectionTitle.className = "settings-section-title";
-	sectionTitle.textContent = "About";
-
 	const appName = document.createElement("div");
 	appName.className = "settings-about-name";
 	appName.textContent = "Usage Bar";
@@ -286,7 +282,6 @@ function createAboutSection(): HTMLElement {
 	version.className = "settings-about-version";
 	version.textContent = `Version ${APP_VERSION}`;
 
-	section.appendChild(sectionTitle);
 	section.appendChild(appName);
 	section.appendChild(version);
 
