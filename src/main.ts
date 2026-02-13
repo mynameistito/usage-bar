@@ -75,8 +75,6 @@ function updateZaiConnectionBadge(hasApiKey: boolean): void {
     badge.appendChild(icon);
   }
 
-  icon.innerHTML = "";
-
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("width", "12");
   svg.setAttribute("height", "12");
@@ -107,7 +105,7 @@ function updateZaiConnectionBadge(hasApiKey: boolean): void {
     svg.appendChild(line2);
   }
 
-  icon.appendChild(svg);
+  icon.replaceChildren(svg);
 
   // Update label
   let label = badge.querySelector(".zai-header-badge-label") as HTMLElement;
