@@ -66,7 +66,7 @@ impl ClaudeService {
         debug_claude!("fetch_usage_and_tier: Starting request");
         debug_net!("GET {}", USAGE_API_URL);
 
-        let token = CredentialManager::read_claude_access_token()?;
+        let token = CredentialManager::claude_read_access_token()?;
         debug_claude!("Using access token (expires_at: N/A)");
 
         let response = client
@@ -82,7 +82,7 @@ impl ClaudeService {
             StatusCode::UNAUTHORIZED => {
                 debug_claude!("Unauthorized: Attempting token refresh");
                 Self::refresh_token(client.clone()).await?;
-                let token = CredentialManager::read_claude_access_token()?;
+                let token = CredentialManager::claude_read_access_token()?;
                 let retry_response = client
                     .get(USAGE_API_URL)
                     .header("Authorization", format!("Bearer {}", token))
@@ -146,7 +146,7 @@ impl ClaudeService {
         debug_claude!("refresh_token: Starting token refresh");
         debug_net!("POST {}", TOKEN_REFRESH_URL);
 
-        let credentials = CredentialManager::read_claude_credentials()?;
+        let credentials = CredentialManager::claude_read_credentials()?;
 
         let params = [
             ("grant_type", "refresh_token"),
@@ -179,7 +179,7 @@ impl ClaudeService {
             refresh_response.expires_in * 1000
         );
 
-        CredentialManager::update_claude_token(
+        CredentialManager::claude_update_token(
             &refresh_response.access_token,
             &refresh_response.refresh_token,
             expires_at,
@@ -189,7 +189,7 @@ impl ClaudeService {
     }
 
     pub fn is_token_expired() -> bool {
-        match CredentialManager::read_claude_credentials() {
+        match CredentialManager::claude_read_credentials() {
             Ok(credentials) => {
                 if let Some(expires_at) = credentials.claude_ai_oauth.expires_at {
                     match Self::now_millis() {

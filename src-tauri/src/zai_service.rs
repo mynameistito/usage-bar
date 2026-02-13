@@ -15,7 +15,7 @@ impl ZaiService {
         debug_zai!("fetch_quota: Starting request");
         debug_net!("GET {}", ZAI_API_URL);
 
-        let api_key = CredentialManager::read_zai_api_key()?;
+        let api_key = CredentialManager::zai_read_api_key()?;
         debug_zai!("Using API key: ***REDACTED***");
 
         let response = client
@@ -112,7 +112,7 @@ impl ZaiService {
     }
 
     pub fn zai_has_api_key() -> bool {
-        CredentialManager::has_zai_api_key()
+        CredentialManager::zai_has_api_key()
     }
 
     pub async fn validate_api_key(client: Arc<reqwest::Client>, api_key: &str) -> Result<()> {

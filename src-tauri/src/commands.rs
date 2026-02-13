@@ -8,6 +8,43 @@ use tauri::{AppHandle, State};
 use crate::{debug_cache, debug_claude, debug_cred, debug_zai};
 
 #[tauri::command]
+pub async fn claude_get_all(
+    client: State<'_, HttpClient>,
+    usage_cache: State<'_, ClaudeUsageCache>,
+    tier_cache: State<'_, ClaudeTierCache>,
+) -> Result<(crate::models::UsageData, crate::models::ClaudeTierData), String> {
+    debug_claude!("claude_get_all called");
+
+    let client = Arc::clone(&client.0);
+
+    if let (Some(usage), Some(tier)) = (usage_cache.0.get(), tier_cache.0.get()) {
+        debug_cache!("Returning cached Claude usage and tier data");
+        return Ok((usage, tier));
+    }
+
+    debug_claude!("Calling check_and_refresh_if_needed...");
+    if let Err(e) = ClaudeService::check_and_refresh_if_needed(client.clone()).await {
+        debug_claude!("check_and_refresh_if_needed failed: {}", e);
+        return Err(e.to_string());
+    }
+    debug_claude!("check_and_refresh_if_needed succeeded");
+
+    debug_claude!("Calling fetch_usage_and_tier...");
+    match ClaudeService::fetch_usage_and_tier(client).await {
+        Ok((usage_data, tier_data)) => {
+            debug_claude!("fetch_usage_and_tier succeeded, caching results");
+            usage_cache.0.set(usage_data.clone());
+            tier_cache.0.set(tier_data.clone());
+            Ok((usage_data, tier_data))
+        }
+        Err(e) => {
+            debug_claude!("fetch_usage_and_tier failed: {}", e);
+            Err(e.to_string())
+        }
+    }
+}
+
+#[tauri::command]
 pub async fn claude_get_usage(
     client: State<'_, HttpClient>,
     usage_cache: State<'_, ClaudeUsageCache>,
@@ -88,6 +125,48 @@ pub async fn claude_get_tier(
 }
 
 #[tauri::command]
+pub async fn zai_get_all(
+    client: State<'_, HttpClient>,
+    usage_cache: State<'_, ZaiUsageCache>,
+    tier_cache: State<'_, ZaiTierCache>,
+) -> Result<(crate::models::ZaiUsageData, crate::models::ZaiTierData), String> {
+    debug_zai!("zai_get_all called");
+
+    let client = Arc::clone(&client.0);
+
+    if !ZaiService::zai_has_api_key() {
+        debug_zai!("Z.ai API key not configured");
+        return Err("Z.ai API key not configured".to_string());
+    }
+
+    if let (Some(usage), Some(tier)) = (usage_cache.0.get(), tier_cache.0.get()) {
+        debug_cache!("Returning cached Z.ai usage and tier data");
+        return Ok((usage, tier));
+    }
+
+    debug_zai!("Calling ZaiService::fetch_quota...");
+    match ZaiService::fetch_quota(client).await {
+        Ok(data) => {
+            debug_zai!("fetch_quota succeeded, caching result");
+            let tier_name = data
+                .tier_name
+                .clone()
+                .unwrap_or_else(|| "Unknown".to_string());
+            let tier_data = crate::models::ZaiTierData {
+                plan_name: tier_name.clone(),
+            };
+            usage_cache.0.set(data.clone());
+            tier_cache.0.set(tier_data.clone());
+            Ok((data, tier_data))
+        }
+        Err(e) => {
+            debug_zai!("fetch_quota failed: {}", e);
+            Err(e.to_string())
+        }
+    }
+}
+
+#[tauri::command]
 pub async fn zai_get_usage(
     client: State<'_, HttpClient>,
     usage_cache: State<'_, ZaiUsageCache>,
@@ -129,12 +208,12 @@ pub async fn zai_get_usage(
 }
 
 #[tauri::command]
-pub async fn refresh_zai_usage(
+pub async fn zai_refresh_usage(
     client: State<'_, HttpClient>,
     usage_cache: State<'_, ZaiUsageCache>,
     tier_cache: State<'_, ZaiTierCache>,
 ) -> Result<crate::models::ZaiUsageData, String> {
-    debug_zai!("refresh_zai_usage called (force refresh)");
+    debug_zai!("zai_refresh_usage called (force refresh)");
 
     // Clear caches to force a fresh fetch
     usage_cache.0.clear();
@@ -168,12 +247,12 @@ pub async fn refresh_zai_usage(
 }
 
 #[tauri::command]
-pub async fn get_zai_tier(
+pub async fn zai_get_tier(
     client: State<'_, HttpClient>,
     usage_cache: State<'_, ZaiUsageCache>,
     tier_cache: State<'_, ZaiTierCache>,
 ) -> Result<crate::models::ZaiTierData, String> {
-    debug_zai!("get_zai_tier called");
+    debug_zai!("zai_get_tier called");
 
     // Check tier cache first
     if let Some(data) = tier_cache.0.get() {
@@ -218,11 +297,11 @@ pub fn zai_check_api_key() -> bool {
 }
 
 #[tauri::command]
-pub async fn validate_zai_api_key(
+pub async fn zai_validate_api_key(
     client: State<'_, HttpClient>,
     api_key: String,
 ) -> Result<(), String> {
-    debug_zai!("validate_zai_api_key called");
+    debug_zai!("zai_validate_api_key called");
     let client = Arc::clone(&client.0);
     ZaiService::validate_api_key(client, &api_key)
         .await
@@ -231,7 +310,7 @@ pub async fn validate_zai_api_key(
 
 #[tauri::command]
 pub fn zai_save_api_key(api_key: String) -> Result<(), String> {
-    CredentialManager::write_zai_api_key(&api_key).map_err(|e| e.to_string())
+    CredentialManager::zai_write_api_key(&api_key).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

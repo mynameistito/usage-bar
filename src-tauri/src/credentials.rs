@@ -27,7 +27,7 @@ impl CredentialCache {
         }
     }
 
-    fn get_claude(&self) -> Option<ClaudeOAuthCredentials> {
+    fn claude_get(&self) -> Option<ClaudeOAuthCredentials> {
         self.claude_credentials
             .as_ref()
             .and_then(|(instant, creds)| {
@@ -39,15 +39,15 @@ impl CredentialCache {
             })
     }
 
-    fn set_claude(&mut self, creds: ClaudeOAuthCredentials) {
+    fn claude_set(&mut self, creds: ClaudeOAuthCredentials) {
         self.claude_credentials = Some((Instant::now(), creds));
     }
 
-    fn invalidate_claude(&mut self) {
+    fn claude_invalidate(&mut self) {
         self.claude_credentials = None;
     }
 
-    fn get_zai(&self) -> Option<String> {
+    fn zai_get(&self) -> Option<String> {
         self.zai_api_key.as_ref().and_then(|(instant, key)| {
             if instant.elapsed() < Self::TTL {
                 Some(key.clone())
@@ -57,11 +57,11 @@ impl CredentialCache {
         })
     }
 
-    fn set_zai(&mut self, key: String) {
+    fn zai_set(&mut self, key: String) {
         self.zai_api_key = Some((Instant::now(), key));
     }
 
-    fn invalidate_zai(&mut self) {
+    fn zai_invalidate(&mut self) {
         self.zai_api_key = None;
     }
 }
@@ -126,11 +126,11 @@ impl CredentialManager {
         }
     }
 
-    pub fn read_claude_credentials() -> Result<ClaudeOAuthCredentials> {
-        debug_cred!("read_claude_credentials called");
+    pub fn claude_read_credentials() -> Result<ClaudeOAuthCredentials> {
+        debug_cred!("claude_read_credentials called");
 
         // Check cache first
-        if let Some(cached) = with_cache(|c| c.get_claude()) {
+        if let Some(cached) = with_cache(|c| c.claude_get()) {
             debug_cred!("Returning cached Claude credentials");
             return Ok(cached);
         }
@@ -156,12 +156,12 @@ impl CredentialManager {
         debug_cred!("Successfully parsed credentials");
 
         // Cache the result
-        with_cache(|c| c.set_claude(credentials.clone()));
+        with_cache(|c| c.claude_set(credentials.clone()));
 
         Ok(credentials)
     }
 
-    pub fn write_claude_credentials(credentials: &ClaudeOAuthCredentials) -> Result<()> {
+    pub fn claude_write_credentials(credentials: &ClaudeOAuthCredentials) -> Result<()> {
         let path = Self::claude_credentials_path()?;
 
         // Read existing file to preserve fields we don't model (file belongs to Claude Code)
@@ -199,31 +199,31 @@ impl CredentialManager {
         })?;
 
         // Invalidate cache after writing new credentials
-        with_cache(|c| c.invalidate_claude());
+        with_cache(|c| c.claude_invalidate());
 
         Ok(())
     }
 
-    pub fn read_claude_access_token() -> Result<String> {
-        let credentials = Self::read_claude_credentials()?;
+    pub fn claude_read_access_token() -> Result<String> {
+        let credentials = Self::claude_read_credentials()?;
         Ok(credentials.claude_ai_oauth.access_token)
     }
 
-    pub fn update_claude_token(
+    pub fn claude_update_token(
         access_token: &str,
         refresh_token: &str,
         expires_at: i64,
     ) -> Result<()> {
-        let mut credentials = Self::read_claude_credentials()?;
+        let mut credentials = Self::claude_read_credentials()?;
         credentials.claude_ai_oauth.access_token = access_token.to_string();
         credentials.claude_ai_oauth.refresh_token = refresh_token.to_string();
         credentials.claude_ai_oauth.expires_at = Some(expires_at);
-        Self::write_claude_credentials(&credentials)
+        Self::claude_write_credentials(&credentials)
     }
 
-    pub fn read_zai_api_key() -> Result<String> {
+    pub fn zai_read_api_key() -> Result<String> {
         // Check cache first
-        if let Some(cached) = with_cache(|c| c.get_zai()) {
+        if let Some(cached) = with_cache(|c| c.zai_get()) {
             debug_cred!("Returning cached Z.ai API key");
             return Ok(cached);
         }
@@ -248,26 +248,26 @@ impl CredentialManager {
             String::from_utf8(blob_vec).map_err(|e| anyhow!("Failed to decode API key: {}", e))?;
 
         // Cache the result
-        with_cache(|c| c.set_zai(key.clone()));
+        with_cache(|c| c.zai_set(key.clone()));
 
         Ok(key)
     }
 
-    pub fn write_zai_api_key(api_key: &str) -> Result<()> {
+    pub fn zai_write_api_key(api_key: &str) -> Result<()> {
         let result = Self::write_credential(Self::ZAI_TARGET, api_key);
         // Invalidate cache after writing
-        with_cache(|c| c.invalidate_zai());
+        with_cache(|c| c.zai_invalidate());
         result
     }
 
     pub fn zai_delete_api_key() -> Result<()> {
         let result = Self::delete_credential(Self::ZAI_TARGET);
         // Invalidate cache after deleting
-        with_cache(|c| c.invalidate_zai());
+        with_cache(|c| c.zai_invalidate());
         result
     }
 
-    pub fn has_zai_api_key() -> bool {
+    pub fn zai_has_api_key() -> bool {
         Self::read_credential(Self::ZAI_TARGET).is_ok()
     }
 

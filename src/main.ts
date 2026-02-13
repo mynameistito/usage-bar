@@ -74,7 +74,7 @@ async function loadContent() {
         return await invoke<boolean>("zai_check_api_key");
       },
       validateZaiApiKey: async (apiKey: string) => {
-        await invoke("validate_zai_api_key", { apiKey });
+        await invoke("zai_validate_api_key", { apiKey });
       },
       saveZaiApiKey: async (apiKey: string) => {
         await invoke("zai_save_api_key", { apiKey });
@@ -85,17 +85,8 @@ async function loadContent() {
       refreshZaiUI: refreshZaiUI,
     });
 
-    // Fire-and-forget tier updates (don't await, don't block loading)
-    fetchClaudeTier().catch((err) =>
-      console.error("Claude tier fetch failed:", err),
-    );
-    fetchZaiTier().catch((err) =>
-      console.error("Z.ai tier fetch failed:", err),
-    );
-
-    await fetchClaudeUsage();
-    // fetchZaiUsage handles "not configured" gracefully - it won't throw
-    await fetchZaiUsage();
+    await fetchClaudeData();
+    await fetchZaiData();
 
     const hasZaiApiKey = await checkZaiApiKey();
     updateZaiHeaderState(hasZaiApiKey);
@@ -169,16 +160,87 @@ function switchTab(tab: "claude" | "zai") {
   }
 }
 
-async function fetchClaudeTier() {
+async function fetchClaudeData() {
   try {
-    const data = await invoke<ClaudeTierData>("claude_get_tier");
+    const [usageData, tierData] = await invoke<[ClaudeUsageData, ClaudeTierData]>("claude_get_all");
+
+    const errorContainer = document.getElementById("claude-error");
+    const dataContainer = document.getElementById("claude-data");
+    const errorMessage = document.getElementById("claude-error-message");
+
+    if (errorContainer) errorContainer.style.display = "none";
+    if (dataContainer) {
+      dataContainer.style.display = "block";
+      dataContainer.innerHTML = "";
+    }
+
+    const sessionGauge = createUsageGauge({
+      title: "Session",
+      utilization: usageData.five_hour_utilization / 100,
+      resetsAt: usageData.five_hour_resets_at,
+    });
+
+    const weeklyGauge = createUsageGauge({
+      title: "Weekly",
+      utilization: usageData.seven_day_utilization / 100,
+      resetsAt: usageData.seven_day_resets_at,
+    });
+
+    if (dataContainer) {
+      dataContainer.appendChild(sessionGauge);
+      dataContainer.appendChild(weeklyGauge);
+    }
+
+    const extraUsageLabel = document.getElementById("extra-usage-label");
+    const extraUsageValue = document.getElementById("extra-usage-value");
+    const extraUsageSection = document.getElementById("extra-usage-section");
+
+    if (extraUsageLabel && extraUsageValue && extraUsageSection) {
+      if (usageData.extra_usage_enabled) {
+        extraUsageSection.style.display = "block";
+        const monthlyLimit = usageData.extra_usage_monthly_limit ?? 0;
+        const usedCredits = usageData.extra_usage_used_credits ?? 0;
+        const utilization = usageData.extra_usage_utilization ?? 0;
+
+        extraUsageLabel.textContent = `This month: $${usedCredits.toFixed(2)} / $${monthlyLimit.toFixed(2)}`;
+        extraUsageValue.textContent = `${(utilization * 100).toFixed(0)}% used`;
+      } else {
+        extraUsageSection.style.display = "none";
+      }
+    }
+
     const tierEl = document.getElementById("claude-tier");
     if (tierEl) {
-      tierEl.textContent = data.plan_name;
-      tierEl.title = ""; // Clear any error tooltip
+      tierEl.textContent = tierData.plan_name;
+      tierEl.title = "";
     }
+
+    claudeLastRefresh = new Date();
+    updateTimestamp("claude");
   } catch (error) {
-    console.error("Failed to fetch Claude tier:", error);
+    const errorMsg = String(error);
+    const errorContainer = document.getElementById("claude-error");
+    const dataContainer = document.getElementById("claude-data");
+    const errorMessage = document.getElementById("claude-error-message");
+
+    if (errorContainer && errorMessage) {
+      if (
+        errorMsg.includes("Credential not found") ||
+        errorMsg.includes("not found")
+      ) {
+        errorMessage.textContent =
+          "Claude credentials not found. Please sign in to Claude Code first.";
+      } else if (errorMsg.includes("Access denied")) {
+        errorMessage.textContent = "Access denied -- check your permissions";
+      } else if (errorMsg.includes("Rate limited")) {
+        errorMessage.textContent = "Rate limited -- please wait and try again";
+      } else {
+        errorMessage.textContent = errorMsg;
+      }
+      errorContainer.style.display = "flex";
+    }
+    if (dataContainer) dataContainer.style.display = "none";
+
     const tierEl = document.getElementById("claude-tier");
     if (tierEl) {
       tierEl.textContent = "Error";
@@ -187,16 +249,63 @@ async function fetchClaudeTier() {
   }
 }
 
-async function fetchZaiTier() {
+async function fetchZaiData(forceRefresh = false) {
+  const zaiView = document.getElementById("zai-view");
+  const errorContainer = document.getElementById("zai-error");
+  const dataContainer = document.getElementById("zai-data");
+  const errorMessage = document.getElementById("zai-error-message");
+
+  if (!zaiView || !errorContainer || !dataContainer || !errorMessage) return;
+
   try {
-    const data = await invoke<ZaiTierData>("get_zai_tier");
+    const [usageData, tierData] = await invoke<[ZaiUsageData, ZaiTierData]>("zai_get_all");
+
+    if (!usageData) return;
+
+    errorContainer.style.display = "none";
+    dataContainer.style.display = "block";
+    dataContainer.innerHTML = "";
+
+    if (usageData.token_usage) {
+      const tokenGauge = createUsageGauge({
+        title: "Session",
+        utilization: usageData.token_usage.percentage / 100,
+        resetsAt: usageData.token_usage.resets_at
+          ? new Date(usageData.token_usage.resets_at).toISOString()
+          : "",
+      });
+      dataContainer.appendChild(tokenGauge);
+    }
+
+    if (usageData.mcp_usage) {
+      const mcpGauge = createMcpUsageGauge({
+        title: "MCP Usage (Monthly)",
+        percentage: usageData.mcp_usage.percentage,
+        used: usageData.mcp_usage.used,
+        total: usageData.mcp_usage.total,
+      });
+      dataContainer.appendChild(mcpGauge);
+    }
+
     const tierEl = document.getElementById("zai-tier");
     if (tierEl) {
-      tierEl.textContent = data.plan_name;
-      tierEl.title = ""; // Clear any error tooltip
+      tierEl.textContent = tierData.plan_name;
+      tierEl.title = "";
     }
+
+    zaiLastRefresh = new Date();
+    updateTimestamp("zai");
   } catch (error) {
-    console.error("Failed to fetch Z.ai tier:", error);
+    const errorMsg = String(error);
+    if (errorMsg.includes("not configured")) {
+      dataContainer.style.display = "none";
+      errorContainer.style.display = "none";
+    } else {
+      errorMessage.textContent = errorMsg;
+      errorContainer.style.display = "flex";
+      dataContainer.style.display = "none";
+    }
+
     const tierEl = document.getElementById("zai-tier");
     if (tierEl) {
       tierEl.textContent = "Error";
@@ -223,9 +332,7 @@ async function refreshZaiUI(): Promise<void> {
     zaiSettingsEl.replaceWith(settingsElement);
   }
 
-  // Fetch usage data with force refresh to bypass cache
-  await fetchZaiUsage(true);
-  await fetchZaiTier();
+  await fetchZaiData();
 }
 
 async function fetchClaudeUsage() {
@@ -309,7 +416,7 @@ async function fetchZaiUsage(forceRefresh = false): Promise<void> {
   if (!zaiView || !errorContainer || !dataContainer || !errorMessage) return;
 
   try {
-    const command = forceRefresh ? "refresh_zai_usage" : "zai_get_usage";
+    const command = forceRefresh ? "zai_refresh_usage" : "zai_get_usage";
     const data = await invoke<ZaiUsageData>(command);
 
     if (!data) return;
@@ -390,8 +497,8 @@ function startTimestampUpdater() {
 
 async function handleRefresh() {
   try {
-    await fetchClaudeUsage();
-    await fetchZaiUsage();
+    await fetchClaudeData();
+    await fetchZaiData();
   } catch (error) {
     console.error("Failed to refresh:", error);
   }
@@ -402,10 +509,8 @@ function startPolling() {
 
   pollingTimer = window.setInterval(async () => {
     try {
-      fetchClaudeTier(); // fire-and-forget
-      fetchZaiTier(); // fire-and-forget
-      await fetchClaudeUsage();
-      await fetchZaiUsage();
+      await fetchClaudeData();
+      await fetchZaiData();
     } catch (error) {
       console.error("Polling error:", error);
     }
