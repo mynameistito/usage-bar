@@ -29,16 +29,16 @@ pub async fn claude_get_all(
     }
     debug_claude!("check_and_refresh_if_needed succeeded");
 
-    debug_claude!("Calling fetch_usage_and_tier...");
-    match ClaudeService::fetch_usage_and_tier(client).await {
+    debug_claude!("Calling claude_fetch_usage_and_tier...");
+    match ClaudeService::claude_fetch_usage_and_tier(client).await {
         Ok((usage_data, tier_data)) => {
-            debug_claude!("fetch_usage_and_tier succeeded, caching results");
+            debug_claude!("claude_fetch_usage_and_tier succeeded, caching results");
             usage_cache.0.set(usage_data.clone());
             tier_cache.0.set(tier_data.clone());
             Ok((usage_data, tier_data))
         }
         Err(e) => {
-            debug_claude!("fetch_usage_and_tier failed: {}", e);
+            debug_claude!("claude_fetch_usage_and_tier failed: {}", e);
             Err(e.to_string())
         }
     }
@@ -67,16 +67,16 @@ pub async fn claude_get_usage(
     }
     debug_claude!("check_and_refresh_if_needed succeeded");
 
-    debug_claude!("Calling fetch_usage_and_tier...");
-    match ClaudeService::fetch_usage_and_tier(client).await {
+    debug_claude!("Calling claude_fetch_usage_and_tier...");
+    match ClaudeService::claude_fetch_usage_and_tier(client).await {
         Ok((usage_data, tier_data)) => {
-            debug_claude!("fetch_usage_and_tier succeeded, caching results");
+            debug_claude!("claude_fetch_usage_and_tier succeeded, caching results");
             usage_cache.0.set(usage_data.clone());
             tier_cache.0.set(tier_data);
             Ok(usage_data)
         }
         Err(e) => {
-            debug_claude!("fetch_usage_and_tier failed: {}", e);
+            debug_claude!("claude_fetch_usage_and_tier failed: {}", e);
             Err(e.to_string())
         }
     }
@@ -105,11 +105,11 @@ pub async fn claude_get_tier(
     }
     debug_claude!("check_and_refresh_if_needed succeeded");
 
-    debug_claude!("Calling fetch_usage_and_tier for tier...");
-    match ClaudeService::fetch_usage_and_tier(client).await {
+    debug_claude!("Calling claude_fetch_usage_and_tier for tier...");
+    match ClaudeService::claude_fetch_usage_and_tier(client).await {
         Ok((usage_data, tier_data)) => {
             debug_claude!(
-                "fetch_usage_and_tier succeeded: plan={}",
+                "claude_fetch_usage_and_tier succeeded: plan={}",
                 tier_data.plan_name
             );
             // Cache both results to avoid duplicate fetches
@@ -118,7 +118,7 @@ pub async fn claude_get_tier(
             Ok(tier_data)
         }
         Err(e) => {
-            debug_claude!("fetch_usage_and_tier failed: {}", e);
+            debug_claude!("claude_fetch_usage_and_tier failed: {}", e);
             Err(e.to_string())
         }
     }
@@ -144,10 +144,10 @@ pub async fn zai_get_all(
         return Ok((usage, tier));
     }
 
-    debug_zai!("Calling ZaiService::fetch_quota...");
-    match ZaiService::fetch_quota(client).await {
+    debug_zai!("Calling ZaiService::zai_fetch_quota...");
+    match ZaiService::zai_fetch_quota(client).await {
         Ok(data) => {
-            debug_zai!("fetch_quota succeeded, caching result");
+            debug_zai!("zai_fetch_quota succeeded, caching result");
             let tier_name = data
                 .tier_name
                 .clone()
@@ -160,7 +160,7 @@ pub async fn zai_get_all(
             Ok((data, tier_data))
         }
         Err(e) => {
-            debug_zai!("fetch_quota failed: {}", e);
+            debug_zai!("zai_fetch_quota failed: {}", e);
             Err(e.to_string())
         }
     }
@@ -187,10 +187,10 @@ pub async fn zai_get_usage(
         return Err("Z.ai API key not configured".to_string());
     }
 
-    debug_zai!("Calling ZaiService::fetch_quota...");
-    match ZaiService::fetch_quota(client).await {
+    debug_zai!("Calling ZaiService::zai_fetch_quota...");
+    match ZaiService::zai_fetch_quota(client).await {
         Ok(data) => {
-            debug_zai!("fetch_quota succeeded, caching result");
+            debug_zai!("zai_fetch_quota succeeded, caching result");
             // Also populate tier cache from the usage response
             if let Some(tier_name) = &data.tier_name {
                 tier_cache.0.set(crate::models::ZaiTierData {
@@ -201,7 +201,7 @@ pub async fn zai_get_usage(
             Ok(data)
         }
         Err(e) => {
-            debug_zai!("fetch_quota failed: {}", e);
+            debug_zai!("zai_fetch_quota failed: {}", e);
             Err(e.to_string())
         }
     }
@@ -226,10 +226,10 @@ pub async fn zai_refresh_usage(
         return Err("Z.ai API key not configured".to_string());
     }
 
-    debug_zai!("Calling ZaiService::fetch_quota...");
-    match ZaiService::fetch_quota(client).await {
+    debug_zai!("Calling ZaiService::zai_fetch_quota...");
+    match ZaiService::zai_fetch_quota(client).await {
         Ok(data) => {
-            debug_zai!("fetch_quota succeeded, caching result");
+            debug_zai!("zai_fetch_quota succeeded, caching result");
             // Also populate tier cache from the usage response
             if let Some(tier_name) = &data.tier_name {
                 tier_cache.0.set(crate::models::ZaiTierData {
@@ -240,7 +240,7 @@ pub async fn zai_refresh_usage(
             Ok(data)
         }
         Err(e) => {
-            debug_zai!("fetch_quota failed: {}", e);
+            debug_zai!("zai_fetch_quota failed: {}", e);
             Err(e.to_string())
         }
     }
@@ -267,14 +267,14 @@ pub async fn zai_get_tier(
 
     let client = Arc::clone(&client.0);
 
-    debug_zai!("Calling ZaiService::fetch_quota for tier...");
-    match ZaiService::fetch_quota(client).await {
+    debug_zai!("Calling ZaiService::zai_fetch_quota for tier...");
+    match ZaiService::zai_fetch_quota(client).await {
         Ok(data) => {
             let plan_name = data
                 .tier_name
                 .clone()
                 .unwrap_or_else(|| "Unknown".to_string());
-            debug_zai!("fetch_quota succeeded: plan={}", plan_name);
+            debug_zai!("zai_fetch_quota succeeded: plan={}", plan_name);
             // Cache both results to avoid duplicate fetches
             usage_cache.0.set(data);
             let tier_data = crate::models::ZaiTierData { plan_name };
@@ -282,7 +282,7 @@ pub async fn zai_get_tier(
             Ok(tier_data)
         }
         Err(e) => {
-            debug_zai!("fetch_quota failed: {}", e);
+            debug_zai!("zai_fetch_quota failed: {}", e);
             Err(e.to_string())
         }
     }
@@ -292,7 +292,7 @@ pub async fn zai_get_tier(
 pub fn zai_check_api_key() -> bool {
     debug_cred!("zai_check_api_key called");
     let has_key = ZaiService::zai_has_api_key();
-    debug_cred!("has_api_key: {}", has_key);
+    debug_cred!("[Z.ai] has_api_key: {}", has_key);
     has_key
 }
 
@@ -346,7 +346,7 @@ pub async fn refresh_all(
             if let Err(e) = ClaudeService::check_and_refresh_if_needed(client.clone()).await {
                 return Err(e.to_string());
             }
-            match ClaudeService::fetch_usage_and_tier(client.clone()).await {
+            match ClaudeService::claude_fetch_usage_and_tier(client.clone()).await {
                 Ok((usage_data, tier_data)) => {
                     claude_usage_cache.0.set(usage_data.clone());
                     claude_tier_cache.0.set(tier_data);
@@ -357,7 +357,7 @@ pub async fn refresh_all(
         },
         async {
             if ZaiService::zai_has_api_key() {
-                match ZaiService::fetch_quota(client.clone()).await {
+                match ZaiService::zai_fetch_quota(client.clone()).await {
                     Ok(data) => {
                         if let Some(tier_name) = &data.tier_name {
                             zai_tier_cache.0.set(crate::models::ZaiTierData {

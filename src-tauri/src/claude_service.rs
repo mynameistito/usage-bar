@@ -60,10 +60,10 @@ impl ClaudeService {
     /// Fetches both usage and tier data from a single API call.
     /// This is more efficient than calling fetch_usage and fetch_tier separately
     /// since they both hit the same endpoint.
-    pub async fn fetch_usage_and_tier(
+    pub async fn claude_fetch_usage_and_tier(
         client: Arc<reqwest::Client>,
     ) -> Result<(UsageData, ClaudeTierData)> {
-        debug_claude!("fetch_usage_and_tier: Starting request");
+        debug_claude!("claude_fetch_usage_and_tier: Starting request");
         debug_net!("GET {}", USAGE_API_URL);
 
         let token = CredentialManager::claude_read_access_token()?;

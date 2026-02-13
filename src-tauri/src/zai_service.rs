@@ -11,8 +11,8 @@ const ZAI_API_URL: &str = "https://api.z.ai/api/monitor/usage/quota/limit";
 pub struct ZaiService;
 
 impl ZaiService {
-    pub async fn fetch_quota(client: Arc<reqwest::Client>) -> Result<ZaiUsageData> {
-        debug_zai!("fetch_quota: Starting request");
+    pub async fn zai_fetch_quota(client: Arc<reqwest::Client>) -> Result<ZaiUsageData> {
+        debug_zai!("zai_fetch_quota: Starting request");
         debug_net!("GET {}", ZAI_API_URL);
 
         let api_key = CredentialManager::zai_read_api_key()?;
