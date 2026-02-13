@@ -52,16 +52,18 @@ async fn main() -> anyhow::Result<()> {
             // Get the window that was automatically created from tauri.conf.json
             if let Some(window) = app.get_webview_window("main") {
                 window.set_ignore_cursor_events(false)?;
-                
+
                 // Handle window close event for graceful shutdown
                 let window_clone = window.clone();
                 window.on_window_event(move |event| {
                     if let tauri::WindowEvent::CloseRequested { .. } = event {
                         debug_app!("Window close requested, exiting gracefully");
-                        let _ = window_clone.hide();
+                        if let Err(e) = window_clone.hide() {
+                            debug_error!("Failed to hide window: {}", e);
+                        }
                     }
                 });
-                
+
                 debug_app!("Main window configured");
             }
 
@@ -75,25 +77,23 @@ async fn main() -> anyhow::Result<()> {
                         &tauri::menu::MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?,
                     ],
                 )?)
-                .on_menu_event(
-                    move |app, event| match event.id.as_ref() {
-                        "open" => {
-                            if let Some(window) = app.get_webview_window("main") {
-                                if let Err(e) = window.show() {
-                                    debug_error!("Failed to show window: {}", e);
-                                }
-                                if let Err(e) = window.set_focus() {
-                                    debug_error!("Failed to focus window: {}", e);
-                                }
+                .on_menu_event(move |app, event| match event.id.as_ref() {
+                    "open" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            if let Err(e) = window.show() {
+                                debug_error!("Failed to show window: {}", e);
+                            }
+                            if let Err(e) = window.set_focus() {
+                                debug_error!("Failed to focus window: {}", e);
                             }
                         }
-                        "quit" => {
-                            debug_app!("Quit requested via tray menu");
-                            app.exit(0);
-                        }
-                        _ => {}
-                    },
-                )
+                    }
+                    "quit" => {
+                        debug_app!("Quit requested via tray menu");
+                        app.exit(0);
+                    }
+                    _ => {}
+                })
                 .icon(match app.default_window_icon() {
                     Some(icon) => icon.clone(),
                     None => return Err(anyhow::anyhow!("Missing window icon").into()),
