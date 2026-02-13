@@ -25,9 +25,11 @@ export function createSettingsView(callbacks: SettingsCallbacks, hasZaiApiKey: b
 	content.appendChild(zaiSection);
 
 	content.appendChild(createDivider());
-	content.appendChild(createAboutSection());
 
 	root.appendChild(content);
+
+	const aboutSection = createAboutSection();
+	root.appendChild(aboutSection);
 
 	return root;
 }
