@@ -115,7 +115,8 @@ let settingsOpening = false;
 
 async function openSettings(): Promise<void> {
   const existing = document.getElementById("settings-view");
-  if (existing || settingsOpening) return;
+  if (existing) return;
+  if (settingsOpening) return;
   settingsOpening = true;
 
   try {
