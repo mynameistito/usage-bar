@@ -367,16 +367,22 @@ async function fetchZaiData(forceRefresh = false) {
     if (errorMsg.includes("not configured")) {
       dataContainer.style.display = "none";
       errorContainer.style.display = "none";
+
+      const tierEl = document.getElementById("zai-tier");
+      if (tierEl) {
+        tierEl.textContent = "";
+        tierEl.title = "";
+      }
     } else {
       errorMessage.textContent = errorMsg;
       errorContainer.style.display = "flex";
       dataContainer.style.display = "none";
-    }
 
-    const tierEl = document.getElementById("zai-tier");
-    if (tierEl) {
-      tierEl.textContent = "Error";
-      tierEl.title = String(error);
+      const tierEl = document.getElementById("zai-tier");
+      if (tierEl) {
+        tierEl.textContent = "Error";
+        tierEl.title = String(error);
+      }
     }
   }
 }
