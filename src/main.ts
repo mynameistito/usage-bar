@@ -11,8 +11,25 @@ let claudeLastRefresh: Date | null = null;
 let zaiLastRefresh: Date | null = null;
 let timestampTimer: number | null = null;
 
+// Cache for API key check to avoid spamming logs
+let cachedZaiApiKeyCheck: boolean | null = null;
+let zaiApiKeyCacheTime: number = 0;
+const ZAI_CACHE_TTL = 5000; // 5 seconds
+
 async function checkZaiApiKey(): Promise<boolean> {
-  return await invoke<boolean>("zai_check_api_key");
+  const now = Date.now();
+  if (cachedZaiApiKeyCheck !== null && (now - zaiApiKeyCacheTime) < ZAI_CACHE_TTL) {
+    return cachedZaiApiKeyCheck;
+  }
+
+  cachedZaiApiKeyCheck = await invoke<boolean>("zai_check_api_key");
+  zaiApiKeyCacheTime = now;
+  return cachedZaiApiKeyCheck;
+}
+
+function invalidateZaiApiKeyCache(): void {
+  cachedZaiApiKeyCheck = null;
+  zaiApiKeyCacheTime = 0;
 }
 
 function updateZaiHeaderState(hasApiKey: boolean): void {
@@ -27,20 +44,38 @@ function updateZaiConnectionBadge(hasApiKey: boolean): void {
   const zaiConnectedStatus = document.getElementById("zai-connected-status");
   if (!zaiConnectedStatus) return;
 
-  zaiConnectedStatus.innerHTML = "";
+  // Check if badge exists, create if not
+  let badge = zaiConnectedStatus.querySelector(".zai-header-badge") as HTMLElement;
 
-  const badge = document.createElement("span");
+  if (!badge) {
+    badge = document.createElement("span");
+    badge.className = "zai-header-badge";
+    badge.style.cursor = "pointer";
+
+    // Attach click handler directly to the new badge element
+    badge.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openSettings().catch(console.error);
+    });
+
+    zaiConnectedStatus.appendChild(badge);
+  }
+
+  // Update badge classes without recreating element
   badge.className = hasApiKey
     ? "zai-header-badge zai-header-badge-connected"
     : "zai-header-badge zai-header-badge-disconnected";
 
-  if (!hasApiKey) {
-    badge.style.cursor = "pointer";
-    badge.addEventListener("click", () => openSettings());
+  // Update icon
+  let icon = badge.querySelector(".zai-header-badge-icon") as HTMLElement;
+  if (!icon) {
+    icon = document.createElement("span");
+    icon.className = "zai-header-badge-icon";
+    badge.appendChild(icon);
   }
 
-  const icon = document.createElement("span");
-  icon.className = "zai-header-badge-icon";
+  icon.innerHTML = "";
 
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("width", "12");
@@ -74,13 +109,14 @@ function updateZaiConnectionBadge(hasApiKey: boolean): void {
 
   icon.appendChild(svg);
 
-  const label = document.createElement("span");
-  label.className = "zai-header-badge-label";
+  // Update label
+  let label = badge.querySelector(".zai-header-badge-label") as HTMLElement;
+  if (!label) {
+    label = document.createElement("span");
+    label.className = "zai-header-badge-label";
+    badge.appendChild(label);
+  }
   label.textContent = hasApiKey ? "Connected" : "Not connected";
-
-  badge.appendChild(icon);
-  badge.appendChild(label);
-  zaiConnectedStatus.appendChild(badge);
 }
 
 interface ClaudeUsageData {
@@ -125,32 +161,34 @@ async function openSettings(): Promise<void> {
   settingsOpening = true;
 
   try {
-  const hasZaiApiKey = await checkZaiApiKey();
-  const content = document.getElementById("content");
+    const hasZaiApiKey = await checkZaiApiKey();
+    const content = document.getElementById("content");
 
-  const settingsView = createSettingsView({
-    checkZaiApiKey,
-    validateZaiApiKey: async (apiKey: string) => {
-      await invoke("zai_validate_api_key", { apiKey });
-    },
-    saveZaiApiKey: async (apiKey: string) => {
-      await invoke("zai_save_api_key", { apiKey });
-    },
-    deleteZaiApiKey: async () => {
-      await invoke("zai_delete_api_key");
-    },
-    onZaiKeyChanged: refreshZaiUI,
-    onClose: closeSettings,
-  }, hasZaiApiKey);
+    const settingsView = createSettingsView({
+      checkZaiApiKey,
+      validateZaiApiKey: async (apiKey: string) => {
+        await invoke("zai_validate_api_key", { apiKey });
+      },
+      saveZaiApiKey: async (apiKey: string) => {
+        await invoke("zai_save_api_key", { apiKey });
+      },
+      deleteZaiApiKey: async () => {
+        await invoke("zai_delete_api_key");
+      },
+      onZaiKeyChanged: refreshZaiUI,
+      onClose: closeSettings,
+    }, hasZaiApiKey);
 
-  const app = document.getElementById("app");
+    const app = document.getElementById("app");
 
-  // Hide content when settings opens
-  if (content) {
-    content.style.visibility = "hidden";
-  }
+    // Hide content when settings opens
+    if (content) {
+      content.style.visibility = "hidden";
+    }
 
-  app?.appendChild(settingsView);
+    app?.appendChild(settingsView);
+  } catch (error) {
+    console.error("Failed to open settings:", error);
   } finally {
     settingsOpening = false;
   }
@@ -412,6 +450,7 @@ async function fetchZaiData(forceRefresh = false) {
 }
 
 async function refreshZaiUI(): Promise<void> {
+  invalidateZaiApiKeyCache();
   const hasZaiApiKey = await checkZaiApiKey();
   updateZaiHeaderState(hasZaiApiKey);
   updateZaiConnectionBadge(hasZaiApiKey);

@@ -300,7 +300,27 @@ impl CredentialManager {
     }
 
     pub fn zai_has_api_key() -> bool {
-        Self::read_credential(Self::ZAI_TARGET).is_ok()
+        if Self::read_credential(Self::ZAI_TARGET).is_err() {
+            return false;
+        }
+
+        // Credential exists, but check if it's an env var reference that can't be resolved
+        match Self::zai_read_api_key() {
+            Ok(key) => {
+                // Check if it's an env var reference
+                let key_lower = key.to_lowercase();
+                let is_env_ref = key_lower.starts_with("{env:") || key_lower.starts_with("$env:");
+
+                if is_env_ref {
+                    // Try to resolve it - if successful, we have a valid key
+                    Self::resolve_env_reference(&key).is_ok()
+                } else {
+                    // Direct API key
+                    true
+                }
+            }
+            Err(_) => false,
+        }
     }
 
     fn read_credential(target_name: &str) -> Result<CREDENTIALW> {

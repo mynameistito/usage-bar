@@ -95,7 +95,7 @@ function createZaiSection(callbacks: SettingsCallbacks, hasApiKey: boolean): HTM
 
 	const sectionTitle = document.createElement("div");
 	sectionTitle.className = "settings-section-title";
-	sectionTitle.textContent = "Z.ai API Key";
+	sectionTitle.textContent = "Z.AI Coding Plan API Key";
 
 	section.appendChild(sectionTitle);
 
@@ -195,19 +195,63 @@ function createZaiInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 	});
 	desc.appendChild(link);
 
+	// Helper text for environment variable syntax
+	const helperText = document.createElement("div");
+	helperText.className = "settings-input-helper";
+	helperText.textContent = "You can use {env:VAR} or $ENV:VAR";
+
 	const inputRow = document.createElement("div");
 	inputRow.className = "settings-zai-input-row";
+
+	const inputWrapper = document.createElement("div");
+	inputWrapper.className = "settings-input-wrapper";
 
 	const input = document.createElement("input");
 	input.type = "password";
 	input.placeholder = "Enter your API key";
 	input.className = "zai-modal-input-field";
 
+	// Toggle button to show/hide password (eye icon)
+	const toggleButton = document.createElement("button");
+	toggleButton.type = "button";
+	toggleButton.className = "settings-toggle-visibility";
+	toggleButton.setAttribute("aria-label", "Toggle password visibility");
+	toggleButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+
+	toggleButton.addEventListener("click", () => {
+		if (input.type === "password") {
+			input.type = "text";
+			toggleButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+		} else {
+			input.type = "password";
+			toggleButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+		}
+	});
+
+	inputWrapper.appendChild(input);
+	inputWrapper.appendChild(toggleButton);
+
+	// Save button
 	const saveButton = document.createElement("button");
+	saveButton.type = "button";
 	saveButton.className = "btn btn-primary";
 	saveButton.textContent = "Save";
 
-	inputRow.appendChild(input);
+	// Auto-switch to text when typing env var syntax
+	input.addEventListener("input", () => {
+		const value = input.value.trim().toLowerCase();
+		const isEnvVar = value.startsWith("{env:") || value.startsWith("$env:");
+
+		if (isEnvVar) {
+			input.type = "text";
+			toggleButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+		} else {
+			input.type = "password";
+			toggleButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+		}
+	});
+
+	inputRow.appendChild(inputWrapper);
 	inputRow.appendChild(saveButton);
 
 	requestAnimationFrame(() => {
@@ -238,10 +282,17 @@ function createZaiInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 			return;
 		}
 
+		// Check if using environment variable syntax
+		const isEnvVar = apiKey.toLowerCase().startsWith("{env:") ||
+		                 apiKey.toLowerCase().startsWith("$env:");
+
 		setValidationState(true);
 
 		try {
-			await callbacks.validateZaiApiKey(apiKey);
+			// Skip validation for environment variable syntax
+			if (!isEnvVar) {
+				await callbacks.validateZaiApiKey(apiKey);
+			}
 			await callbacks.saveZaiApiKey(apiKey);
 			await callbacks.onZaiKeyChanged();
 			rebuildZaiSection(section, callbacks, true);
@@ -262,7 +313,7 @@ function createZaiInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 		}
 	});
 
-	container.appendChild(desc);
+	container.appendChild(helperText);
 	container.appendChild(inputRow);
 	container.appendChild(errorElement);
 

@@ -748,6 +748,7 @@
 
 .zai-modal-input-field::placeholder {
   color: var(--color-muted-foreground);
+  font-size: 12px;
 }
 
 .zai-modal-input-field:focus {
@@ -762,6 +763,13 @@
   border-radius: var(--radius-md);
   color: var(--color-destructive);
   font-size: 13px;
+}
+
+.settings-input-helper {
+  font-size: 10px;
+  color: var(--color-muted-foreground);
+  margin-bottom: 4px;
+  padding-left: 2px;
 }
 
 /* --- Modal Actions --- */
@@ -1015,6 +1023,47 @@
 .settings-zai-input-row {
   display: flex;
   gap: 6px;
+}
+
+/* Input wrapper for inline toggle button */
+.settings-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.settings-input-wrapper .zai-modal-input-field {
+  padding-right: 40px;
+  flex: 1;
+}
+
+/* Toggle visibility button inside input */
+.settings-toggle-visibility {
+  position: absolute;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-muted-foreground);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.15s ease;
+  padding: 0;
+}
+
+.settings-toggle-visibility:hover {
+  color: var(--color-foreground);
+  background: var(--color-accent);
+}
+
+.settings-toggle-visibility svg {
+  width: 16px;
+  height: 16px;
 }
 
 .settings-zai-input-row .zai-modal-input-field {
