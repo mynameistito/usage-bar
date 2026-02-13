@@ -388,7 +388,10 @@ pub fn open_url(url: String) -> Result<(), String> {
 
         // ShellExecuteW returns a value > 32 on success
         if result.0 as i32 <= 32 {
-            return Err(format!("Failed to open URL: error code {}", result.0 as i32));
+            return Err(format!(
+                "Failed to open URL: error code {}",
+                result.0 as i32
+            ));
         }
     }
     Ok(())
