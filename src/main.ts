@@ -149,18 +149,13 @@ function closeSettings(): void {
   if (!settingsView) return;
 
   settingsView.style.animation = "settings-slide-out 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards";
-  let cleanupTimeout: number | null = null;
 
   const cleanup = () => {
-    if (cleanupTimeout !== null) {
-      window.clearTimeout(cleanupTimeout);
-      cleanupTimeout = null;
-    }
     settingsView.remove();
   };
 
   settingsView.addEventListener("animationend", cleanup, { once: true });
-  cleanupTimeout = window.setTimeout(cleanup, 300);
+  const cleanupTimeout = window.setTimeout(cleanup, 300);
 }
 
 async function loadContent() {
