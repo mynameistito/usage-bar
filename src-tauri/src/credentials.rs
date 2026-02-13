@@ -267,11 +267,14 @@ impl CredentialManager {
     }
 
     pub fn zai_read_api_key() -> Result<String> {
-        // Check cache first
+        // Check cache first - cache stores the resolved API key
         if let Some(cached) = with_cache(|c| c.zai_get()) {
             debug_cred!("Returning cached Z.ai API key");
-            // Resolve env vars if cached value is a reference
-            return Self::resolve_env_reference(&cached);
+            // Return empty string as error if cached value is empty (means resolution failed)
+            if cached.is_empty() {
+                return Err(anyhow!("Cached Z.ai API key resolution failed"));
+            }
+            return Ok(cached);
         }
 
         let credential = Self::read_credential(Self::ZAI_TARGET)?;
@@ -293,11 +296,12 @@ impl CredentialManager {
         let key_str =
             String::from_utf8(blob_vec).map_err(|e| anyhow!("Failed to decode API key: {}", e))?;
 
-        // Cache the raw credential (not resolved value) to handle env var changes
-        with_cache(|c| c.zai_set(key_str.clone()));
-
         // Resolve environment variable if using {env:varname} syntax
         let key = Self::resolve_env_reference(&key_str)?;
+
+        // Cache the resolved value (not the raw env var reference)
+        // This avoids repeated resolution and log spam
+        with_cache(|c| c.zai_set(key.clone()));
 
         Ok(key)
     }
@@ -318,19 +322,10 @@ impl CredentialManager {
 
     pub fn zai_has_api_key() -> bool {
         // Check cache first to avoid double reading
+        // Cache stores the resolved API key (empty string means resolution failed)
         if let Some(cached) = with_cache(|c| c.zai_get()) {
             debug_cred!("Returning cached Z.ai API key for has_api_key check");
-            // Check if it's an env var reference
-            let key_lower = cached.to_lowercase();
-            let is_env_ref = key_lower.starts_with("{env:") || key_lower.starts_with("$env:");
-
-            if is_env_ref {
-                // Try to resolve it - if successful, we have a valid key
-                return Self::resolve_env_reference(&cached).is_ok();
-            } else {
-                // Direct API key
-                return true;
-            }
+            return !cached.is_empty();
         }
 
         // Cache miss - need to read credential
@@ -339,7 +334,15 @@ impl CredentialManager {
         }
 
         // Credential exists, check if it's valid (resolves env vars if needed)
-        Self::zai_read_api_key().is_ok()
+        // This will cache the resolved result (or empty string on failure)
+        match Self::zai_read_api_key() {
+            Ok(_) => true,
+            Err(_) => {
+                // Cache the failure as empty string to avoid repeated resolution attempts
+                with_cache(|c| c.zai_set(String::new()));
+                false
+            }
+        }
     }
 
     fn read_credential(target_name: &str) -> Result<CREDENTIALW> {
