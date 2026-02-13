@@ -93,8 +93,13 @@ impl CredentialManager {
         if let Some(rest) = input_lower.strip_prefix("{env:") {
             if rest.ends_with('}') {
                 // Find the prefix in the original input to preserve casing
-                let prefix_end = input.find('{').unwrap_or(0) + 5; // "{env:" is 5 chars
-                let original_var_name = &input[prefix_end..(input.len() - 1)]; // Skip prefix and "}"
+                let prefix_end = input.find('{').unwrap_or(0);
+                let prefix_end_char = input[prefix_end..]
+                    .char_indices()
+                    .nth(5)
+                    .map(|(i, _)| prefix_end + i)
+                    .unwrap_or(input.len());
+                let original_var_name = &input[prefix_end_char..(input.len() - 1)]; // Skip prefix and "}"
                 debug_cred!("Resolving env variable: {}", original_var_name);
                 return std::env::var(original_var_name).map_err(|_| {
                     anyhow!("Environment variable '{}' not found", original_var_name)
@@ -105,8 +110,13 @@ impl CredentialManager {
         // Check for $ENV:varname or $env:varname syntax
         if let Some(_rest) = input_lower.strip_prefix("$env:") {
             // Get the original casing version from the original input
-            let prefix_end = input.find('$').unwrap_or(0) + 5; // "$env:" is 5 chars
-            let original_var_name = &input[prefix_end..]; // Skip prefix, keep everything after
+            let prefix_end = input.find('$').unwrap_or(0);
+            let prefix_end_char = input[prefix_end..]
+                .char_indices()
+                .nth(5)
+                .map(|(i, _)| prefix_end + i)
+                .unwrap_or(input.len());
+            let original_var_name = &input[prefix_end_char..]; // Skip prefix, keep everything after
             debug_cred!("Resolving env variable: {}", original_var_name);
             return std::env::var(original_var_name)
                 .map_err(|_| anyhow!("Environment variable '{}' not found", original_var_name));
@@ -300,11 +310,28 @@ impl CredentialManager {
     }
 
     pub fn zai_has_api_key() -> bool {
+        // Check cache first to avoid double reading
+        if let Some(cached) = with_cache(|c| c.zai_get()) {
+            debug_cred!("Returning cached Z.ai API key for has_api_key check");
+            // Check if it's an env var reference
+            let key_lower = cached.to_lowercase();
+            let is_env_ref = key_lower.starts_with("{env:") || key_lower.starts_with("$env:");
+
+            if is_env_ref {
+                // Try to resolve it - if successful, we have a valid key
+                return Self::resolve_env_reference(&cached).is_ok();
+            } else {
+                // Direct API key
+                return true;
+            }
+        }
+
+        // Cache miss - need to read credential
         if Self::read_credential(Self::ZAI_TARGET).is_err() {
             return false;
         }
 
-        // Credential exists, but check if it's an env var reference that can't be resolved
+        // Credential exists, check if it's valid (resolves env vars if needed)
         match Self::zai_read_api_key() {
             Ok(key) => {
                 // Check if it's an env var reference

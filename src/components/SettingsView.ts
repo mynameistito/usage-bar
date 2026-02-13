@@ -11,6 +11,43 @@ export interface SettingsCallbacks {
 	onClose: () => void;
 }
 
+function createEyeIcon(crossed: boolean): SVGElement {
+	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+	svg.setAttribute("width", "16");
+	svg.setAttribute("height", "16");
+	svg.setAttribute("viewBox", "0 0 24 24");
+	svg.setAttribute("fill", "none");
+	svg.setAttribute("stroke", "currentColor");
+	svg.setAttribute("stroke-width", "2");
+	svg.setAttribute("stroke-linecap", "round");
+	svg.setAttribute("stroke-linejoin", "round");
+
+	if (crossed) {
+		const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+		path.setAttribute("d", "M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24");
+		svg.appendChild(path);
+
+		const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+		line.setAttribute("x1", "1");
+		line.setAttribute("y1", "1");
+		line.setAttribute("x2", "23");
+		line.setAttribute("y2", "23");
+		svg.appendChild(line);
+	} else {
+		const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+		path.setAttribute("d", "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z");
+		svg.appendChild(path);
+
+		const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+		circle.setAttribute("cx", "12");
+		circle.setAttribute("cy", "12");
+		circle.setAttribute("r", "3");
+		svg.appendChild(circle);
+	}
+
+	return svg;
+}
+
 export function createSettingsView(callbacks: SettingsCallbacks, hasZaiApiKey: boolean): HTMLElement {
 	const root = document.createElement("div");
 	root.id = "settings-view";
@@ -216,15 +253,15 @@ function createZaiInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 	toggleButton.type = "button";
 	toggleButton.className = "settings-toggle-visibility";
 	toggleButton.setAttribute("aria-label", "Toggle password visibility");
-	toggleButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+	toggleButton.appendChild(createEyeIcon(false));
 
 	toggleButton.addEventListener("click", () => {
 		if (input.type === "password") {
 			input.type = "text";
-			toggleButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+			toggleButton.replaceChildren(createEyeIcon(true));
 		} else {
 			input.type = "password";
-			toggleButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+			toggleButton.replaceChildren(createEyeIcon(false));
 		}
 	});
 
@@ -244,10 +281,10 @@ function createZaiInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 
 		if (isEnvVar) {
 			input.type = "text";
-			toggleButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+			toggleButton.replaceChildren(createEyeIcon(true));
 		} else {
 			input.type = "password";
-			toggleButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+			toggleButton.replaceChildren(createEyeIcon(false));
 		}
 	});
 
