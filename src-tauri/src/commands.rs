@@ -357,6 +357,7 @@ pub fn zai_delete_api_key() -> Result<(), String> {
     CredentialManager::zai_delete_api_key().map_err(|e| e.to_string())
 }
 
+#[cfg(target_os = "windows")]
 #[tauri::command]
 pub fn open_url(url: String) -> Result<(), String> {
     use std::ffi::OsStr;
