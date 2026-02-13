@@ -148,7 +148,19 @@ function closeSettings(): void {
   if (!settingsView) return;
 
   settingsView.style.animation = "settings-slide-out 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards";
-  settingsView.addEventListener("animationend", () => settingsView.remove(), { once: true });
+  const cleanup = () => {
+    settingsView.remove();
+  };
+
+  const fallbackTimeout = window.setTimeout(cleanup, 300);
+  settingsView.addEventListener(
+    "animationend",
+    () => {
+      window.clearTimeout(fallbackTimeout);
+      cleanup();
+    },
+    { once: true }
+  );
 }
 
 async function loadContent() {
