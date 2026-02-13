@@ -1,3 +1,7 @@
+import packageJson from "../../package.json";
+
+const APP_VERSION = packageJson.version ?? "dev";
+
 export interface SettingsCallbacks {
 	checkZaiApiKey: () => Promise<boolean>;
 	validateZaiApiKey: (apiKey: string) => Promise<void>;
@@ -275,7 +279,7 @@ function createAboutSection(): HTMLElement {
 
 	const version = document.createElement("div");
 	version.className = "settings-about-version";
-	version.textContent = "Version 1.0.0";
+	version.textContent = `Version ${APP_VERSION}`;
 
 	section.appendChild(sectionTitle);
 	section.appendChild(appName);
