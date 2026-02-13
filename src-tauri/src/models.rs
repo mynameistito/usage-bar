@@ -16,7 +16,7 @@ pub struct ExtraUsageResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UsagePeriod {
 pub struct UsagePeriod {
     pub utilization: f64,
     pub resets_at: String,
