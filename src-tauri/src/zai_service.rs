@@ -136,13 +136,19 @@ impl ZaiService {
             return Err(anyhow!("API key cannot be empty"));
         }
 
-        // Resolve environment variable if using {env:varname} syntax
-        let api_key = CredentialManager::resolve_env_reference(api_key)?;
+        // Skip validation for environment variable syntax
+        if api_key.starts_with("{env:") || api_key.starts_with("$env:") {
+            debug_zai!("Skipping validation for env var reference");
+            return Ok(());
+        }
 
         if api_key.len() < 10 {
             debug_error!("API key is too short");
             return Err(anyhow!("API key is too short"));
         }
+
+        // Resolve environment variable if using {env:varname} syntax
+        let api_key = CredentialManager::resolve_env_reference(api_key)?;
 
         debug_net!("GET {} (validating key)", ZAI_API_URL);
 
