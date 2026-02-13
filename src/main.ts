@@ -114,6 +114,12 @@ async function loadContent() {
     content.style.display = "flex";
 
     setupTabSwitching();
+
+    const savedTab = localStorage.getItem("activeTab") as "claude" | "zai" | null;
+    if (savedTab && savedTab !== "claude") {
+      switchTab(savedTab);
+    }
+
     startPolling();
     startTimestampUpdater();
   } catch (error) {
@@ -146,6 +152,7 @@ function setupTabSwitching() {
 
 function switchTab(tab: "claude" | "zai") {
   activeTab = tab;
+  localStorage.setItem("activeTab", tab);
 
   const claudeView = document.getElementById("claude-view");
   const zaiView = document.getElementById("zai-view");
