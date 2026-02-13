@@ -1,13 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { createUsageGauge } from "./components/UsageGauge";
 import { createMcpUsageGauge } from "./components/McpUsageGauge";
-import {
-  createZaiSettings,
-  checkZaiApiKey,
-  createZaiConnectionBadge,
-  setZaiCallbacks,
-  openZaiModal,
-} from "./components/ZaiSettings";
+import { createSettingsView } from "./components/SettingsView";
 
 const POLL_INTERVAL = 300000; // 5 minutes
 
@@ -17,12 +11,71 @@ let claudeLastRefresh: Date | null = null;
 let zaiLastRefresh: Date | null = null;
 let timestampTimer: number | null = null;
 
+async function checkZaiApiKey(): Promise<boolean> {
+  return await invoke<boolean>("zai_check_api_key");
+}
+
 function updateZaiHeaderState(hasApiKey: boolean): void {
   const zaiView = document.getElementById("zai-view");
   if (zaiView) {
     const header = zaiView.querySelector(".provider-header");
     header?.classList.toggle("empty", !hasApiKey);
   }
+}
+
+function updateZaiConnectionBadge(hasApiKey: boolean): void {
+  const zaiConnectedStatus = document.getElementById("zai-connected-status");
+  if (!zaiConnectedStatus) return;
+
+  zaiConnectedStatus.innerHTML = "";
+
+  const badge = document.createElement("span");
+  badge.className = hasApiKey
+    ? "zai-header-badge zai-header-badge-connected"
+    : "zai-header-badge zai-header-badge-disconnected";
+
+  const icon = document.createElement("span");
+  icon.className = "zai-header-badge-icon";
+
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("width", "12");
+  svg.setAttribute("height", "12");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+
+  if (hasApiKey) {
+    svg.setAttribute("stroke-width", "3");
+    const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+    polyline.setAttribute("points", "20 6 9 17 4 12");
+    svg.appendChild(polyline);
+  } else {
+    svg.setAttribute("stroke-width", "2");
+    const line1 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line1.setAttribute("x1", "12");
+    line1.setAttribute("y1", "5");
+    line1.setAttribute("x2", "12");
+    line1.setAttribute("y2", "19");
+    const line2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line2.setAttribute("x1", "5");
+    line2.setAttribute("y1", "12");
+    line2.setAttribute("x2", "19");
+    line2.setAttribute("y2", "12");
+    svg.appendChild(line1);
+    svg.appendChild(line2);
+  }
+
+  icon.appendChild(svg);
+
+  const label = document.createElement("span");
+  label.className = "zai-header-badge-label";
+  label.textContent = hasApiKey ? "Connected" : "Not connected";
+
+  badge.appendChild(icon);
+  badge.appendChild(label);
+  zaiConnectedStatus.appendChild(badge);
 }
 
 interface ClaudeUsageData {
@@ -58,6 +111,36 @@ interface ZaiTierData {
   plan_name: string;
 }
 
+async function openSettings(): Promise<void> {
+  const existing = document.getElementById("settings-view");
+  if (existing) return;
+
+  const hasZaiApiKey = await checkZaiApiKey();
+
+  const settingsView = createSettingsView({
+    checkZaiApiKey,
+    validateZaiApiKey: async (apiKey: string) => {
+      await invoke("zai_validate_api_key", { apiKey });
+    },
+    saveZaiApiKey: async (apiKey: string) => {
+      await invoke("zai_save_api_key", { apiKey });
+    },
+    deleteZaiApiKey: async () => {
+      await invoke("zai_delete_api_key");
+    },
+    onZaiKeyChanged: refreshZaiUI,
+    onClose: closeSettings,
+  }, hasZaiApiKey);
+
+  const app = document.getElementById("app");
+  app?.appendChild(settingsView);
+}
+
+function closeSettings(): void {
+  const settingsView = document.getElementById("settings-view");
+  settingsView?.remove();
+}
+
 async function loadContent() {
   const loading = document.getElementById("loading");
   const content = document.getElementById("content");
@@ -68,39 +151,12 @@ async function loadContent() {
   content.style.display = "none";
 
   try {
-    // Register callbacks with ZaiSettings FIRST, before any Z.ai operations
-    setZaiCallbacks({
-      checkZaiApiKey: async () => {
-        return await invoke<boolean>("zai_check_api_key");
-      },
-      validateZaiApiKey: async (apiKey: string) => {
-        await invoke("zai_validate_api_key", { apiKey });
-      },
-      saveZaiApiKey: async (apiKey: string) => {
-        await invoke("zai_save_api_key", { apiKey });
-      },
-      deleteZaiApiKey: async () => {
-        await invoke("zai_delete_api_key");
-      },
-      refreshZaiUI: refreshZaiUI,
-    });
-
     await fetchClaudeData();
     await fetchZaiData();
 
     const hasZaiApiKey = await checkZaiApiKey();
     updateZaiHeaderState(hasZaiApiKey);
-    const zaiConnectedStatus = document.getElementById("zai-connected-status");
-    if (zaiConnectedStatus) {
-      zaiConnectedStatus.appendChild(createZaiConnectionBadge(hasZaiApiKey));
-    }
-
-    const zaiSettingsEl = document.getElementById("zai-settings");
-    if (zaiSettingsEl) {
-      // Pass hasZaiApiKey instead of having createZaiSettings check again
-      const settingsElement = createZaiSettings(hasZaiApiKey);
-      zaiSettingsEl.replaceWith(settingsElement);
-    }
+    updateZaiConnectionBadge(hasZaiApiKey);
 
     loading.style.display = "none";
     content.style.display = "flex";
@@ -123,15 +179,8 @@ async function loadContent() {
     await invoke("quit_app");
   });
 
-  // Setup Settings button to open Z.ai modal when on Z.ai tab
   const settingsButton = document.getElementById("settings-button");
-  settingsButton?.addEventListener("click", async () => {
-    // Only open Z.ai modal if currently on Z.ai tab
-    if (activeTab === "zai") {
-      const hasZaiApiKey = await checkZaiApiKey();
-      openZaiModal(hasZaiApiKey);
-    }
-  });
+  settingsButton?.addEventListener("click", () => openSettings());
 }
 
 function setupTabSwitching() {
@@ -318,21 +367,7 @@ async function fetchZaiData(forceRefresh = false) {
 async function refreshZaiUI(): Promise<void> {
   const hasZaiApiKey = await checkZaiApiKey();
   updateZaiHeaderState(hasZaiApiKey);
-
-  // Update connection badge
-  const zaiConnectedStatus = document.getElementById("zai-connected-status");
-  if (zaiConnectedStatus) {
-    zaiConnectedStatus.innerHTML = "";
-    zaiConnectedStatus.appendChild(createZaiConnectionBadge(hasZaiApiKey));
-  }
-
-  // Update settings - pass hasZaiApiKey instead of having createZaiSettings check again
-  const zaiSettingsEl = document.getElementById("zai-settings");
-  if (zaiSettingsEl) {
-    const settingsElement = createZaiSettings(hasZaiApiKey);
-    zaiSettingsEl.replaceWith(settingsElement);
-  }
-
+  updateZaiConnectionBadge(hasZaiApiKey);
   await fetchZaiData(true);
 }
 
