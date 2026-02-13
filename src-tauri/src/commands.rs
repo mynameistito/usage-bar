@@ -7,6 +7,8 @@ use tauri::State;
 
 use crate::{debug_cache, debug_claude, debug_cred, debug_zai};
 
+const RPC_E_CHANGED_MODE: i32 = -2147417850; // 0x80010106
+
 #[tauri::command]
 pub async fn claude_get_all(
     client: State<'_, HttpClient>,
@@ -375,10 +377,10 @@ pub fn open_url(url: String) -> Result<(), String> {
     unsafe {
         let init_result = CoInitializeEx(None, COINIT_MULTITHREADED);
         // S_FALSE (1) means COM already initialized, which is ok
-        // RPC_E_CHANGED_MODE (-2147417850 / 0x80010106) means different threading model, also ok
+        // RPC_E_CHANGED_MODE means different threading model, also ok
         if !init_result.is_ok() {
             let hresult = init_result;
-            if hresult.0 != 1 && hresult.0 != -2147417850 {
+            if hresult.0 != 1 && hresult.0 != RPC_E_CHANGED_MODE {
                 return Err(format!("Failed to initialize COM: HRESULT={}", hresult.0));
             }
         }
@@ -407,8 +409,8 @@ pub fn open_url(url: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn quit_app() {
-    std::process::exit(0);
+pub fn quit_app(app: tauri::AppHandle) {
+    app.exit(0);
 }
 
 #[tauri::command]
