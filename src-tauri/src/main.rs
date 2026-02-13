@@ -66,7 +66,7 @@ async fn main() -> anyhow::Result<()> {
                     ],
                 )?)
                 .on_menu_event(
-                    move |app: &tauri::AppHandle, event| match event.id.as_ref() {
+                    move |app, event| match event.id.as_ref() {
                         "open" => {
                             if let Some(window) = app.get_webview_window("main") {
                                 if let Err(e) = window.show() {
