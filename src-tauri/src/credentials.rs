@@ -72,9 +72,7 @@ fn with_cache<F, R>(f: F) -> R
 where
     F: FnOnce(&mut CredentialCache) -> R,
 {
-    let mut guard = CACHE
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let mut guard = CACHE.lock().expect("credential cache mutex poisoned");
     if guard.is_none() {
         *guard = Some(CredentialCache::new());
     }
