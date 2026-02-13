@@ -270,7 +270,8 @@ impl CredentialManager {
         // Check cache first
         if let Some(cached) = with_cache(|c| c.zai_get()) {
             debug_cred!("Returning cached Z.ai API key");
-            return Ok(cached);
+            // Resolve env vars if cached value is a reference
+            return Self::resolve_env_reference(&cached);
         }
 
         let credential = Self::read_credential(Self::ZAI_TARGET)?;

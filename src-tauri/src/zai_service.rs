@@ -58,9 +58,15 @@ impl ZaiService {
 
     async fn handle_response(response: reqwest::Response) -> Result<ZaiUsageData> {
         let response_text = response.text().await?;
+        debug_zai!("Response body: {}", response_text);
+
+        // Check for error responses in the body
+        if response_text.contains("\"success\":false") {
+            return Err(anyhow!("Z.ai API error: {}", response_text));
+        }
 
         let quota_response: ZaiQuotaResponse = serde_json::from_str(&response_text)
-            .map_err(|e| anyhow!("Failed to parse quota response: {}", e))?;
+            .map_err(|e| anyhow!("Failed to parse quota response: {}\nResponse: {}", e, response_text))?;
 
         let mut token_usage: Option<TokenUsage> = None;
         let mut mcp_usage: Option<McpUsage> = None;

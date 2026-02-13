@@ -11,6 +11,11 @@ export interface SettingsCallbacks {
 	onClose: () => void;
 }
 
+function isEnvVarSyntax(value: string): boolean {
+	const lower = value.toLowerCase();
+	return lower.startsWith("{env:") || lower.startsWith("$env:");
+}
+
 function createEyeIcon(crossed: boolean): SVGElement {
 	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 	svg.setAttribute("width", "16");
@@ -276,8 +281,8 @@ function createZaiInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 
 	// Auto-switch to text when typing env var syntax
 	input.addEventListener("input", () => {
-		const value = input.value.trim().toLowerCase();
-		const isEnvVar = value.startsWith("{env:") || value.startsWith("$env:");
+		const value = input.value.trim();
+		const isEnvVar = isEnvVarSyntax(value);
 
 		if (isEnvVar) {
 			input.type = "text";
@@ -320,8 +325,7 @@ function createZaiInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 		}
 
 		// Check if using environment variable syntax
-		const isEnvVar = apiKey.toLowerCase().startsWith("{env:") ||
-		                 apiKey.toLowerCase().startsWith("$env:");
+		const isEnvVar = isEnvVarSyntax(apiKey);
 
 		setValidationState(true);
 
