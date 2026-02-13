@@ -99,7 +99,8 @@ impl CredentialManager {
                     .nth(5)
                     .map(|(i, _)| prefix_end + i)
                     .unwrap_or(input.len());
-                let original_var_name = &input[prefix_end_char..(input.len() - 1)]; // Skip prefix and "}"
+                let end_pos = input.char_indices().rev().nth(1).map(|(i, _)| i).unwrap_or(0);
+                let original_var_name = &input[prefix_end_char..end_pos]; // Skip prefix and "}"
                 debug_cred!("Resolving env variable: {}", original_var_name);
                 return std::env::var(original_var_name).map_err(|_| {
                     anyhow!("Environment variable '{}' not found", original_var_name)
