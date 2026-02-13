@@ -90,22 +90,14 @@ impl CredentialManager {
         let input_lower = input.to_lowercase();
 
         // Check for {env:varname} or {ENV:varname} syntax
-        if let Some(rest) = input_lower.strip_prefix("{env:") {
-            if rest.ends_with('}') {
-                // Find the prefix in the original input to preserve casing
-                let prefix_end = input.find('{').unwrap_or(0);
-                let prefix_end_char = input[prefix_end..]
-                    .char_indices()
-                    .nth(5)
-                    .map(|(i, _)| prefix_end + i)
-                    .unwrap_or(input.len());
-                let end_pos = input
-                    .char_indices()
-                    .rev()
-                    .nth(1)
-                    .map(|(i, _)| i)
-                    .unwrap_or(0);
-                let original_var_name = &input[prefix_end_char..end_pos]; // Skip prefix and "}"
+        if let Some(_rest) = input_lower.strip_prefix("{env:") {
+            if input_lower.ends_with('}') {
+                // Strip "{env:" prefix and "}" suffix from original input to preserve casing
+                let original_var_name = input
+                    .strip_prefix("{env:")
+                    .or_else(|| input.strip_prefix("{ENV:"))
+                    .and_then(|s| s.strip_suffix('}'))
+                    .unwrap_or("");
                 debug_cred!("Resolving env variable: {}", original_var_name);
                 return std::env::var(original_var_name).map_err(|_| {
                     anyhow!("Environment variable '{}' not found", original_var_name)
@@ -324,13 +316,7 @@ impl CredentialManager {
             return cached.is_ok();
         }
 
-        // Cache miss - need to read credential
-        if Self::read_credential(Self::ZAI_TARGET).is_err() {
-            return false;
-        }
-
-        // Credential exists, check if it's valid (resolves env vars if needed)
-        // This will cache the resolved result (or empty string on failure)
+        // Cache miss - read and validate credential (this will cache the result)
         match Self::zai_read_api_key() {
             Ok(_) => true,
             Err(e) => {

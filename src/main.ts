@@ -211,11 +211,11 @@ function closeSettings(): void {
     settingsView.remove();
   };
 
+  const cleanupTimeout = window.setTimeout(cleanup, 300);
   settingsView.addEventListener("animationend", () => {
     clearTimeout(cleanupTimeout);
     cleanup();
   }, { once: true });
-  const cleanupTimeout = window.setTimeout(cleanup, 300);
 }
 
 async function loadContent() {
