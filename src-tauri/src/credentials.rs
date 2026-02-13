@@ -99,7 +99,12 @@ impl CredentialManager {
                     .nth(5)
                     .map(|(i, _)| prefix_end + i)
                     .unwrap_or(input.len());
-                let end_pos = input.char_indices().rev().nth(1).map(|(i, _)| i).unwrap_or(0);
+                let end_pos = input
+                    .char_indices()
+                    .rev()
+                    .nth(1)
+                    .map(|(i, _)| i)
+                    .unwrap_or(0);
                 let original_var_name = &input[prefix_end_char..end_pos]; // Skip prefix and "}"
                 debug_cred!("Resolving env variable: {}", original_var_name);
                 return std::env::var(original_var_name).map_err(|_| {
@@ -287,11 +292,11 @@ impl CredentialManager {
         let key_str =
             String::from_utf8(blob_vec).map_err(|e| anyhow!("Failed to decode API key: {}", e))?;
 
+        // Cache the raw credential (not resolved value) to handle env var changes
+        with_cache(|c| c.zai_set(key_str.clone()));
+
         // Resolve environment variable if using {env:varname} syntax
         let key = Self::resolve_env_reference(&key_str)?;
-
-        // Cache the result
-        with_cache(|c| c.zai_set(key.clone()));
 
         Ok(key)
     }
@@ -333,10 +338,7 @@ impl CredentialManager {
         }
 
         // Credential exists, check if it's valid (resolves env vars if needed)
-        match Self::zai_read_api_key() {
-            Ok(_) => true,
-            Err(_) => false,
-        }
+        Self::zai_read_api_key().is_ok()
     }
 
     fn read_credential(target_name: &str) -> Result<CREDENTIALW> {
