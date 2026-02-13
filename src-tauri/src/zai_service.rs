@@ -58,9 +58,21 @@ impl ZaiService {
 
     async fn handle_response(response: reqwest::Response) -> Result<ZaiUsageData> {
         let response_text = response.text().await?;
+        debug_zai!("Response body: {}", response_text);
 
-        let quota_response: ZaiQuotaResponse = serde_json::from_str(&response_text)
-            .map_err(|e| anyhow!("Failed to parse quota response: {}", e))?;
+        // Check for error responses in the body
+        if response_text.contains("\"success\":false") {
+            return Err(anyhow!("Z.ai API error: {}", response_text));
+        }
+
+        let quota_response: ZaiQuotaResponse =
+            serde_json::from_str(&response_text).map_err(|e| {
+                anyhow!(
+                    "Failed to parse quota response: {}\nResponse: {}",
+                    e,
+                    response_text
+                )
+            })?;
 
         let mut token_usage: Option<TokenUsage> = None;
         let mut mcp_usage: Option<McpUsage> = None;
@@ -124,16 +136,26 @@ impl ZaiService {
             return Err(anyhow!("API key cannot be empty"));
         }
 
+        // Skip validation for environment variable syntax (case-insensitive)
+        let api_key_lower = api_key.to_lowercase();
+        if api_key_lower.starts_with("{env:") || api_key_lower.starts_with("$env:") {
+            debug_zai!("Skipping validation for env var reference");
+            return Ok(());
+        }
+
         if api_key.len() < 10 {
             debug_error!("API key is too short");
             return Err(anyhow!("API key is too short"));
         }
 
+        // Resolve environment variable if using {env:varname} syntax
+        let api_key = CredentialManager::resolve_env_reference(api_key)?;
+
         debug_net!("GET {} (validating key)", ZAI_API_URL);
 
         let response = client
             .get(ZAI_API_URL)
-            .header("Authorization", api_key)
+            .header("Authorization", &api_key)
             .header("Accept-Language", "en-US,en")
             .header("Content-Type", "application/json")
             .send()

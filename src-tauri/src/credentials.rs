@@ -14,7 +14,7 @@ use crate::debug_cred;
 /// TTL is intentionally short (5 seconds) since credentials can change externally.
 struct CredentialCache {
     claude_credentials: Option<(Instant, ClaudeOAuthCredentials)>,
-    zai_api_key: Option<(Instant, String)>,
+    zai_api_key: Option<(Instant, Result<String, String>)>,
 }
 
 impl CredentialCache {
@@ -47,18 +47,18 @@ impl CredentialCache {
         self.claude_credentials = None;
     }
 
-    fn zai_get(&self) -> Option<String> {
-        self.zai_api_key.as_ref().and_then(|(instant, key)| {
+    fn zai_get(&self) -> Option<Result<String, String>> {
+        self.zai_api_key.as_ref().and_then(|(instant, result)| {
             if instant.elapsed() < Self::TTL {
-                Some(key.clone())
+                Some(result.clone())
             } else {
                 None
             }
         })
     }
 
-    fn zai_set(&mut self, key: String) {
-        self.zai_api_key = Some((Instant::now(), key));
+    fn zai_set(&mut self, result: Result<String, String>) {
+        self.zai_api_key = Some((Instant::now(), result));
     }
 
     fn zai_invalidate(&mut self) {
@@ -83,6 +83,45 @@ pub struct CredentialManager;
 
 impl CredentialManager {
     const ZAI_TARGET: &'static str = "usage-bar-zai-credentials";
+
+    /// Resolve {env:varname} or $ENV:varname syntax to environment variable value
+    /// Returns the input string unchanged if it doesn't match the pattern
+    pub fn resolve_env_reference(input: &str) -> Result<String> {
+        let input_lower = input.to_lowercase();
+
+        // Check for {env:varname} or {ENV:varname} syntax
+        if let Some(_rest) = input_lower.strip_prefix("{env:") {
+            if input_lower.ends_with('}') {
+                // Strip "{env:" prefix and "}" suffix from original input to preserve casing
+                let original_var_name = input
+                    .strip_prefix("{env:")
+                    .or_else(|| input.strip_prefix("{ENV:"))
+                    .and_then(|s| s.strip_suffix('}'))
+                    .unwrap_or("");
+                debug_cred!("Resolving env variable: {}", original_var_name);
+                return std::env::var(original_var_name).map_err(|_| {
+                    anyhow!("Environment variable '{}' not found", original_var_name)
+                });
+            }
+        }
+
+        // Check for $ENV:varname or $env:varname syntax
+        if let Some(_rest) = input_lower.strip_prefix("$env:") {
+            // Get the original casing version from the original input
+            let prefix_end = input.find('$').unwrap_or(0);
+            let prefix_end_char = input[prefix_end..]
+                .char_indices()
+                .nth(5)
+                .map(|(i, _)| prefix_end + i)
+                .unwrap_or(input.len());
+            let original_var_name = &input[prefix_end_char..]; // Skip prefix, keep everything after
+            debug_cred!("Resolving env variable: {}", original_var_name);
+            return std::env::var(original_var_name)
+                .map_err(|_| anyhow!("Environment variable '{}' not found", original_var_name));
+        }
+
+        Ok(input.to_string())
+    }
 
     // ── Claude credentials (file-based: ~/.claude/.credentials.json) ──
 
@@ -220,10 +259,10 @@ impl CredentialManager {
     }
 
     pub fn zai_read_api_key() -> Result<String> {
-        // Check cache first
+        // Check cache first - cache stores the resolved API key result
         if let Some(cached) = with_cache(|c| c.zai_get()) {
             debug_cred!("Returning cached Z.ai API key");
-            return Ok(cached);
+            return cached.map_err(|e| anyhow!("Cached Z.ai API key resolution failed: {}", e));
         }
 
         let credential = Self::read_credential(Self::ZAI_TARGET)?;
@@ -242,11 +281,15 @@ impl CredentialManager {
         // Now CredFree is called inside read_credential, which is safe
         // because we've already cloned the data we need
 
-        let key =
+        let key_str =
             String::from_utf8(blob_vec).map_err(|e| anyhow!("Failed to decode API key: {}", e))?;
 
-        // Cache the result
-        with_cache(|c| c.zai_set(key.clone()));
+        // Resolve environment variable if using {env:varname} syntax
+        let key = Self::resolve_env_reference(&key_str)?;
+
+        // Cache the resolved value (not the raw env var reference)
+        // This avoids repeated resolution and log spam
+        with_cache(|c| c.zai_set(Ok(key.clone())));
 
         Ok(key)
     }
@@ -266,7 +309,22 @@ impl CredentialManager {
     }
 
     pub fn zai_has_api_key() -> bool {
-        Self::read_credential(Self::ZAI_TARGET).is_ok()
+        // Check cache first to avoid double reading
+        // Cache stores the resolved API key result
+        if let Some(cached) = with_cache(|c| c.zai_get()) {
+            debug_cred!("Returning cached Z.ai API key for has_api_key check");
+            return cached.is_ok();
+        }
+
+        // Cache miss - read and validate credential (this will cache the result)
+        match Self::zai_read_api_key() {
+            Ok(_) => true,
+            Err(e) => {
+                // Cache the failure to avoid repeated resolution attempts
+                with_cache(|c| c.zai_set(Err(e.to_string())));
+                false
+            }
+        }
     }
 
     fn read_credential(target_name: &str) -> Result<CREDENTIALW> {

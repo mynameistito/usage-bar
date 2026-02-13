@@ -748,6 +748,7 @@
 
 .zai-modal-input-field::placeholder {
   color: var(--color-muted-foreground);
+  font-size: 12px;
 }
 
 .zai-modal-input-field:focus {
@@ -762,6 +763,13 @@
   border-radius: var(--radius-md);
   color: var(--color-destructive);
   font-size: 13px;
+}
+
+.settings-input-helper {
+  font-size: 10px;
+  color: var(--color-muted-foreground);
+  margin-bottom: 4px;
+  padding-left: 2px;
 }
 
 /* --- Modal Actions --- */
@@ -787,4 +795,293 @@
   .zai-modal-actions .btn {
     justify-self: stretch;
   }
+}
+
+/* --- Settings View --- */
+.settings-view {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-background);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  animation: settings-slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes settings-slide-in {
+  0% {
+    transform: translateY(100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes settings-slide-out {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.settings-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-foreground);
+  letter-spacing: -0.02em;
+}
+
+.settings-close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-muted-foreground);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.settings-close:hover {
+  background: var(--color-accent);
+  color: var(--color-foreground);
+}
+
+.settings-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.settings-section {
+  padding: 16px;
+}
+
+.settings-view > .settings-section {
+  margin-top: auto;
+  padding: 12px 16px;
+}
+
+.settings-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.settings-row-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-row-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-foreground);
+}
+
+.settings-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.settings-row-actions .btn {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.settings-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-input-desc {
+  font-size: 12px;
+  color: var(--color-muted-foreground);
+  line-height: 1.5;
+}
+
+.settings-input-desc a {
+  color: var(--color-foreground);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.settings-input-desc a:hover {
+  color: var(--color-primary);
+}
+
+.settings-input-row {
+  display: flex;
+  gap: 6px;
+}
+
+.settings-input-row .zai-modal-input-field {
+  flex: 1;
+}
+
+.settings-input-row .btn {
+  flex-shrink: 0;
+}
+
+.settings-about-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.settings-about-label {
+  font-size: 13px;
+  color: var(--color-muted-foreground);
+}
+
+.settings-about-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-foreground);
+}
+
+.settings-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 0;
+}
+
+/* Z.ai settings within settings view */
+.settings-zai-connected,
+.settings-zai-input {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-zai-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.settings-zai-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-foreground);
+}
+
+.settings-zai-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-zai-actions .btn {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.settings-zai-desc {
+  font-size: 13px;
+  color: var(--color-muted-foreground);
+  line-height: 1.5;
+}
+
+.settings-zai-input-row {
+  display: flex;
+  gap: 6px;
+}
+
+/* Input wrapper for inline toggle button */
+.settings-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.settings-input-wrapper .zai-modal-input-field {
+  padding-right: 40px;
+  flex: 1;
+}
+
+/* Toggle visibility button inside input */
+.settings-toggle-visibility {
+  position: absolute;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-muted-foreground);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.15s ease;
+  padding: 0;
+}
+
+.settings-toggle-visibility:hover {
+  color: var(--color-foreground);
+  background: var(--color-accent);
+}
+
+.settings-toggle-visibility svg {
+  width: 16px;
+  height: 16px;
+}
+
+.settings-zai-input-row .zai-modal-input-field {
+  flex: 1;
+}
+
+.settings-zai-input-row .btn {
+  flex-shrink: 0;
+}
+
+.settings-about-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-foreground);
+  margin-bottom: 2px;
+}
+
+.settings-about-version {
+  font-size: 12px;
+  color: var(--color-muted-foreground);
 }

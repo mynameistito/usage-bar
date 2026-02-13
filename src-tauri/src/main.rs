@@ -31,6 +31,7 @@ async fn main() -> anyhow::Result<()> {
     debug_app!("Usage Bar starting...");
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             debug_app!("Initializing application state");
 

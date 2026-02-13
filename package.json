@@ -16,13 +16,15 @@
     "dev": "tauri dev",
     "vite:dev": "vite",
     "vite:build": "vite build",
+    "typecheck": "tsc --noEmit",
     "build": "bun run generate-icon && tauri build",
     "build:nsis": "bun run generate-icon && tauri build --bundles nsis",
     "build:msi": "bun run generate-icon && tauri build --bundles msi",
     "generate-icon": "node scripts/generate-icon.js"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.10.1"
+    "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/plugin-opener": "^2.5.3"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.18",
