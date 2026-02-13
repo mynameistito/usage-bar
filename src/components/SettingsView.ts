@@ -202,7 +202,6 @@ function createZaiInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 	input.type = "password";
 	input.placeholder = "Enter your API key";
 	input.className = "zai-modal-input-field";
-	input.autofocus = true;
 
 	const saveButton = document.createElement("button");
 	saveButton.className = "btn btn-primary";
