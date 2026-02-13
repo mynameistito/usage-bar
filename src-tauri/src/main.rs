@@ -30,7 +30,7 @@ pub struct ZaiTierCache(pub ResponseCache<ZaiTierData>);
 async fn main() -> anyhow::Result<()> {
     debug_app!("Usage Bar starting...");
 
-    let _ = tauri::Builder::default()
+    tauri::Builder::default()
         .setup(|app| {
             debug_app!("Initializing application state");
 
