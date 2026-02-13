@@ -241,6 +241,7 @@ function createZaiInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 	const helperText = document.createElement("div");
 	helperText.className = "settings-input-helper";
 	helperText.textContent = "You can use {env:VAR} or $ENV:VAR";
+	container.appendChild(helperText);
 
 	const inputRow = document.createElement("div");
 	inputRow.className = "settings-zai-input-row";
@@ -354,7 +355,6 @@ function createZaiInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 		}
 	});
 
-	container.appendChild(helperText);
 	container.appendChild(inputRow);
 	container.appendChild(errorElement);
 

@@ -65,8 +65,14 @@ impl ZaiService {
             return Err(anyhow!("Z.ai API error: {}", response_text));
         }
 
-        let quota_response: ZaiQuotaResponse = serde_json::from_str(&response_text)
-            .map_err(|e| anyhow!("Failed to parse quota response: {}\nResponse: {}", e, response_text))?;
+        let quota_response: ZaiQuotaResponse =
+            serde_json::from_str(&response_text).map_err(|e| {
+                anyhow!(
+                    "Failed to parse quota response: {}\nResponse: {}",
+                    e,
+                    response_text
+                )
+            })?;
 
         let mut token_usage: Option<TokenUsage> = None;
         let mut mcp_usage: Option<McpUsage> = None;
