@@ -202,6 +202,10 @@ function createZaiInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 	inputRow.appendChild(input);
 	inputRow.appendChild(saveButton);
 
+	requestAnimationFrame(() => {
+		input.focus();
+	});
+
 	const errorElement = document.createElement("div");
 	errorElement.className = "zai-modal-error";
 	errorElement.style.display = "none";
