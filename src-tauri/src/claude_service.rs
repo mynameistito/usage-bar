@@ -112,9 +112,9 @@ impl ClaudeService {
 
         Ok(UsageData {
             five_hour_utilization: usage_response.five_hour.utilization,
-            five_hour_resets_at: Some(usage_response.five_hour.resets_at),
+            five_hour_resets_at: usage_response.five_hour.resets_at,
             seven_day_utilization: usage_response.seven_day.utilization,
-            seven_day_resets_at: Some(usage_response.seven_day.resets_at),
+            seven_day_resets_at: usage_response.seven_day.resets_at,
             extra_usage_enabled: extra_usage.as_ref().map(|e| e.is_enabled).unwrap_or(false),
             extra_usage_monthly_limit: extra_usage.as_ref().and_then(|e| e.monthly_limit),
             extra_usage_used_credits: extra_usage.as_ref().and_then(|e| e.used_credits),
