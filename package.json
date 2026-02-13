@@ -24,8 +24,7 @@
     "generate-icon": "node scripts/generate-icon.js"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.10.1",
-    "@tauri-apps/plugin-opener": "^2.5.3"
+    "@tauri-apps/api": "^2.10.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.18",
