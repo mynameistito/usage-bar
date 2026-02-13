@@ -869,8 +869,9 @@
   padding: 16px;
 }
 
-.settings-section + .settings-section {
-  border-top: 1px solid var(--color-border);
+.settings-view > .settings-section {
+  margin-top: auto;
+  padding: 12px 16px;
 }
 
 .settings-section-title {

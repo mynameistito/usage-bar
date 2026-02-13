@@ -28,6 +28,9 @@ export function createSettingsView(callbacks: SettingsCallbacks, hasZaiApiKey: b
 
 	root.appendChild(content);
 
+	const aboutDivider = createDivider();
+	root.appendChild(aboutDivider);
+
 	const aboutSection = createAboutSection();
 	root.appendChild(aboutSection);
 
