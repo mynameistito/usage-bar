@@ -166,6 +166,46 @@ pub async fn zai_get_all(
 }
 
 #[tauri::command]
+pub async fn zai_refresh_all(
+    client: State<'_, HttpClient>,
+    usage_cache: State<'_, ZaiUsageCache>,
+    tier_cache: State<'_, ZaiTierCache>,
+) -> Result<(crate::models::ZaiUsageData, crate::models::ZaiTierData), String> {
+    debug_zai!("zai_refresh_all called (force refresh)");
+
+    // Clear caches to force a fresh fetch
+    usage_cache.0.clear();
+    tier_cache.0.clear();
+
+    let client = Arc::clone(&client.0);
+
+    if !ZaiService::zai_has_api_key() {
+        debug_zai!("Z.ai API key not configured");
+        return Err("Z.ai API key not configured".to_string());
+    }
+
+    debug_zai!("Calling ZaiService::zai_fetch_quota...");
+    match ZaiService::zai_fetch_quota(client).await {
+        Ok(data) => {
+            debug_zai!("zai_fetch_quota succeeded, caching result");
+            let tier_data = crate::models::ZaiTierData {
+                plan_name: data
+                    .tier_name
+                    .clone()
+                    .unwrap_or_else(|| "Unknown".to_string()),
+            };
+            usage_cache.0.set(data.clone());
+            tier_cache.0.set(tier_data.clone());
+            Ok((data, tier_data))
+        }
+        Err(e) => {
+            debug_zai!("zai_fetch_quota failed: {}", e);
+            Err(e.to_string())
+        }
+    }
+}
+
+#[tauri::command]
 pub async fn zai_get_usage(
     client: State<'_, HttpClient>,
     usage_cache: State<'_, ZaiUsageCache>,

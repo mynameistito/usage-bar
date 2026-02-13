@@ -258,7 +258,8 @@ async function fetchZaiData(forceRefresh = false) {
   if (!zaiView || !errorContainer || !dataContainer || !errorMessage) return;
 
   try {
-    const [usageData, tierData] = await invoke<[ZaiUsageData, ZaiTierData]>("zai_get_all");
+    const command = forceRefresh ? "zai_refresh_all" : "zai_get_all";
+    const [usageData, tierData] = await invoke<[ZaiUsageData, ZaiTierData]>(command);
 
     if (!usageData) return;
 
@@ -332,7 +333,7 @@ async function refreshZaiUI(): Promise<void> {
     zaiSettingsEl.replaceWith(settingsElement);
   }
 
-  await fetchZaiData();
+  await fetchZaiData(true);
 }
 
 async function fetchClaudeUsage() {

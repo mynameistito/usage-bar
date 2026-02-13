@@ -99,6 +99,7 @@ async fn main() -> anyhow::Result<()> {
             commands::claude_get_usage,
             commands::claude_get_tier,
             commands::zai_get_all,
+            commands::zai_refresh_all,
             commands::zai_get_usage,
             commands::zai_get_tier,
             commands::zai_refresh_usage,
