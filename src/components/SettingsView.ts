@@ -237,13 +237,13 @@ function createZaiInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 	});
 	desc.appendChild(link);
 
+	container.appendChild(desc);
+
 	// Helper text for environment variable syntax
 	const helperText = document.createElement("div");
 	helperText.className = "settings-input-helper";
 	helperText.textContent = "You can use {env:VAR} or $ENV:VAR";
-
-	desc.appendChild(helperText);
-	container.appendChild(desc);
+	container.appendChild(helperText);
 
 	const inputRow = document.createElement("div");
 	inputRow.className = "settings-zai-input-row";

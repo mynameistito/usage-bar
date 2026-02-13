@@ -211,7 +211,7 @@ function closeSettings(): void {
     settingsView.remove();
   };
 
-  const cleanupTimeout = window.setTimeout(cleanup, 300);
+  const cleanupTimeout = window.setTimeout(cleanup, 250);
   settingsView.addEventListener("animationend", () => {
     clearTimeout(cleanupTimeout);
     cleanup();
