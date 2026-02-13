@@ -178,6 +178,7 @@ function createZaiInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 	const link = document.createElement("a");
 	link.href = "https://z.ai/manage-apikey/apikey-list";
 	link.target = "_blank";
+	link.rel = "noopener noreferrer";
 	link.className = "zai-link";
 	link.textContent = "z.ai/manage-apikey";
 	desc.appendChild(link);

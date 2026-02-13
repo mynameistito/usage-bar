@@ -111,10 +111,14 @@ interface ZaiTierData {
   plan_name: string;
 }
 
+let settingsOpening = false;
+
 async function openSettings(): Promise<void> {
   const existing = document.getElementById("settings-view");
-  if (existing) return;
+  if (existing || settingsOpening) return;
+  settingsOpening = true;
 
+  try {
   const hasZaiApiKey = await checkZaiApiKey();
 
   const settingsView = createSettingsView({
@@ -134,6 +138,9 @@ async function openSettings(): Promise<void> {
 
   const app = document.getElementById("app");
   app?.appendChild(settingsView);
+  } finally {
+    settingsOpening = false;
+  }
 }
 
 function closeSettings(): void {
