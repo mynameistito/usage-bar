@@ -105,6 +105,6 @@ async fn main() -> anyhow::Result<()> {
             eprintln!("error while running tauri application: {}", e);
             anyhow::anyhow!("Failed to run application")
         })?;
-        });
+    Ok(())
     Ok(())
 }
