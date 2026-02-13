@@ -115,9 +115,10 @@ async function loadContent() {
 
     setupTabSwitching();
 
-    const savedTab = localStorage.getItem("activeTab") as "claude" | "zai" | null;
-    if (savedTab && savedTab !== "claude") {
-      switchTab(savedTab);
+    const savedTab = localStorage.getItem("activeTab");
+    if (savedTab === "zai") {
+      switchTab("zai");
+    }
     }
 
     startPolling();
