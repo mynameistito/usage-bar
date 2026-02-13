@@ -106,7 +106,8 @@ async function loadContent() {
 
     const zaiSettingsEl = document.getElementById("zai-settings");
     if (zaiSettingsEl) {
-      const settingsElement = await createZaiSettings();
+      // Pass hasZaiApiKey instead of having createZaiSettings check again
+      const settingsElement = createZaiSettings(hasZaiApiKey);
       zaiSettingsEl.replaceWith(settingsElement);
     }
 
@@ -215,10 +216,10 @@ async function refreshZaiUI(): Promise<void> {
     zaiConnectedStatus.appendChild(createZaiConnectionBadge(hasZaiApiKey));
   }
 
-  // Update settings
+  // Update settings - pass hasZaiApiKey instead of having createZaiSettings check again
   const zaiSettingsEl = document.getElementById("zai-settings");
   if (zaiSettingsEl) {
-    const settingsElement = await createZaiSettings();
+    const settingsElement = createZaiSettings(hasZaiApiKey);
     zaiSettingsEl.replaceWith(settingsElement);
   }
 

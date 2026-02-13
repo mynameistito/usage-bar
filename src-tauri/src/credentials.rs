@@ -2,11 +2,84 @@ use crate::models::ClaudeOAuthCredentials;
 use anyhow::{anyhow, Result};
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 use windows::core::{PCWSTR, PWSTR};
 use windows::Win32::Foundation::FILETIME;
 use windows::Win32::Security::Credentials::*;
 
 use crate::debug_cred;
+
+/// Short-lived credential cache to avoid repeated file/Win32 reads within a single operation batch.
+/// TTL is intentionally short (5 seconds) since credentials can change externally.
+struct CredentialCache {
+    claude_credentials: Option<(Instant, ClaudeOAuthCredentials)>,
+    zai_api_key: Option<(Instant, String)>,
+}
+
+impl CredentialCache {
+    const TTL: Duration = Duration::from_secs(5);
+
+    fn new() -> Self {
+        Self {
+            claude_credentials: None,
+            zai_api_key: None,
+        }
+    }
+
+    fn get_claude(&self) -> Option<ClaudeOAuthCredentials> {
+        self.claude_credentials
+            .as_ref()
+            .and_then(|(instant, creds)| {
+                if instant.elapsed() < Self::TTL {
+                    Some(creds.clone())
+                } else {
+                    None
+                }
+            })
+    }
+
+    fn set_claude(&mut self, creds: ClaudeOAuthCredentials) {
+        self.claude_credentials = Some((Instant::now(), creds));
+    }
+
+    fn invalidate_claude(&mut self) {
+        self.claude_credentials = None;
+    }
+
+    fn get_zai(&self) -> Option<String> {
+        self.zai_api_key.as_ref().and_then(|(instant, key)| {
+            if instant.elapsed() < Self::TTL {
+                Some(key.clone())
+            } else {
+                None
+            }
+        })
+    }
+
+    fn set_zai(&mut self, key: String) {
+        self.zai_api_key = Some((Instant::now(), key));
+    }
+
+    fn invalidate_zai(&mut self) {
+        self.zai_api_key = None;
+    }
+}
+
+static CACHE: Mutex<Option<CredentialCache>> = Mutex::new(None);
+
+fn with_cache<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut CredentialCache) -> R,
+{
+    let mut guard = CACHE
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    if guard.is_none() {
+        *guard = Some(CredentialCache::new());
+    }
+    f(guard.as_mut().unwrap())
+}
 
 pub struct CredentialManager;
 
@@ -55,6 +128,13 @@ impl CredentialManager {
 
     pub fn read_claude_credentials() -> Result<ClaudeOAuthCredentials> {
         debug_cred!("read_claude_credentials called");
+
+        // Check cache first
+        if let Some(cached) = with_cache(|c| c.get_claude()) {
+            debug_cred!("Returning cached Claude credentials");
+            return Ok(cached);
+        }
+
         let path = Self::claude_credentials_path()?;
         debug_cred!("Reading credentials from: {:?}", path);
 
@@ -74,6 +154,9 @@ impl CredentialManager {
             anyhow!("Failed to parse Claude credentials: {}", e)
         })?;
         debug_cred!("Successfully parsed credentials");
+
+        // Cache the result
+        with_cache(|c| c.set_claude(credentials.clone()));
 
         Ok(credentials)
     }
@@ -115,6 +198,9 @@ impl CredentialManager {
             anyhow!("Failed to save credentials: {}", e)
         })?;
 
+        // Invalidate cache after writing new credentials
+        with_cache(|c| c.invalidate_claude());
+
         Ok(())
     }
 
@@ -136,6 +222,12 @@ impl CredentialManager {
     }
 
     pub fn read_zai_api_key() -> Result<String> {
+        // Check cache first
+        if let Some(cached) = with_cache(|c| c.get_zai()) {
+            debug_cred!("Returning cached Z.ai API key");
+            return Ok(cached);
+        }
+
         let credential = Self::read_credential(Self::ZAI_TARGET)?;
 
         // Extract blob data BEFORE calling CredFree to avoid use-after-free
@@ -155,15 +247,24 @@ impl CredentialManager {
         let key =
             String::from_utf8(blob_vec).map_err(|e| anyhow!("Failed to decode API key: {}", e))?;
 
+        // Cache the result
+        with_cache(|c| c.set_zai(key.clone()));
+
         Ok(key)
     }
 
     pub fn write_zai_api_key(api_key: &str) -> Result<()> {
-        Self::write_credential(Self::ZAI_TARGET, api_key)
+        let result = Self::write_credential(Self::ZAI_TARGET, api_key);
+        // Invalidate cache after writing
+        with_cache(|c| c.invalidate_zai());
+        result
     }
 
     pub fn zai_delete_api_key() -> Result<()> {
-        Self::delete_credential(Self::ZAI_TARGET)
+        let result = Self::delete_credential(Self::ZAI_TARGET);
+        // Invalidate cache after deleting
+        with_cache(|c| c.invalidate_zai());
+        result
     }
 
     pub fn has_zai_api_key() -> bool {

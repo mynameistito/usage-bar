@@ -90,11 +90,10 @@ export function createZaiConnectionBadge(isConnected: boolean): HTMLElement {
 	return container;
 }
 
-export async function createZaiSettings(): Promise<HTMLElement> {
+export function createZaiSettings(hasApiKey: boolean): HTMLElement {
 	const settings = document.createElement("div");
 	settings.className = "zai-settings";
-
-	const hasApiKey = await checkZaiApiKey();
+	settings.id = "zai-settings";
 
 	if (!hasApiKey) {
 		settings.style.display = "none";

@@ -15,14 +15,16 @@ pub use logging::{
 };
 
 use cache::ResponseCache;
-use models::{UsageData, ZaiUsageData};
+use models::{ClaudeTierData, UsageData, ZaiTierData, ZaiUsageData};
 use std::sync::Arc;
 use std::time::Duration;
 use tauri::{tray::TrayIconBuilder, Manager};
 
 pub struct HttpClient(pub Arc<reqwest::Client>);
 pub struct ClaudeUsageCache(pub ResponseCache<UsageData>);
+pub struct ClaudeTierCache(pub ResponseCache<ClaudeTierData>);
 pub struct ZaiUsageCache(pub ResponseCache<ZaiUsageData>);
+pub struct ZaiTierCache(pub ResponseCache<ZaiTierData>);
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -42,7 +44,9 @@ async fn main() -> anyhow::Result<()> {
 
             // Initialize response caches (30 second TTL)
             app.manage(ClaudeUsageCache(ResponseCache::new(30)));
+            app.manage(ClaudeTierCache(ResponseCache::new(30)));
             app.manage(ZaiUsageCache(ResponseCache::new(30)));
+            app.manage(ZaiTierCache(ResponseCache::new(30)));
             debug_app!("Response caches initialized (TTL: 30s)");
 
             // Get the window that was automatically created from tauri.conf.json

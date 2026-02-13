@@ -1,5 +1,5 @@
 use crate::credentials::CredentialManager;
-use crate::models::{McpUsage, TokenUsage, ZaiQuotaResponse, ZaiTierData, ZaiUsageData};
+use crate::models::{McpUsage, TokenUsage, ZaiQuotaResponse, ZaiUsageData};
 use anyhow::{anyhow, Result};
 use reqwest::StatusCode;
 use std::sync::Arc;
@@ -190,17 +190,5 @@ impl ZaiService {
                 response.status()
             )),
         }
-    }
-
-    pub async fn fetch_tier(client: Arc<reqwest::Client>) -> Result<ZaiTierData> {
-        debug_zai!("fetch_tier: Starting request");
-        let usage_data = Self::fetch_quota(client).await?;
-
-        let plan_name = usage_data
-            .tier_name
-            .unwrap_or_else(|| "Unknown".to_string());
-        debug_zai!("fetch_tier succeeded: plan={}", plan_name);
-
-        Ok(ZaiTierData { plan_name })
     }
 }
