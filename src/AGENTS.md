@@ -58,6 +58,6 @@ src/
 8. Start timestamp updater (30s)
 
 ## INTEGRATION POINTS
-- **Tauri commands:** `get_claude_usage`, `get_claude_tier`, `get_zai_usage`, `save_zai_api_key`
+- **Tauri commands:** `claude_get_usage`, `claude_get_tier`, `zai_get_usage`, `zai_save_api_key`
 - **DOM IDs:** `loading`, `content`, `claude-view`, `zai-view`, tab buttons
 - **Error containers:** `claude-error`, `zai-error` with message spans

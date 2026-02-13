@@ -5,6 +5,11 @@ pub struct UsageResponse {
     pub five_hour: UsagePeriod,
     pub seven_day: UsagePeriod,
     pub extra_usage: Option<ExtraUsageResponse>,
+    // Tier info also comes from the same /usage endpoint
+    #[serde(default)]
+    pub rate_limit_tier: Option<String>,
+    #[serde(default)]
+    pub billing_type: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -105,14 +110,6 @@ pub struct TokenRefreshResponse {
     pub refresh_token: String,
     #[serde(rename = "expires_in")]
     pub expires_in: i64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TierResponse {
-    #[serde(default)]
-    pub rate_limit_tier: Option<String>,
-    #[serde(default)]
-    pub billing_type: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

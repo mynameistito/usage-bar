@@ -1,5 +1,5 @@
 use crate::credentials::CredentialManager;
-use crate::models::{McpUsage, TokenUsage, ZaiQuotaResponse, ZaiTierData, ZaiUsageData};
+use crate::models::{McpUsage, TokenUsage, ZaiQuotaResponse, ZaiUsageData};
 use anyhow::{anyhow, Result};
 use reqwest::StatusCode;
 use std::sync::Arc;
@@ -11,11 +11,11 @@ const ZAI_API_URL: &str = "https://api.z.ai/api/monitor/usage/quota/limit";
 pub struct ZaiService;
 
 impl ZaiService {
-    pub async fn fetch_quota(client: Arc<reqwest::Client>) -> Result<ZaiUsageData> {
-        debug_zai!("fetch_quota: Starting request");
+    pub async fn zai_fetch_quota(client: Arc<reqwest::Client>) -> Result<ZaiUsageData> {
+        debug_zai!("zai_fetch_quota: Starting request");
         debug_net!("GET {}", ZAI_API_URL);
 
-        let api_key = CredentialManager::read_zai_api_key()?;
+        let api_key = CredentialManager::zai_read_api_key()?;
         debug_zai!("Using API key: ***REDACTED***");
 
         let response = client
@@ -111,8 +111,8 @@ impl ZaiService {
         })
     }
 
-    pub fn has_api_key() -> bool {
-        CredentialManager::has_zai_api_key()
+    pub fn zai_has_api_key() -> bool {
+        CredentialManager::zai_has_api_key()
     }
 
     pub async fn validate_api_key(client: Arc<reqwest::Client>, api_key: &str) -> Result<()> {
@@ -190,17 +190,5 @@ impl ZaiService {
                 response.status()
             )),
         }
-    }
-
-    pub async fn fetch_tier(client: Arc<reqwest::Client>) -> Result<ZaiTierData> {
-        debug_zai!("fetch_tier: Starting request");
-        let usage_data = Self::fetch_quota(client).await?;
-
-        let plan_name = usage_data
-            .tier_name
-            .unwrap_or_else(|| "Unknown".to_string());
-        debug_zai!("fetch_tier succeeded: plan={}", plan_name);
-
-        Ok(ZaiTierData { plan_name })
     }
 }

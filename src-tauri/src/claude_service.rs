@@ -1,5 +1,5 @@
 use crate::credentials::CredentialManager;
-use crate::models::{ClaudeTierData, TierResponse, TokenRefreshResponse, UsageData, UsageResponse};
+use crate::models::{ClaudeTierData, TokenRefreshResponse, UsageData, UsageResponse};
 use anyhow::{anyhow, Result};
 use reqwest::StatusCode;
 use std::sync::Arc;
@@ -21,11 +21,52 @@ impl ClaudeService {
             .map_err(|e| anyhow!("System clock error: {}", e))
     }
 
-    pub async fn fetch_usage(client: Arc<reqwest::Client>) -> Result<UsageData> {
-        debug_claude!("fetch_usage: Starting request");
+    async fn handle_combined_response(
+        response: reqwest::Response,
+    ) -> Result<(UsageData, ClaudeTierData)> {
+        let response_text = response.text().await?;
+
+        let usage_response: UsageResponse = serde_json::from_str(&response_text)
+            .map_err(|e| anyhow!("Failed to parse usage response: {}", e))?;
+
+        let extra_usage = usage_response.extra_usage;
+
+        let usage_data = UsageData {
+            five_hour_utilization: usage_response.five_hour.utilization,
+            five_hour_resets_at: usage_response.five_hour.resets_at,
+            seven_day_utilization: usage_response.seven_day.utilization,
+            seven_day_resets_at: usage_response.seven_day.resets_at,
+            extra_usage_enabled: extra_usage.as_ref().map(|e| e.is_enabled).unwrap_or(false),
+            extra_usage_monthly_limit: extra_usage.as_ref().and_then(|e| e.monthly_limit),
+            extra_usage_used_credits: extra_usage.as_ref().and_then(|e| e.used_credits),
+            extra_usage_utilization: extra_usage.as_ref().and_then(|e| e.utilization),
+        };
+
+        // Extract tier info from the same response
+        let plan_name = Self::infer_plan_name(
+            &usage_response.rate_limit_tier,
+            &usage_response.billing_type,
+        );
+        let raw_tier = usage_response.rate_limit_tier.unwrap_or_default();
+
+        let tier_data = ClaudeTierData {
+            plan_name,
+            rate_limit_tier: raw_tier,
+        };
+
+        Ok((usage_data, tier_data))
+    }
+
+    /// Fetches both usage and tier data from a single API call.
+    /// This is more efficient than calling fetch_usage and fetch_tier separately
+    /// since they both hit the same endpoint.
+    pub async fn claude_fetch_usage_and_tier(
+        client: Arc<reqwest::Client>,
+    ) -> Result<(UsageData, ClaudeTierData)> {
+        debug_claude!("claude_fetch_usage_and_tier: Starting request");
         debug_net!("GET {}", USAGE_API_URL);
 
-        let token = CredentialManager::read_claude_access_token()?;
+        let token = CredentialManager::claude_read_access_token()?;
         debug_claude!("Using access token (expires_at: N/A)");
 
         let response = client
@@ -41,7 +82,7 @@ impl ClaudeService {
             StatusCode::UNAUTHORIZED => {
                 debug_claude!("Unauthorized: Attempting token refresh");
                 Self::refresh_token(client.clone()).await?;
-                let token = CredentialManager::read_claude_access_token()?;
+                let token = CredentialManager::claude_read_access_token()?;
                 let retry_response = client
                     .get(USAGE_API_URL)
                     .header("Authorization", format!("Bearer {}", token))
@@ -51,11 +92,10 @@ impl ClaudeService {
 
                 debug_net!("Retry response status: {}", retry_response.status());
 
-                // Check retry response status before handling
                 match retry_response.status() {
                     status if status.is_success() => {
-                        debug_claude!("Successfully fetched usage data after retry");
-                        Self::handle_response(retry_response).await
+                        debug_claude!("Successfully fetched usage+tier data after retry");
+                        Self::handle_combined_response(retry_response).await
                     }
                     StatusCode::UNAUTHORIZED => {
                         debug_error!("Still unauthorized after token refresh");
@@ -74,14 +114,14 @@ impl ClaudeService {
                         Err(anyhow!("Server error — try again later"))
                     }
                     _ => {
-                        debug_error!("Failed to fetch usage data after token refresh");
+                        debug_error!("Failed to fetch usage+tier data after token refresh");
                         Err(anyhow!("Failed to fetch usage data"))
                     }
                 }
             }
             status if status.is_success() => {
-                debug_claude!("Successfully fetched usage data");
-                Self::handle_response(response).await
+                debug_claude!("Successfully fetched usage+tier data");
+                Self::handle_combined_response(response).await
             }
             StatusCode::FORBIDDEN => {
                 debug_error!("Access denied — check your permissions");
@@ -96,37 +136,17 @@ impl ClaudeService {
                 Err(anyhow!("Server error — try again later"))
             }
             _ => {
-                debug_error!("Failed to fetch usage data");
+                debug_error!("Failed to fetch usage+tier data");
                 Err(anyhow!("Failed to fetch usage data"))
             }
         }
-    }
-
-    async fn handle_response(response: reqwest::Response) -> Result<UsageData> {
-        let response_text = response.text().await?;
-
-        let usage_response: UsageResponse = serde_json::from_str(&response_text)
-            .map_err(|e| anyhow!("Failed to parse usage response: {}", e))?;
-
-        let extra_usage = usage_response.extra_usage;
-
-        Ok(UsageData {
-            five_hour_utilization: usage_response.five_hour.utilization,
-            five_hour_resets_at: usage_response.five_hour.resets_at,
-            seven_day_utilization: usage_response.seven_day.utilization,
-            seven_day_resets_at: usage_response.seven_day.resets_at,
-            extra_usage_enabled: extra_usage.as_ref().map(|e| e.is_enabled).unwrap_or(false),
-            extra_usage_monthly_limit: extra_usage.as_ref().and_then(|e| e.monthly_limit),
-            extra_usage_used_credits: extra_usage.as_ref().and_then(|e| e.used_credits),
-            extra_usage_utilization: extra_usage.as_ref().and_then(|e| e.utilization),
-        })
     }
 
     pub async fn refresh_token(client: Arc<reqwest::Client>) -> Result<()> {
         debug_claude!("refresh_token: Starting token refresh");
         debug_net!("POST {}", TOKEN_REFRESH_URL);
 
-        let credentials = CredentialManager::read_claude_credentials()?;
+        let credentials = CredentialManager::claude_read_credentials()?;
 
         let params = [
             ("grant_type", "refresh_token"),
@@ -159,7 +179,7 @@ impl ClaudeService {
             refresh_response.expires_in * 1000
         );
 
-        CredentialManager::update_claude_token(
+        CredentialManager::claude_update_token(
             &refresh_response.access_token,
             &refresh_response.refresh_token,
             expires_at,
@@ -169,7 +189,7 @@ impl ClaudeService {
     }
 
     pub fn is_token_expired() -> bool {
-        match CredentialManager::read_claude_credentials() {
+        match CredentialManager::claude_read_credentials() {
             Ok(credentials) => {
                 if let Some(expires_at) = credentials.claude_ai_oauth.expires_at {
                     match Self::now_millis() {
@@ -209,102 +229,6 @@ impl ClaudeService {
             debug_claude!("Token is still valid, skipping refresh");
         }
         Ok(())
-    }
-
-    pub async fn fetch_tier(client: Arc<reqwest::Client>) -> Result<ClaudeTierData> {
-        debug_claude!("fetch_tier: Starting request");
-        debug_net!("GET {}", USAGE_API_URL);
-
-        let token = CredentialManager::read_claude_access_token()?;
-
-        let response = client
-            .get(USAGE_API_URL)
-            .header("Authorization", format!("Bearer {}", token))
-            .header("anthropic-beta", "oauth-2025-04-20")
-            .send()
-            .await?;
-
-        debug_net!("Response status: {}", response.status());
-
-        match response.status() {
-            StatusCode::UNAUTHORIZED => {
-                debug_claude!("Unauthorized: Attempting token refresh");
-                Self::refresh_token(client.clone()).await?;
-                let token = CredentialManager::read_claude_access_token()?;
-                let retry_response = client
-                    .get(USAGE_API_URL)
-                    .header("Authorization", format!("Bearer {}", token))
-                    .header("anthropic-beta", "oauth-2025-04-20")
-                    .send()
-                    .await?;
-
-                debug_net!("Retry response status: {}", retry_response.status());
-
-                // Check retry response status before handling
-                match retry_response.status() {
-                    status if status.is_success() => {
-                        debug_claude!("Successfully fetched tier data after retry");
-                        Self::handle_tier_response(retry_response).await
-                    }
-                    StatusCode::UNAUTHORIZED => {
-                        debug_error!("Still unauthorized after token refresh");
-                        Err(anyhow!("Authentication failed — please log in again"))
-                    }
-                    StatusCode::FORBIDDEN => {
-                        debug_error!("Access denied after token refresh");
-                        Err(anyhow!("Access denied — check your permissions"))
-                    }
-                    StatusCode::TOO_MANY_REQUESTS => {
-                        debug_error!("Rate limited after token refresh");
-                        Err(anyhow!("Rate limited — please wait and try again"))
-                    }
-                    status if status.is_server_error() => {
-                        debug_error!("Server error after token refresh");
-                        Err(anyhow!("Server error — try again later"))
-                    }
-                    _ => {
-                        debug_error!("Failed to fetch tier data after token refresh");
-                        Err(anyhow!("Failed to fetch tier data"))
-                    }
-                }
-            }
-            status if status.is_success() => {
-                debug_claude!("Successfully fetched tier data");
-                Self::handle_tier_response(response).await
-            }
-            StatusCode::FORBIDDEN => {
-                debug_error!("Access denied — check your permissions");
-                Err(anyhow!("Access denied — check your permissions"))
-            }
-            StatusCode::TOO_MANY_REQUESTS => {
-                debug_error!("Rate limited — please wait and try again");
-                Err(anyhow!("Rate limited — please wait and try again"))
-            }
-            status if status.is_server_error() => {
-                debug_error!("Server error — try again later");
-                Err(anyhow!("Server error — try again later"))
-            }
-            _ => {
-                debug_error!("Failed to fetch tier data");
-                Err(anyhow!("Failed to fetch tier data"))
-            }
-        }
-    }
-
-    async fn handle_tier_response(response: reqwest::Response) -> Result<ClaudeTierData> {
-        let response_text = response.text().await?;
-
-        let tier_response: TierResponse = serde_json::from_str(&response_text)
-            .map_err(|e| anyhow!("Failed to parse tier response: {}", e))?;
-
-        let plan_name =
-            Self::infer_plan_name(&tier_response.rate_limit_tier, &tier_response.billing_type);
-        let raw_tier = tier_response.rate_limit_tier.unwrap_or_default();
-
-        Ok(ClaudeTierData {
-            plan_name,
-            rate_limit_tier: raw_tier,
-        })
     }
 
     fn infer_plan_name(rate_limit_tier: &Option<String>, billing_type: &Option<String>) -> String {

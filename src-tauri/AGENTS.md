@@ -66,12 +66,12 @@ src-tauri/
 
 ## TAURI COMMANDS
 ```rust
-get_claude_usage()       // Fetch cached/live Claude usage data
-get_claude_tier()        // Fetch Claude plan/tier info
-get_zai_usage()          // Fetch cached/live Z.ai quota
-check_zai_api_key()      // Validate existing Z.ai key
-save_zai_api_key(key)    // Store Z.ai key in Credential Manager
-delete_zai_api_key()      // Remove Z.ai key
+claude_get_usage()       // Fetch cached/live Claude usage data
+claude_get_tier()        // Fetch Claude plan/tier info
+zai_get_usage()          // Fetch cached/live Z.ai quota
+zai_check_api_key()      // Validate existing Z.ai key
+zai_save_api_key(key)    // Store Z.ai key in Credential Manager
+zai_delete_api_key()      // Remove Z.ai key
 refresh_all()            // Invalidate all caches
 ```
 
