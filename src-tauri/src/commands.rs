@@ -408,6 +408,20 @@ pub fn open_url(url: String) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(not(target_os = "windows"))]
+#[tauri::command]
+pub fn open_url(url: String) -> Result<(), String> {
+    if !url.starts_with("http://") && !url.starts_with("https://") {
+        return Err("URL must start with http:// or https://".to_string());
+    }
+
+    std::process::Command::new("open")
+        .arg(&url)
+        .spawn()
+        .or_else(|_| std::process::Command::new("xdg-open").arg(&url).spawn())
+        .map_err(|e| format!("Failed to open URL: {}", e))
+}
+
 #[tauri::command]
 pub fn quit_app(app: tauri::AppHandle) {
     app.exit(0);
