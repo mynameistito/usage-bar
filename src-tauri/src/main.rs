@@ -52,6 +52,16 @@ async fn main() -> anyhow::Result<()> {
             // Get the window that was automatically created from tauri.conf.json
             if let Some(window) = app.get_webview_window("main") {
                 window.set_ignore_cursor_events(false)?;
+                
+                // Handle window close event for graceful shutdown
+                let window_clone = window.clone();
+                window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { .. } = event {
+                        debug_app!("Window close requested, exiting gracefully");
+                        let _ = window_clone.hide();
+                    }
+                });
+                
                 debug_app!("Main window configured");
             }
 
@@ -78,6 +88,7 @@ async fn main() -> anyhow::Result<()> {
                             }
                         }
                         "quit" => {
+                            debug_app!("Quit requested via tray menu");
                             app.exit(0);
                         }
                         _ => {}
