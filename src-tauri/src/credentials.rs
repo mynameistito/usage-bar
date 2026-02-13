@@ -84,21 +84,34 @@ pub struct CredentialManager;
 impl CredentialManager {
     const ZAI_TARGET: &'static str = "usage-bar-zai-credentials";
 
-    /// Resolve {env:varname} syntax to environment variable value
+    /// Resolve {env:varname} or $ENV:varname syntax to environment variable value
     /// Returns the input string unchanged if it doesn't match the pattern
-    fn resolve_env_reference(input: &str) -> Result<String> {
-        // Case-insensitive check for {env:varname} or {ENV:varname}
+    pub fn resolve_env_reference(input: &str) -> Result<String> {
         let input_lower = input.to_lowercase();
+
+        // Check for {env:varname} or {ENV:varname} syntax
         if let Some(rest) = input_lower.strip_prefix("{env:") {
             if rest.ends_with('}') {
-                // Get the original casing version of var_name from the original input
-                let original_var_name = &input[6..(input.len() - 1)]; // Skip "{env:" and "}"
+                // Find the prefix in the original input to preserve casing
+                let prefix_end = input.find('{').unwrap_or(0) + 5; // "{env:" is 5 chars
+                let original_var_name = &input[prefix_end..(input.len() - 1)]; // Skip prefix and "}"
                 debug_cred!("Resolving env variable: {}", original_var_name);
                 return std::env::var(original_var_name).map_err(|_| {
                     anyhow!("Environment variable '{}' not found", original_var_name)
                 });
             }
         }
+
+        // Check for $ENV:varname or $env:varname syntax
+        if let Some(_rest) = input_lower.strip_prefix("$env:") {
+            // Get the original casing version from the original input
+            let prefix_end = input.find('$').unwrap_or(0) + 5; // "$env:" is 5 chars
+            let original_var_name = &input[prefix_end..]; // Skip prefix, keep everything after
+            debug_cred!("Resolving env variable: {}", original_var_name);
+            return std::env::var(original_var_name)
+                .map_err(|_| anyhow!("Environment variable '{}' not found", original_var_name));
+        }
+
         Ok(input.to_string())
     }
 

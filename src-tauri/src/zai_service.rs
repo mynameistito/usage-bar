@@ -124,6 +124,9 @@ impl ZaiService {
             return Err(anyhow!("API key cannot be empty"));
         }
 
+        // Resolve environment variable if using {env:varname} syntax
+        let api_key = CredentialManager::resolve_env_reference(api_key)?;
+
         if api_key.len() < 10 {
             debug_error!("API key is too short");
             return Err(anyhow!("API key is too short"));
@@ -133,7 +136,7 @@ impl ZaiService {
 
         let response = client
             .get(ZAI_API_URL)
-            .header("Authorization", api_key)
+            .header("Authorization", &api_key)
             .header("Accept-Language", "en-US,en")
             .header("Content-Type", "application/json")
             .send()
