@@ -176,11 +176,14 @@ function createZaiInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 	desc.textContent = "Get your API key from ";
 
 	const link = document.createElement("a");
-	link.href = "https://z.ai/manage-apikey/apikey-list";
-	link.target = "_blank";
-	link.rel = "noopener noreferrer";
+	link.href = "#";
 	link.className = "zai-link";
 	link.textContent = "z.ai/manage-apikey";
+	link.addEventListener("click", async (e) => {
+		e.preventDefault();
+		const { openUrl } = await import("@tauri-apps/plugin-opener");
+		await openUrl("https://z.ai/manage-apikey/apikey-list");
+	});
 	desc.appendChild(link);
 
 	const inputRow = document.createElement("div");
