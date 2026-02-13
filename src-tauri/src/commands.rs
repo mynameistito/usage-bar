@@ -366,13 +366,18 @@ pub fn open_url(url: String) -> Result<(), String> {
     use windows::Win32::UI::Shell::ShellExecuteW;
     use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
 
+    // Validate that the URL starts with http:// or https://
+    if !url.starts_with("http://") && !url.starts_with("https://") {
+        return Err("URL must start with http:// or https://".to_string());
+    }
+
     unsafe {
         let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
 
         let url_wide: Vec<u16> = OsStr::new(&url).encode_wide().chain(Some(0)).collect();
         let operation_wide: Vec<u16> = OsStr::new("open").encode_wide().chain(Some(0)).collect();
 
-        ShellExecuteW(
+        let result = ShellExecuteW(
             None,
             PCWSTR(operation_wide.as_ptr()),
             PCWSTR(url_wide.as_ptr()),
@@ -380,6 +385,11 @@ pub fn open_url(url: String) -> Result<(), String> {
             None,
             SW_SHOW,
         );
+
+        // ShellExecuteW returns a value > 32 on success
+        if result.0 as i32 <= 32 {
+            return Err(format!("Failed to open URL: error code {}", result.0 as i32));
+        }
     }
     Ok(())
 }
