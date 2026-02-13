@@ -180,7 +180,7 @@ function createZaiInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 	desc.textContent = "Get your API key from ";
 
 	const link = document.createElement("a");
-	link.href = "#";
+	link.href = "javascript:void(0)";
 	link.className = "zai-link";
 	link.textContent = "z.ai/manage-apikey";
 	link.addEventListener("click", async (e) => {
