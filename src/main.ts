@@ -119,7 +119,6 @@ async function loadContent() {
     if (savedTab === "zai") {
       switchTab("zai");
     }
-    }
 
     startPolling();
     startTimestampUpdater();
