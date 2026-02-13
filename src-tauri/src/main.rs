@@ -99,12 +99,14 @@ async fn main() -> anyhow::Result<()> {
             commands::check_zai_api_key,
             commands::validate_zai_api_key,
             commands::save_zai_api_key,
+            commands::delete_zai_api_key,
+            commands::quit_app,
+            commands::refresh_all,
         ])
         .run(tauri::generate_context!())
         .map_err(|e| {
             eprintln!("error while running tauri application: {}", e);
             anyhow::anyhow!("Failed to run application")
         })?;
-    Ok(())
     Ok(())
 }
