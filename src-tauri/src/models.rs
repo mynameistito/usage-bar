@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UsageResponse {
-    pub five_hour: UsagePeriod,
-    pub seven_day: UsagePeriod,
+    pub five_hour: Option<UsagePeriod>,
+    pub seven_day: Option<UsagePeriod>,
     pub extra_usage: Option<ExtraUsageResponse>,
     // Tier info also comes from the same /usage endpoint
     #[serde(default)]
