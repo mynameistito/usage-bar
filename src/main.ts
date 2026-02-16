@@ -119,9 +119,9 @@ function updateZaiConnectionBadge(hasApiKey: boolean): void {
 
 interface ClaudeUsageData {
   five_hour_utilization: number;
-  five_hour_resets_at: string;
+  five_hour_resets_at: string | null;
   seven_day_utilization: number;
-  seven_day_resets_at: string;
+  seven_day_resets_at: string | null;
   extra_usage_enabled: boolean;
   extra_usage_monthly_limit: number | null;
   extra_usage_used_credits: number | null;

@@ -7,6 +7,7 @@ use tauri::State;
 
 use crate::{debug_cache, debug_claude, debug_cred, debug_zai};
 
+#[cfg(target_os = "windows")]
 const RPC_E_CHANGED_MODE: i32 = -2147417850; // 0x80010106
 
 #[tauri::command]
