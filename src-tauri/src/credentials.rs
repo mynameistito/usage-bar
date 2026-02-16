@@ -336,7 +336,7 @@ impl CredentialManager {
             let result = CredReadW(
                 PCWSTR(target_name_wide.as_ptr()),
                 CRED_TYPE_GENERIC,
-                0,
+                Some(0),
                 &mut credential_ptr,
             );
 
@@ -386,7 +386,11 @@ impl CredentialManager {
         let target_name_wide: Vec<u16> = target_name.encode_utf16().chain(Some(0)).collect();
 
         unsafe {
-            let result = CredDeleteW(PCWSTR(target_name_wide.as_ptr()), CRED_TYPE_GENERIC, 0);
+            let result = CredDeleteW(
+                PCWSTR(target_name_wide.as_ptr()),
+                CRED_TYPE_GENERIC,
+                Some(0),
+            );
 
             if result.is_err() {
                 return Err(anyhow!("Failed to delete credential: {}", target_name));

@@ -3,9 +3,12 @@ use crate::credentials::CredentialManager;
 use crate::zai_service::ZaiService;
 use crate::{ClaudeTierCache, ClaudeUsageCache, HttpClient, ZaiTierCache, ZaiUsageCache};
 use std::sync::Arc;
-use tauri::{AppHandle, State};
+use tauri::State;
 
 use crate::{debug_cache, debug_claude, debug_cred, debug_zai};
+
+#[cfg(target_os = "windows")]
+const RPC_E_CHANGED_MODE: i32 = -2147417850; // 0x80010106
 
 #[tauri::command]
 pub async fn claude_get_all(
@@ -357,14 +360,77 @@ pub fn zai_delete_api_key() -> Result<(), String> {
     CredentialManager::zai_delete_api_key().map_err(|e| e.to_string())
 }
 
+#[cfg(target_os = "windows")]
 #[tauri::command]
-pub fn quit_app(app: AppHandle) {
+pub fn open_url(url: String) -> Result<(), String> {
+    use std::ffi::OsStr;
+    use std::os::windows::ffi::OsStrExt;
+    use windows::core::PCWSTR;
+    use windows::Win32::System::Com::{CoInitializeEx, COINIT_MULTITHREADED};
+    use windows::Win32::UI::Shell::ShellExecuteW;
+    use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
+
+    // Validate that the URL starts with http:// or https://
+    if !url.starts_with("http://") && !url.starts_with("https://") {
+        return Err("URL must start with http:// or https://".to_string());
+    }
+
+    unsafe {
+        let init_result = CoInitializeEx(None, COINIT_MULTITHREADED);
+        // S_FALSE (1) means COM already initialized, which is ok
+        // RPC_E_CHANGED_MODE means different threading model, also ok
+        if !init_result.is_ok() {
+            let hresult = init_result;
+            if hresult.0 != 1 && hresult.0 != RPC_E_CHANGED_MODE {
+                return Err(format!("Failed to initialize COM: HRESULT={}", hresult.0));
+            }
+        }
+
+        let url_wide: Vec<u16> = OsStr::new(&url).encode_wide().chain(Some(0)).collect();
+        let operation_wide: Vec<u16> = OsStr::new("open").encode_wide().chain(Some(0)).collect();
+
+        let result = ShellExecuteW(
+            None,
+            PCWSTR(operation_wide.as_ptr()),
+            PCWSTR(url_wide.as_ptr()),
+            None,
+            None,
+            SW_SHOW,
+        );
+
+        // ShellExecuteW returns a value > 32 on success
+        if result.0 as i32 <= 32 {
+            return Err(format!(
+                "Failed to open URL: error code {}",
+                result.0 as i32
+            ));
+        }
+    }
+    Ok(())
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tauri::command]
+pub fn open_url(url: String) -> Result<(), String> {
+    if !url.starts_with("http://") && !url.starts_with("https://") {
+        return Err("URL must start with http:// or https://".to_string());
+    }
+
+    std::process::Command::new("open")
+        .arg(&url)
+        .status()
+        .or_else(|_| std::process::Command::new("xdg-open").arg(&url).status())
+        .map(|_| ())
+        .map_err(|e| format!("Failed to open URL: {}", e))
+}
+
+#[tauri::command]
+pub fn quit_app(app: tauri::AppHandle) {
     app.exit(0);
 }
 
 #[tauri::command]
 pub async fn refresh_all(
-    _app: AppHandle,
     client: State<'_, HttpClient>,
     claude_usage_cache: State<'_, ClaudeUsageCache>,
     claude_tier_cache: State<'_, ClaudeTierCache>,

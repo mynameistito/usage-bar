@@ -119,9 +119,9 @@ function updateZaiConnectionBadge(hasApiKey: boolean): void {
 
 interface ClaudeUsageData {
   five_hour_utilization: number;
-  five_hour_resets_at: string;
+  five_hour_resets_at: string | null;
   seven_day_utilization: number;
-  seven_day_resets_at: string;
+  seven_day_resets_at: string | null;
   extra_usage_enabled: boolean;
   extra_usage_monthly_limit: number | null;
   extra_usage_used_credits: number | null;
@@ -329,12 +329,12 @@ async function fetchClaudeData() {
     if (extraUsageLabel && extraUsageValue && extraUsageSection) {
       if (usageData.extra_usage_enabled) {
         extraUsageSection.style.display = "block";
-        const monthlyLimit = usageData.extra_usage_monthly_limit ?? 0;
-        const usedCredits = usageData.extra_usage_used_credits ?? 0;
+        const monthlyLimit = (usageData.extra_usage_monthly_limit ?? 0) / 100;
+        const usedCredits = (usageData.extra_usage_used_credits ?? 0) / 100;
         const utilization = usageData.extra_usage_utilization ?? 0;
 
         extraUsageLabel.textContent = `This month: $${usedCredits.toFixed(2)} / $${monthlyLimit.toFixed(2)}`;
-        extraUsageValue.textContent = `${(utilization * 100).toFixed(0)}% used`;
+        extraUsageValue.textContent = `${utilization.toFixed(0)}% used`;
       } else {
         extraUsageSection.style.display = "none";
       }
@@ -497,12 +497,12 @@ async function fetchClaudeUsage() {
     if (extraUsageLabel && extraUsageValue && extraUsageSection) {
       if (data.extra_usage_enabled) {
         extraUsageSection.style.display = "block";
-        const monthlyLimit = data.extra_usage_monthly_limit ?? 0;
-        const usedCredits = data.extra_usage_used_credits ?? 0;
+        const monthlyLimit = (data.extra_usage_monthly_limit ?? 0) / 100;
+        const usedCredits = (data.extra_usage_used_credits ?? 0) / 100;
         const utilization = data.extra_usage_utilization ?? 0;
 
         extraUsageLabel.textContent = `This month: $${usedCredits.toFixed(2)} / $${monthlyLimit.toFixed(2)}`;
-        extraUsageValue.textContent = `${(utilization * 100).toFixed(0)}% used`;
+        extraUsageValue.textContent = `${utilization.toFixed(0)}% used`;
       } else {
         extraUsageSection.style.display = "none";
       }
