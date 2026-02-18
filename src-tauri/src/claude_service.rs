@@ -278,12 +278,13 @@ impl ClaudeService {
 
         if tier.contains("max") {
             "Max".into()
-        } else if billing.contains("stripe") && (tier.contains("tier_2") || tier.contains("tier_3"))
-        {
-            "Pro".into()
         } else if tier.contains("team") || tier.contains("tier_4") || tier.contains("tier_5") {
+            // tier_4/tier_5 assumed to map to Team; revisit if Anthropic introduces new tier names
             "Team".into()
         } else if tier.contains("tier_2") || tier.contains("tier_3") {
+            "Pro".into()
+        } else if billing.contains("stripe") {
+            // Stripe-billed user with unrecognized tier: assume at least Pro
             "Pro".into()
         } else {
             "Free".into()

@@ -263,8 +263,6 @@ async function loadContent() {
   content.style.display = "none";
 
   try {
-    const initialPromises: Promise<unknown>[] = [fetchClaudeData(), fetchZaiData()];
-
     const hasZaiApiKey = await checkZaiApiKey();
     updateZaiHeaderState(hasZaiApiKey);
     updateZaiConnectionBadge(hasZaiApiKey);
@@ -272,6 +270,7 @@ async function loadContent() {
     const hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
     updateAmpConnectionBadge(hasAmpCookie);
 
+    const initialPromises: Promise<unknown>[] = [fetchClaudeData(), fetchZaiData()];
     if (hasAmpCookie) {
       initialPromises.push(fetchAmpData());
     }
@@ -633,8 +632,11 @@ function startPolling() {
 
   pollingTimer = window.setInterval(async () => {
     const hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
-    const promises: Promise<unknown>[] = [fetchClaudeData(), fetchZaiData()];
-    if (hasAmpCookie) promises.push(fetchAmpData());
+    const promises: Promise<unknown>[] = [
+      fetchClaudeData(),
+      fetchZaiData(),
+      ...(hasAmpCookie ? [fetchAmpData()] : [])
+    ];
     await Promise.allSettled(promises);
   }, POLL_INTERVAL);
 }

@@ -193,6 +193,9 @@ impl AmpService {
                 .map(|d| d.as_secs())
                 .unwrap_or(0);
             let window_seconds = (hours * 3600.0) as u64;
+            if window_seconds == 0 {
+                return None;
+            }
             let window_start = now_secs - (now_secs % window_seconds);
             let reset_secs = window_start + window_seconds;
             Some(i64::try_from(reset_secs * 1000).unwrap_or(i64::MAX))
@@ -208,21 +211,24 @@ impl AmpService {
         })
     }
 
-    fn get_cached_regex(field: &str) -> Regex {
+    fn get_cached_regex(field: &str) -> Result<Regex> {
         static RE_CACHE: std::sync::LazyLock<
             std::sync::Mutex<std::collections::HashMap<String, Regex>>,
         > = std::sync::LazyLock::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
 
         let pattern = format!(r"{}:\s*([0-9]+(?:\.[0-9]+)?)", regex::escape(field));
         let mut cache = RE_CACHE.lock().unwrap_or_else(|e| e.into_inner());
-        cache
-            .entry(pattern.clone())
-            .or_insert_with(|| Regex::new(&pattern).expect("Failed to compile regex"))
-            .clone()
+        if let Some(regex) = cache.get(&pattern) {
+            return Ok(regex.clone());
+        }
+        let regex = Regex::new(&pattern)
+            .map_err(|e| anyhow::anyhow!("Failed to compile regex '{}': {}", pattern, e))?;
+        cache.insert(pattern, regex.clone());
+        Ok(regex)
     }
 
     fn extract_number(obj: &str, field: &str) -> Result<f64> {
-        let re = Self::get_cached_regex(field);
+        let re = Self::get_cached_regex(field)?;
         let caps = re
             .captures(obj)
             .ok_or_else(|| anyhow!("Field '{}' not found in freeTierUsage object", field))?;
@@ -232,7 +238,7 @@ impl AmpService {
     }
 
     fn extract_number_optional(obj: &str, field: &str) -> Option<f64> {
-        let re = Self::get_cached_regex(field);
+        let re = Self::get_cached_regex(field).ok()?;
         let caps = re.captures(obj)?;
         caps[1].parse::<f64>().ok()
     }
