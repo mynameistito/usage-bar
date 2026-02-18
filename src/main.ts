@@ -564,6 +564,12 @@ async function fetchAmpData(forceRefresh = false) {
 
     ampLastRefresh = new Date();
     updateTimestamp("amp");
+
+    const tierEl = document.getElementById("amp-tier");
+    if (tierEl) {
+      tierEl.textContent = "Free";
+      tierEl.title = "";
+    }
   } catch (error) {
     const errorMsg = String(error);
     if (errorMsg.includes("not configured")) {

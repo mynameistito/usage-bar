@@ -53,10 +53,10 @@ impl ClaudeService {
                 .seven_day
                 .as_ref()
                 .and_then(|p| p.resets_at.clone()),
-            extra_usage_enabled: extra_usage.as_ref().map(|e| e.is_enabled).unwrap_or(false),
-            extra_usage_monthly_limit: extra_usage.as_ref().and_then(|e| e.monthly_limit),
-            extra_usage_used_credits: extra_usage.as_ref().and_then(|e| e.used_credits),
-            extra_usage_utilization: extra_usage.as_ref().and_then(|e| e.utilization),
+            extra_usage_enabled: extra_usage.map(|e| e.is_enabled).unwrap_or(false),
+            extra_usage_monthly_limit: extra_usage.and_then(|e| e.monthly_limit),
+            extra_usage_used_credits: extra_usage.and_then(|e| e.used_credits),
+            extra_usage_utilization: extra_usage.and_then(|e| e.utilization),
         };
 
         // Extract tier info from credentials, falling back to API response for older credential files
