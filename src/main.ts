@@ -541,6 +541,7 @@ async function fetchAmpData(forceRefresh = false) {
     infoTitle.appendChild(titleSpan);
     infoSection.appendChild(infoTitle);
 
+    console.log(`[DEBUG] Amp quota: ${data.quota}, used: ${data.used}, raw values`);
     const remaining = Math.max(0, (data.quota - data.used) / 100);
     const total = data.quota / 100;
     const balanceRow = document.createElement("div");

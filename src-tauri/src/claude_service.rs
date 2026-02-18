@@ -1,5 +1,7 @@
 use crate::credentials::CredentialManager;
-use crate::models::{ClaudeTierData, TokenRefreshResponse, UsageData, UsageResponse};
+use crate::models::{
+    ClaudeOAuthCredentials, ClaudeTierData, TokenRefreshResponse, UsageData, UsageResponse,
+};
 use anyhow::{anyhow, Result};
 use reqwest::StatusCode;
 use std::sync::Arc;
@@ -23,6 +25,7 @@ impl ClaudeService {
 
     async fn handle_combined_response(
         response: reqwest::Response,
+        credentials: ClaudeOAuthCredentials,
     ) -> Result<(UsageData, ClaudeTierData)> {
         let response_text = response.text().await?;
 
@@ -50,8 +53,7 @@ impl ClaudeService {
             extra_usage_utilization: extra_usage.as_ref().and_then(|e| e.utilization),
         };
 
-        // Extract tier info from credentials file instead of API response
-        let credentials = CredentialManager::claude_read_credentials()?;
+        // Extract tier info from credentials instead of API response
         let subscription_type = credentials
             .claude_ai_oauth
             .subscription_type
@@ -81,6 +83,7 @@ impl ClaudeService {
         debug_claude!("claude_fetch_usage_and_tier: Starting request");
         debug_net!("GET {}", USAGE_API_URL);
 
+        let credentials = CredentialManager::claude_read_credentials()?;
         let token = CredentialManager::claude_read_access_token()?;
         debug_claude!("Using access token (expires_at: N/A)");
 
@@ -110,7 +113,7 @@ impl ClaudeService {
                 match retry_response.status() {
                     status if status.is_success() => {
                         debug_claude!("Successfully fetched usage+tier data after retry");
-                        Self::handle_combined_response(retry_response).await
+                        Self::handle_combined_response(retry_response, credentials).await
                     }
                     StatusCode::UNAUTHORIZED => {
                         debug_error!("Still unauthorized after token refresh");
@@ -136,7 +139,7 @@ impl ClaudeService {
             }
             status if status.is_success() => {
                 debug_claude!("Successfully fetched usage+tier data");
-                Self::handle_combined_response(response).await
+                Self::handle_combined_response(response, credentials).await
             }
             StatusCode::FORBIDDEN => {
                 debug_error!("Access denied — check your permissions");

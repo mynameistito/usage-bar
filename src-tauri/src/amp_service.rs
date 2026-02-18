@@ -36,7 +36,7 @@ impl AmpService {
         // Check for auth redirects
         if status.is_redirection() {
             if let Some(location) = response.headers().get("location") {
-                let loc = location.to_str().unwrap_or("");
+                let loc = location.to_str().unwrap_or_default();
                 debug_amp!("Redirect to: {}", loc);
                 let loc_lower = loc.to_lowercase();
                 if loc_lower.contains("login")
@@ -149,17 +149,15 @@ impl AmpService {
             0.0
         };
 
-        // Compute resets_at as epoch millis
-        let resets_at = if hourly_replenishment > 0.0 && used > 0.0 {
+        // resets_at calculates when the next window reset occurs using window_hours
+        let resets_at = window_hours.map(|hours| {
             let now_secs = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .map(|d| d.as_secs())
                 .unwrap_or(0);
-            let reset_secs = now_secs + ((used / hourly_replenishment) * 3600.0) as u64;
-            Some((reset_secs * 1000) as i64)
-        } else {
-            None
-        };
+            let reset_secs = now_secs + (hours * 3600.0) as u64;
+            (reset_secs * 1000) as i64
+        });
 
         Ok(AmpUsageData {
             quota,
@@ -171,20 +169,21 @@ impl AmpService {
         })
     }
 
-    fn extract_number(obj: &str, field: &str) -> Result<f64> {
-        let pattern = format!(r"{}:\s*([0-9]+(?:\.[0-9]+)?)", regex::escape(field));
+    fn get_cached_regex(field: &str) -> Regex {
         static RE_CACHE: std::sync::LazyLock<
             std::sync::Mutex<std::collections::HashMap<String, Regex>>,
         > = std::sync::LazyLock::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
 
-        let re = {
-            let mut cache = RE_CACHE.lock().unwrap();
-            cache
-                .entry(pattern.clone())
-                .or_insert_with(|| Regex::new(&pattern).expect("Failed to compile regex"))
-                .clone()
-        };
+        let pattern = format!(r"{}:\s*([0-9]+(?:\.[0-9]+)?)", regex::escape(field));
+        let mut cache = RE_CACHE.lock().unwrap();
+        cache
+            .entry(pattern.clone())
+            .or_insert_with(|| Regex::new(&pattern).expect("Failed to compile regex"))
+            .clone()
+    }
 
+    fn extract_number(obj: &str, field: &str) -> Result<f64> {
+        let re = Self::get_cached_regex(field);
         let caps = re
             .captures(obj)
             .ok_or_else(|| anyhow!("Field '{}' not found in freeTierUsage object", field))?;
@@ -194,19 +193,7 @@ impl AmpService {
     }
 
     fn extract_number_optional(obj: &str, field: &str) -> Option<f64> {
-        let pattern = format!(r"{}:\s*([0-9]+(?:\.[0-9]+)?)", regex::escape(field));
-        static RE_CACHE: std::sync::LazyLock<
-            std::sync::Mutex<std::collections::HashMap<String, Regex>>,
-        > = std::sync::LazyLock::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
-
-        let re = {
-            let mut cache = RE_CACHE.lock().unwrap();
-            cache
-                .entry(pattern.clone())
-                .or_insert_with(|| Regex::new(&pattern).expect("Failed to compile regex"))
-                .clone()
-        };
-
+        let re = Self::get_cached_regex(field);
         let caps = re.captures(obj)?;
         caps[1].parse::<f64>().ok()
     }
