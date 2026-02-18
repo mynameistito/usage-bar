@@ -32,7 +32,7 @@ impl ClaudeService {
         let usage_response: UsageResponse = serde_json::from_str(&response_text)
             .map_err(|e| anyhow!("Failed to parse usage response: {}", e))?;
 
-        let extra_usage = usage_response.extra_usage;
+        let extra_usage = usage_response.extra_usage.as_ref();
 
         let usage_data = UsageData {
             five_hour_utilization: usage_response
@@ -40,13 +40,19 @@ impl ClaudeService {
                 .as_ref()
                 .map(|p| p.utilization)
                 .unwrap_or(0.0),
-            five_hour_resets_at: usage_response.five_hour.and_then(|p| p.resets_at),
+            five_hour_resets_at: usage_response
+                .five_hour
+                .as_ref()
+                .and_then(|p| p.resets_at.clone()),
             seven_day_utilization: usage_response
                 .seven_day
                 .as_ref()
                 .map(|p| p.utilization)
                 .unwrap_or(0.0),
-            seven_day_resets_at: usage_response.seven_day.and_then(|p| p.resets_at),
+            seven_day_resets_at: usage_response
+                .seven_day
+                .as_ref()
+                .and_then(|p| p.resets_at.clone()),
             extra_usage_enabled: extra_usage.as_ref().map(|e| e.is_enabled).unwrap_or(false),
             extra_usage_monthly_limit: extra_usage.as_ref().and_then(|e| e.monthly_limit),
             extra_usage_used_credits: extra_usage.as_ref().and_then(|e| e.used_credits),
@@ -258,41 +264,27 @@ impl ClaudeService {
         Ok(())
     }
 
-    fn infer_plan_name_from_rate_limit_tier(rate_limit_tier: &str) -> String {
-        let tier_lower = rate_limit_tier.to_lowercase();
-        if tier_lower.contains("free") {
-            "Free".into()
-        } else if tier_lower.contains("max") {
-            "Max".into()
-        } else if tier_lower.contains("enterprise") {
-            "Enterprise".into()
-        } else if tier_lower.contains("team") {
-            "Team".into()
-        } else if tier_lower.contains("tier_5") {
-            "Max".into()
-        } else if tier_lower.contains("tier_4") || tier_lower.contains("tier_3") {
-            "Team".into()
-        } else if tier_lower.contains("tier_2") || tier_lower.contains("tier_1") {
-            "Pro".into()
-        } else {
-            "Free".into()
-        }
-    }
-
     fn infer_plan_name_from_usage_response(response: &UsageResponse) -> String {
-        let tier = response.rate_limit_tier.as_ref().map(|t| t.to_lowercase()).unwrap_or_default();
-        let billing = response.billing_type.as_ref().map(|b| b.to_lowercase()).unwrap_or_default();
+        let tier = response
+            .rate_limit_tier
+            .as_ref()
+            .map(|t| t.to_lowercase())
+            .unwrap_or_default();
+        let billing = response
+            .billing_type
+            .as_ref()
+            .map(|b| b.to_lowercase())
+            .unwrap_or_default();
 
         if tier.contains("max") {
             "Max".into()
-        } else if billing.contains("stripe") && (tier.contains("tier_2") || tier.contains("tier_3")) {
+        } else if billing.contains("stripe") && (tier.contains("tier_2") || tier.contains("tier_3"))
+        {
             "Pro".into()
         } else if tier.contains("team") || tier.contains("tier_4") || tier.contains("tier_5") {
             "Team".into()
         } else if tier.contains("tier_2") || tier.contains("tier_3") {
             "Pro".into()
-        } else if billing.contains("free") || tier.contains("free") {
-            "Free".into()
         } else {
             "Free".into()
         }

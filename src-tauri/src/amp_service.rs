@@ -185,7 +185,7 @@ impl AmpService {
 
         // resets_at calculates when the next window reset occurs using window_hours
         let resets_at = window_hours.and_then(|hours| {
-            if hours <= 0.0 || hours < (1.0 / 3600.0) {
+            if hours < (1.0 / 3600.0) {
                 return None;
             }
             let now_secs = SystemTime::now()

@@ -263,8 +263,7 @@ async function loadContent() {
   content.style.display = "none";
 
   try {
-    await fetchClaudeData();
-    await fetchZaiData();
+    const initialPromises: Promise<unknown>[] = [fetchClaudeData(), fetchZaiData()];
 
     const hasZaiApiKey = await checkZaiApiKey();
     updateZaiHeaderState(hasZaiApiKey);
@@ -274,8 +273,10 @@ async function loadContent() {
     updateAmpConnectionBadge(hasAmpCookie);
 
     if (hasAmpCookie) {
-      await fetchAmpData();
+      initialPromises.push(fetchAmpData());
     }
+
+    await Promise.allSettled(initialPromises);
 
     loading.style.display = "none";
     content.style.display = "flex";
