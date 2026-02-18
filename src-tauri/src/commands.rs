@@ -597,8 +597,17 @@ pub async fn refresh_all(
     );
 
     Ok((
-        claude_result.unwrap_or(None),
-        zai_result.unwrap_or(None),
-        amp_result.unwrap_or(None),
+        claude_result.unwrap_or_else(|e| {
+            debug_claude!("refresh_all: Claude failed: {}", e);
+            None
+        }),
+        zai_result.unwrap_or_else(|e| {
+            debug_zai!("refresh_all: Z.ai failed: {}", e);
+            None
+        }),
+        amp_result.unwrap_or_else(|e| {
+            debug_amp!("refresh_all: Amp failed: {}", e);
+            None
+        }),
     ))
 }

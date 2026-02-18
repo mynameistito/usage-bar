@@ -635,14 +635,14 @@ function startTimestampUpdater() {
 }
 
 async function handleRefresh() {
-  await Promise.allSettled([fetchClaudeData(), fetchZaiData(), fetchAmpData()]);
+  await Promise.allSettled([fetchClaudeData(), fetchZaiData(), ...(hasAmpSession ? [fetchAmpData()] : [])]);
 }
 
 function startPolling() {
   if (pollingTimer !== null) return;
 
   pollingTimer = window.setInterval(async () => {
-    await Promise.allSettled([fetchClaudeData(), fetchZaiData(), fetchAmpData()]);
+    await Promise.allSettled([fetchClaudeData(), fetchZaiData(), ...(hasAmpSession ? [fetchAmpData()] : [])]);
   }, POLL_INTERVAL);
 }
 
