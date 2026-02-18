@@ -111,12 +111,10 @@ impl AmpService {
 
                 // Skip if it's part of a longer quoted string
                 if preceded_by_quote && end_pos < bytes.len() {
-                    // Check the character after the closing quote
-                    let after_quote_pos = end_pos + 1;
-                    if after_quote_pos < bytes.len()
-                        && !matches!(bytes[after_quote_pos], b':')
-                        && !matches!(bytes[after_quote_pos], b'=')
-                        && !matches!(bytes[after_quote_pos], b'{')
+                    // Check the character immediately after the term
+                    if !matches!(bytes[end_pos], b':')
+                        && !matches!(bytes[end_pos], b'=')
+                        && !matches!(bytes[end_pos], b'{')
                     {
                         search_from = abs_pos + 1;
                         continue;
@@ -191,10 +189,10 @@ impl AmpService {
             if hours < (1.0 / 3600.0) {
                 return None;
             }
-            let now_secs = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .map(|d| d.as_secs())
-                .unwrap_or(0);
+            let now_secs = match SystemTime::now().duration_since(UNIX_EPOCH) {
+                Ok(d) => d.as_secs(),
+                Err(_) => return None,
+            };
             let window_seconds = (hours * 3600.0) as u64;
             if window_seconds == 0 {
                 return None;

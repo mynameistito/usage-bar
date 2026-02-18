@@ -12,6 +12,8 @@ let zaiLastRefresh: Date | null = null;
 let ampLastRefresh: Date | null = null;
 let timestampTimer: number | null = null;
 
+let hasAmpSession: boolean = false;
+
 // Cache for API key check to avoid spamming logs
 let cachedZaiApiKeyCheck: boolean | null = null;
 let zaiApiKeyCacheTime: number = 0;
@@ -268,6 +270,7 @@ async function loadContent() {
     updateZaiConnectionBadge(hasZaiApiKey);
 
     const hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
+    hasAmpSession = hasAmpCookie;
     updateAmpConnectionBadge(hasAmpCookie);
 
     const initialPromises: Promise<unknown>[] = [fetchClaudeData(), fetchZaiData()];
@@ -618,11 +621,8 @@ function startTimestampUpdater() {
 }
 
 async function handleRefresh() {
-  const promises: Promise<unknown>[] = [
-    fetchClaudeData(),
-    fetchZaiData(),
-    fetchAmpData()
-  ];
+  const promises: Promise<unknown>[] = [fetchClaudeData(), fetchZaiData()];
+  if (hasAmpSession) promises.push(fetchAmpData());
   await Promise.allSettled(promises);
 }
 
@@ -630,11 +630,8 @@ function startPolling() {
   if (pollingTimer !== null) return;
 
   pollingTimer = window.setInterval(async () => {
-    const promises: Promise<unknown>[] = [
-      fetchClaudeData(),
-      fetchZaiData(),
-      fetchAmpData()
-    ];
+    const promises: Promise<unknown>[] = [fetchClaudeData(), fetchZaiData()];
+    if (hasAmpSession) promises.push(fetchAmpData());
     await Promise.allSettled(promises);
   }, POLL_INTERVAL);
 }

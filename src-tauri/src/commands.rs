@@ -589,5 +589,9 @@ pub async fn refresh_all(
         }
     );
 
-    Ok((claude_result?, zai_result?, amp_result?))
+    Ok((
+        claude_result.unwrap_or(None),
+        zai_result.unwrap_or(None),
+        amp_result.unwrap_or(None),
+    ))
 }
