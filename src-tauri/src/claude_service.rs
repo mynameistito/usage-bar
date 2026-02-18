@@ -53,18 +53,23 @@ impl ClaudeService {
             extra_usage_utilization: extra_usage.as_ref().and_then(|e| e.utilization),
         };
 
-        // Extract tier info from credentials instead of API response
+        // Extract tier info from credentials, falling back to API response for older credential files
         let subscription_type = credentials
             .claude_ai_oauth
             .subscription_type
             .clone()
             .unwrap_or_default();
-        let plan_name = Self::infer_plan_name_from_subscription(&subscription_type);
+        let plan_name = if subscription_type.is_empty() {
+            let fallback = usage_response.billing_type.clone().unwrap_or_default();
+            Self::infer_plan_name_from_subscription(&fallback)
+        } else {
+            Self::infer_plan_name_from_subscription(&subscription_type)
+        };
         let raw_tier = credentials
             .claude_ai_oauth
             .rate_limit_tier
             .clone()
-            .unwrap_or_default();
+            .unwrap_or_else(|| usage_response.rate_limit_tier.clone().unwrap_or_default());
 
         let tier_data = ClaudeTierData {
             plan_name,

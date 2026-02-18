@@ -199,6 +199,9 @@ async function openSettings(): Promise<void> {
       },
       onZaiKeyChanged: refreshZaiUI,
       checkAmpSessionCookie: async () => invoke<boolean>("amp_check_session_cookie"),
+      validateAmpSessionCookie: async (cookie: string) => {
+        await invoke("amp_validate_session_cookie", { cookie });
+      },
       saveAmpSessionCookie: async (cookie: string) => {
         await invoke("amp_save_session_cookie", { cookie });
       },
@@ -262,7 +265,6 @@ async function loadContent() {
   try {
     await fetchClaudeData();
     await fetchZaiData();
-    await fetchAmpData();
 
     const hasZaiApiKey = await checkZaiApiKey();
     updateZaiHeaderState(hasZaiApiKey);
@@ -270,6 +272,10 @@ async function loadContent() {
 
     const hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
     updateAmpConnectionBadge(hasAmpCookie);
+
+    if (hasAmpCookie) {
+      await fetchAmpData();
+    }
 
     loading.style.display = "none";
     content.style.display = "flex";

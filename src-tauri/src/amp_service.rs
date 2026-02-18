@@ -22,10 +22,12 @@ impl AmpService {
         let response = client
             .get(AMP_SETTINGS_URL)
             .header("Cookie", format!("session={}", session_cookie))
-            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36")
+            .header(
+                "Accept",
+                "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            )
             .header("Accept-Language", "en-US,en;q=0.9")
-            .header("Referer", "https://ampcode.com/settings")
+            .header("Referer", "https://ampcode.com")
             .send()
             .await?;
 
@@ -90,20 +92,19 @@ impl AmpService {
         let search_terms = ["freeTierUsage", "getFreeTierUsage"];
         let mut obj_start = None;
 
-        for term in &search_terms {
-            if let Some(pos) = html.find(term) {
-                debug_amp!("Found '{}' at position {}", term, pos);
-                // Look for assignment pattern (variable = { ... } or freeTierUsage: { ... })
-                if let Some(brace_offset) = html[pos..]
-                    .find(&format!("{}{{", term))
-                    .or_else(|| html[pos..].find(&format!("{} = {{", term)))
-                    .or_else(|| html[pos..].find(&format!("{}:{{", term)))
-                    .or_else(|| html[pos..].find(&format!("{}: {{", term)))
-                {
-                    let search_start = pos + brace_offset;
-                    let actual_brace = search_start + html[search_start..].find('{').unwrap_or(0);
+        'outer: for term in &search_terms {
+            let patterns = [
+                format!("{}: {{", term),
+                format!("{}:{{", term),
+                format!("{} = {{", term),
+                format!("{}={{", term),
+            ];
+            for pattern in &patterns {
+                if let Some(pos) = html.find(pattern.as_str()) {
+                    debug_amp!("Found '{}' at position {}", pattern, pos);
+                    let actual_brace = pos + html[pos..].find('{').unwrap_or(0);
                     obj_start = Some(actual_brace);
-                    break;
+                    break 'outer;
                 }
             }
         }
@@ -162,7 +163,9 @@ impl AmpService {
                 .duration_since(UNIX_EPOCH)
                 .map(|d| d.as_secs())
                 .unwrap_or(0);
-            let reset_secs = now_secs + (hours * 3600.0) as u64;
+            let window_seconds = (hours * 3600.0) as u64;
+            let window_start = now_secs - (now_secs % window_seconds);
+            let reset_secs = window_start + window_seconds;
             (reset_secs * 1000) as i64
         });
 
@@ -203,6 +206,54 @@ impl AmpService {
         let re = Self::get_cached_regex(field);
         let caps = re.captures(obj)?;
         caps[1].parse::<f64>().ok()
+    }
+
+    pub async fn validate_session_cookie(
+        client: &Arc<reqwest::Client>,
+        cookie: &str,
+    ) -> Result<()> {
+        let response = client
+            .get(AMP_SETTINGS_URL)
+            .header("Cookie", format!("session={}", cookie))
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36")
+            .header("Accept-Language", "en-US,en;q=0.9")
+            .header("Referer", "https://ampcode.com/settings")
+            .send()
+            .await?;
+
+        let status = response.status();
+
+        if status.is_redirection() {
+            if let Some(location) = response.headers().get("location") {
+                let loc = location.to_str().unwrap_or_default().to_lowercase();
+                if loc.contains("login") || loc.contains("signin") || loc.contains("auth") {
+                    return Err(anyhow!("Invalid session cookie — redirected to login"));
+                }
+            }
+            return Err(anyhow!(
+                "Amp: Unexpected redirect (HTTP {})",
+                status.as_u16()
+            ));
+        }
+
+        if status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN {
+            return Err(anyhow!("Invalid session cookie (HTTP {})", status.as_u16()));
+        }
+
+        if !status.is_success() {
+            return Err(anyhow!("Amp: Validation request failed (HTTP {})", status));
+        }
+
+        let body = response.text().await?;
+        let body_lower = body.to_lowercase();
+        if body_lower.contains("sign in to your account")
+            || body_lower.contains("log in to your account")
+        {
+            return Err(anyhow!("Invalid session cookie — login page returned"));
+        }
+
+        Ok(())
     }
 
     pub fn amp_has_session_cookie() -> bool {

@@ -419,6 +419,17 @@ pub fn amp_delete_session_cookie() -> Result<(), String> {
 }
 
 #[tauri::command]
+pub async fn amp_validate_session_cookie(
+    amp_client: State<'_, AmpHttpClient>,
+    cookie: String,
+) -> Result<(), String> {
+    let client = Arc::clone(&amp_client.0);
+    AmpService::validate_session_cookie(&client, &cookie)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn zai_check_api_key() -> bool {
     debug_cred!("zai_check_api_key called");
     let has_key = ZaiService::zai_has_api_key();

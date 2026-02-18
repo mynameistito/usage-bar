@@ -9,6 +9,7 @@ export interface SettingsCallbacks {
 	deleteZaiApiKey: () => Promise<void>;
 	onZaiKeyChanged: () => Promise<void>;
 	checkAmpSessionCookie: () => Promise<boolean>;
+	validateAmpSessionCookie: (cookie: string) => Promise<void>;
 	saveAmpSessionCookie: (cookie: string) => Promise<void>;
 	deleteAmpSessionCookie: () => Promise<void>;
 	onAmpCookieChanged: () => Promise<void>;
@@ -535,10 +536,12 @@ function createAmpInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 		}
 
 		saveButton.disabled = true;
-		saveButton.textContent = "Saving...";
+		saveButton.textContent = "Validating...";
 		input.disabled = true;
 
 		try {
+			await callbacks.validateAmpSessionCookie(cookie);
+			saveButton.textContent = "Saving...";
 			await callbacks.saveAmpSessionCookie(cookie);
 			await callbacks.onAmpCookieChanged();
 			rebuildAmpSection(section, callbacks, true);
