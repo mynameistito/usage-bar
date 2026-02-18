@@ -631,8 +631,8 @@ function startPolling() {
   if (pollingTimer !== null) return;
 
   pollingTimer = window.setInterval(async () => {
-    const promises: Promise<unknown>[] = [fetchClaudeData(), fetchZaiData()];
     const hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
+    const promises: Promise<unknown>[] = [fetchClaudeData(), fetchZaiData()];
     if (hasAmpCookie) promises.push(fetchAmpData());
     await Promise.allSettled(promises);
   }, POLL_INTERVAL);

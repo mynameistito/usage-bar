@@ -60,8 +60,7 @@ impl ClaudeService {
             .clone()
             .unwrap_or_default();
         let plan_name = if subscription_type.is_empty() {
-            let fallback_tier = usage_response.rate_limit_tier.clone().unwrap_or_default();
-            Self::infer_plan_name_from_rate_limit_tier(&fallback_tier)
+            Self::infer_plan_name_from_usage_response(&usage_response)
         } else {
             Self::infer_plan_name_from_subscription(&subscription_type)
         };
@@ -275,6 +274,25 @@ impl ClaudeService {
             "Team".into()
         } else if tier_lower.contains("tier_2") || tier_lower.contains("tier_1") {
             "Pro".into()
+        } else {
+            "Free".into()
+        }
+    }
+
+    fn infer_plan_name_from_usage_response(response: &UsageResponse) -> String {
+        let tier = response.rate_limit_tier.as_ref().map(|t| t.to_lowercase()).unwrap_or_default();
+        let billing = response.billing_type.as_ref().map(|b| b.to_lowercase()).unwrap_or_default();
+
+        if tier.contains("max") {
+            "Max".into()
+        } else if billing.contains("stripe") && (tier.contains("tier_2") || tier.contains("tier_3")) {
+            "Pro".into()
+        } else if tier.contains("team") || tier.contains("tier_4") || tier.contains("tier_5") {
+            "Team".into()
+        } else if tier.contains("tier_2") || tier.contains("tier_3") {
+            "Pro".into()
+        } else if billing.contains("free") || tier.contains("free") {
+            "Free".into()
         } else {
             "Free".into()
         }

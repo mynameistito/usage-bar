@@ -1020,22 +1020,22 @@
   margin: 0;
 }
 
-/* Z.ai settings within settings view */
-.settings-zai-connected,
-.settings-zai-input {
+/* Credential settings within settings view (Z.ai, Amp, etc.) */
+.settings-credential-connected,
+.settings-credential-input {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.settings-zai-row {
+.settings-credential-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
 
-.settings-zai-status {
+.settings-credential-status {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1044,24 +1044,24 @@
   color: var(--color-foreground);
 }
 
-.settings-zai-actions {
+.settings-credential-actions {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.settings-zai-actions .btn {
+.settings-credential-actions .btn {
   padding: 5px 10px;
   font-size: 12px;
 }
 
-.settings-zai-desc {
+.settings-credential-desc {
   font-size: 13px;
   color: var(--color-muted-foreground);
   line-height: 1.5;
 }
 
-.settings-zai-input-row {
+.settings-credential-input-row {
   display: flex;
   gap: 6px;
 }
@@ -1107,11 +1107,11 @@
   height: 16px;
 }
 
-.settings-zai-input-row .zai-modal-input-field {
+.settings-credential-input-row .zai-modal-input-field {
   flex: 1;
 }
 
-.settings-zai-input-row .btn {
+.settings-credential-input-row .btn {
   flex-shrink: 0;
 }
 
