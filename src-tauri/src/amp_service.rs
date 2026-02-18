@@ -170,6 +170,9 @@ impl AmpService {
                 .map(|d| d.as_secs())
                 .unwrap_or(0);
             let window_seconds = (hours * 3600.0) as u64;
+            if window_seconds == 0 {
+                return None;
+            }
             let window_start = now_secs - (now_secs % window_seconds);
             let reset_secs = window_start + window_seconds;
             Some((reset_secs * 1000) as i64)

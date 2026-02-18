@@ -61,7 +61,7 @@ impl ClaudeService {
             .unwrap_or_default();
         let plan_name = if subscription_type.is_empty() {
             let fallback_tier = usage_response.rate_limit_tier.clone().unwrap_or_default();
-            Self::infer_plan_name_from_subscription(&fallback_tier)
+            Self::infer_plan_name_from_rate_limit_tier(&fallback_tier)
         } else {
             Self::infer_plan_name_from_subscription(&subscription_type)
         };
@@ -257,6 +257,29 @@ impl ClaudeService {
             debug_claude!("Token is still valid, skipping refresh");
         }
         Ok(())
+    }
+
+    fn infer_plan_name_from_rate_limit_tier(rate_limit_tier: &str) -> String {
+        let tier_lower = rate_limit_tier.to_lowercase();
+        if tier_lower.contains("free") {
+            "Free".into()
+        } else if tier_lower.contains("max") {
+            "Max".into()
+        } else if tier_lower.contains("enterprise") {
+            "Enterprise".into()
+        } else if tier_lower.contains("team") {
+            "Team".into()
+        } else if tier_lower.contains("tier_2")
+            || tier_lower.contains("tier_3")
+            || tier_lower.contains("tier_4")
+            || tier_lower.contains("tier_5")
+        {
+            "Max".into()
+        } else if tier_lower.contains("tier_1") || tier_lower.contains("tier") {
+            "Pro".into()
+        } else {
+            "Free".into()
+        }
     }
 
     fn infer_plan_name_from_subscription(subscription_type: &str) -> String {
