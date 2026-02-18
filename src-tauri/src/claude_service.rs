@@ -60,8 +60,8 @@ impl ClaudeService {
             .clone()
             .unwrap_or_default();
         let plan_name = if subscription_type.is_empty() {
-            let fallback = usage_response.billing_type.clone().unwrap_or_default();
-            Self::infer_plan_name_from_subscription(&fallback)
+            let fallback_tier = usage_response.rate_limit_tier.clone().unwrap_or_default();
+            Self::infer_plan_name_from_subscription(&fallback_tier)
         } else {
             Self::infer_plan_name_from_subscription(&subscription_type)
         };

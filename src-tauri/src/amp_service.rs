@@ -93,19 +93,22 @@ impl AmpService {
         let mut obj_start = None;
 
         'outer: for term in &search_terms {
-            let patterns = [
-                format!("{}: {{", term),
-                format!("{}:{{", term),
-                format!("{} = {{", term),
-                format!("{}={{", term),
-            ];
-            for pattern in &patterns {
-                if let Some(pos) = html.find(pattern.as_str()) {
-                    debug_amp!("Found '{}' at position {}", pattern, pos);
-                    let actual_brace = pos + html[pos..].find('{').unwrap_or(0);
-                    obj_start = Some(actual_brace);
-                    break 'outer;
+            let mut search_from = 0;
+            while let Some(pos) = html[search_from..].find(term) {
+                let abs_pos = search_from + pos;
+                let after_term = &html[abs_pos + term.len()..];
+                let rest = after_term.trim_start_matches([' ', '\t']);
+                let matched = rest.strip_prefix(':').or_else(|| rest.strip_prefix('='));
+                if let Some(after_sep) = matched {
+                    let after_sep = after_sep.trim_start_matches([' ', '\t']);
+                    if after_sep.starts_with('{') {
+                        let brace_offset = html.len() - after_sep.len();
+                        debug_amp!("Found '{}' at position {}", term, abs_pos);
+                        obj_start = Some(brace_offset);
+                        break 'outer;
+                    }
                 }
+                search_from = abs_pos + 1;
             }
         }
 
@@ -158,7 +161,10 @@ impl AmpService {
         };
 
         // resets_at calculates when the next window reset occurs using window_hours
-        let resets_at = window_hours.map(|hours| {
+        let resets_at = window_hours.and_then(|hours| {
+            if hours <= 0.0 {
+                return None;
+            }
             let now_secs = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .map(|d| d.as_secs())
@@ -166,14 +172,14 @@ impl AmpService {
             let window_seconds = (hours * 3600.0) as u64;
             let window_start = now_secs - (now_secs % window_seconds);
             let reset_secs = window_start + window_seconds;
-            (reset_secs * 1000) as i64
+            Some((reset_secs * 1000) as i64)
         });
 
         Ok(AmpUsageData {
-            quota,
-            used,
+            quota: quota / 100.0,
+            used: used / 100.0,
             used_percent,
-            hourly_replenishment,
+            hourly_replenishment: hourly_replenishment / 100.0,
             window_hours,
             resets_at,
         })
@@ -215,8 +221,10 @@ impl AmpService {
         let response = client
             .get(AMP_SETTINGS_URL)
             .header("Cookie", format!("session={}", cookie))
-            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36")
+            .header(
+                "Accept",
+                "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            )
             .header("Accept-Language", "en-US,en;q=0.9")
             .header("Referer", "https://ampcode.com/settings")
             .send()

@@ -545,8 +545,8 @@ async function fetchAmpData(forceRefresh = false) {
     infoTitle.appendChild(titleSpan);
     infoSection.appendChild(infoTitle);
 
-    const remaining = Math.max(0, (data.quota - data.used) / 100);
-    const total = data.quota / 100;
+    const remaining = Math.max(0, data.quota - data.used);
+    const total = data.quota;
     const balanceRow = document.createElement("div");
     balanceRow.className = "info-row";
     balanceRow.textContent = `$${remaining.toFixed(2)} / $${total.toFixed(2)} remaining`;
@@ -740,26 +740,14 @@ function startTimestampUpdater() {
 }
 
 async function handleRefresh() {
-  try {
-    await fetchClaudeData();
-    await fetchZaiData();
-    await fetchAmpData();
-  } catch (error) {
-    console.error("Failed to refresh:", error);
-  }
+  await Promise.allSettled([fetchClaudeData(), fetchZaiData(), fetchAmpData()]);
 }
 
 function startPolling() {
   if (pollingTimer !== null) return;
 
   pollingTimer = window.setInterval(async () => {
-    try {
-      await fetchClaudeData();
-      await fetchZaiData();
-      await fetchAmpData();
-    } catch (error) {
-      console.error("Polling error:", error);
-    }
+    await Promise.allSettled([fetchClaudeData(), fetchZaiData(), fetchAmpData()]);
   }, POLL_INTERVAL);
 }
 
