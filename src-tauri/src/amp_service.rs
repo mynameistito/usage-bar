@@ -97,12 +97,15 @@ impl AmpService {
             while let Some(pos) = html[search_from..].find(term) {
                 let abs_pos = search_from + pos;
                 // Skip occurrences that are string values (term is both preceded and followed by a quote)
-                let bytes = html.as_bytes();
-                let preceded_by_quote =
-                    abs_pos > 0 && matches!(bytes[abs_pos - 1], b'"' | b'\'' | b'`');
+                let preceded_by_quote = html[..abs_pos]
+                    .chars()
+                    .next_back()
+                    .is_some_and(|c| matches!(c, '"' | '\'' | '`'));
                 let end_pos = abs_pos + term.len();
-                let followed_by_quote =
-                    end_pos < bytes.len() && matches!(bytes[end_pos], b'"' | b'\'' | b'`');
+                let followed_by_quote = html[end_pos..]
+                    .chars()
+                    .next()
+                    .is_some_and(|c| matches!(c, '"' | '\'' | '`'));
                 // Skip only if it's a string literal (both quotes present)
                 if preceded_by_quote && followed_by_quote {
                     search_from = abs_pos + 1;
@@ -110,11 +113,11 @@ impl AmpService {
                 }
 
                 // Skip if it's part of a longer quoted string
-                if preceded_by_quote && end_pos < bytes.len() {
+                if preceded_by_quote && end_pos < html.len() {
                     // Check the character immediately after the term
-                    if !matches!(bytes[end_pos], b':')
-                        && !matches!(bytes[end_pos], b'=')
-                        && !matches!(bytes[end_pos], b'{')
+                    if !html[end_pos..].starts_with(':')
+                        && !html[end_pos..].starts_with('=')
+                        && !html[end_pos..].starts_with('{')
                     {
                         search_from = abs_pos + 1;
                         continue;
@@ -194,9 +197,12 @@ impl AmpService {
                 Ok(d) => d.as_secs(),
                 Err(_) => return None,
             };
+            // Assumes usage windows align to the Unix epoch.
             let window_start = now_secs - (now_secs % window_seconds);
             let reset_secs = window_start + window_seconds;
-            Some(i64::try_from(reset_secs * 1000).unwrap_or(i64::MAX))
+            i64::try_from(reset_secs)
+                .ok()
+                .and_then(|s| s.checked_mul(1000))
         });
 
         Ok(AmpUsageData {

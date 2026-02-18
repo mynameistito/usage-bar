@@ -278,7 +278,7 @@ async function loadContent() {
 
     const initialPromises: Promise<unknown>[] = [fetchClaudeData(), fetchZaiData()];
     if (hasAmpCookie) {
-      initialPromises.push(fetchAmpData());
+      initialPromises.push(fetchAmpData(false, true));
     }
 
     await Promise.allSettled(initialPromises);
@@ -518,13 +518,15 @@ async function refreshZaiUI(): Promise<void> {
   await fetchZaiData(true);
 }
 
-async function fetchAmpData(forceRefresh = false) {
-  const hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
-  if (hasAmpCookie !== hasAmpSession) {
-    hasAmpSession = hasAmpCookie;
-    updateAmpConnectionBadge(hasAmpCookie);
+async function fetchAmpData(forceRefresh = false, skipCookieCheck = false) {
+  if (!skipCookieCheck) {
+    const hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
+    if (hasAmpCookie !== hasAmpSession) {
+      hasAmpSession = hasAmpCookie;
+      updateAmpConnectionBadge(hasAmpCookie);
+    }
+    if (!hasAmpCookie) return;
   }
-  if (!hasAmpCookie) return;
 
   const errorContainer = document.getElementById("amp-error");
   const dataContainer = document.getElementById("amp-data");
@@ -566,6 +568,7 @@ async function fetchAmpData(forceRefresh = false) {
     infoTitle.appendChild(titleSpan);
     infoSection.appendChild(infoTitle);
 
+    // Backend converts cents to dollars by dividing by 100
     const remaining = Math.max(0, data.quota - data.used);
     const total = data.quota;
     const balanceRow = document.createElement("div");
