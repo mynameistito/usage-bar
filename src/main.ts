@@ -66,14 +66,14 @@ function createOrUpdateConnectionBadge(
 
   // Update badge classes without recreating element
   badge.className = isConnected
-    ? `${className} zai-header-badge-connected`
-    : `${className} zai-header-badge-disconnected`;
+    ? `${className} ${className}-connected`
+    : `${className} ${className}-disconnected`;
 
   // Update icon
-  let icon = badge.querySelector(".zai-header-badge-icon") as HTMLElement;
+  let icon = badge.querySelector(`.${className}-icon`) as HTMLElement;
   if (!icon) {
     icon = document.createElement("span");
-    icon.className = "zai-header-badge-icon";
+    icon.className = `${className}-icon`;
     badge.appendChild(icon);
   }
 
@@ -110,10 +110,10 @@ function createOrUpdateConnectionBadge(
   icon.replaceChildren(svg);
 
   // Update label
-  let label = badge.querySelector(".zai-header-badge-label") as HTMLElement;
+  let label = badge.querySelector(`.${className}-label`) as HTMLElement;
   if (!label) {
     label = document.createElement("span");
-    label.className = "zai-header-badge-label";
+    label.className = `${className}-label`;
     badge.appendChild(label);
   }
   label.textContent = isConnected ? "Connected" : "Not connected";

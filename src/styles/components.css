@@ -129,6 +129,47 @@
   line-height: 1;
 }
 
+/* Amp Header Status */
+.amp-header-status {
+  display: flex;
+  align-items: center;
+}
+
+.amp-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.amp-header-badge-connected {
+  background: hsl(var(--status-success) / 0.1);
+  color: var(--color-status-success);
+  border-color: hsl(var(--status-success) / 0.2);
+}
+
+.amp-header-badge-disconnected {
+  background: hsl(var(--status-warning) / 0.15);
+  color: hsl(var(--status-warning));
+  border-color: hsl(var(--status-warning) / 0.3);
+}
+
+.amp-header-badge-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.amp-header-badge-label {
+  line-height: 1;
+}
+
 .provider-meta {
   display: flex;
   justify-content: space-between;

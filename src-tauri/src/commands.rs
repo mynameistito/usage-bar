@@ -520,6 +520,7 @@ pub fn quit_app(app: tauri::AppHandle) {
 #[tauri::command]
 pub async fn refresh_all(
     client: State<'_, HttpClient>,
+    amp_client: State<'_, AmpHttpClient>,
     claude_usage_cache: State<'_, ClaudeUsageCache>,
     claude_tier_cache: State<'_, ClaudeTierCache>,
     zai_usage_cache: State<'_, ZaiUsageCache>,
@@ -563,7 +564,8 @@ pub async fn refresh_all(
         },
         async {
             if AmpService::amp_has_session_cookie() {
-                match AmpService::amp_fetch_usage(&client).await {
+                let amp = Arc::clone(&amp_client.0);
+                match AmpService::amp_fetch_usage(&amp).await {
                     Ok(data) => {
                         amp_usage_cache.0.set(data.clone());
                         Ok(Some(data))
