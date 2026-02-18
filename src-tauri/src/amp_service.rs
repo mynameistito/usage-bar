@@ -110,14 +110,17 @@ impl AmpService {
                 }
 
                 // Skip if it's part of a longer quoted string
-                if preceded_by_quote
-                    && end_pos < bytes.len()
-                    && !matches!(bytes[end_pos], b':')
-                    && !matches!(bytes[end_pos], b'=')
-                    && !matches!(bytes[end_pos], b'{')
-                {
-                    search_from = abs_pos + 1;
-                    continue;
+                if preceded_by_quote && end_pos < bytes.len() {
+                    // Check the character after the closing quote
+                    let after_quote_pos = end_pos + 1;
+                    if after_quote_pos < bytes.len()
+                        && !matches!(bytes[after_quote_pos], b':')
+                        && !matches!(bytes[after_quote_pos], b'=')
+                        && !matches!(bytes[after_quote_pos], b'{')
+                    {
+                        search_from = abs_pos + 1;
+                        continue;
+                    }
                 }
                 let after_term = &html[abs_pos + term.len()..];
                 let rest = after_term.trim_start_matches([' ', '\t']);

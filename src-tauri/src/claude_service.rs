@@ -66,6 +66,12 @@ impl ClaudeService {
             .clone()
             .unwrap_or_default();
         let plan_name = if subscription_type.is_empty() {
+            // For legacy credential files, infer plan from rate_limit_tier patterns
+            // NOTE: These tier mappings are speculative based on observed patterns:
+            // - "tier_2"/"tier_3" → "Pro" (assumed)
+            // - "tier_4"/"tier_5" → "Team" (assumed)
+            // - "tier_1_5x"/"tier_free_5x" etc. (actual API values) not yet mapped
+            // Fallback to billing type detection for reliability
             Self::infer_plan_name_from_usage_response(&usage_response)
         } else {
             Self::infer_plan_name_from_subscription(&subscription_type)
@@ -110,10 +116,8 @@ impl ClaudeService {
             StatusCode::UNAUTHORIZED => {
                 debug_claude!("Unauthorized: Attempting token refresh");
                 Self::refresh_token(client.clone()).await?;
-                let token = CredentialManager::claude_read_credentials()?
-                    .claude_ai_oauth
-                    .access_token
-                    .clone();
+                let refreshed_creds = CredentialManager::claude_read_credentials()?;
+                let token = refreshed_creds.claude_ai_oauth.access_token.clone();
                 let retry_response = client
                     .get(USAGE_API_URL)
                     .header("Authorization", format!("Bearer {}", token))
@@ -126,8 +130,6 @@ impl ClaudeService {
                 match retry_response.status() {
                     status if status.is_success() => {
                         debug_claude!("Successfully fetched usage+tier data after retry");
-                        let refreshed_creds =
-                            CredentialManager::claude_read_credentials().unwrap_or(credentials);
                         Self::handle_combined_response(retry_response, refreshed_creds).await
                     }
                     StatusCode::UNAUTHORIZED => {

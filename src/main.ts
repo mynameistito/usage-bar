@@ -618,11 +618,10 @@ function startTimestampUpdater() {
 }
 
 async function handleRefresh() {
-  const hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
   const promises: Promise<unknown>[] = [
     fetchClaudeData(),
     fetchZaiData(),
-    ...(hasAmpCookie ? [fetchAmpData()] : [])
+    fetchAmpData()
   ];
   await Promise.allSettled(promises);
 }
@@ -631,11 +630,10 @@ function startPolling() {
   if (pollingTimer !== null) return;
 
   pollingTimer = window.setInterval(async () => {
-    const hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
     const promises: Promise<unknown>[] = [
       fetchClaudeData(),
       fetchZaiData(),
-      ...(hasAmpCookie ? [fetchAmpData()] : [])
+      fetchAmpData()
     ];
     await Promise.allSettled(promises);
   }, POLL_INTERVAL);
