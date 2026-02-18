@@ -211,6 +211,9 @@ async function openSettings(): Promise<void> {
         await invoke("amp_delete_session_cookie");
       },
       onAmpCookieChanged: refreshAmpUI,
+      openUrl: async (url: string) => {
+        await invoke("open_url", { url });
+      },
       onClose: closeSettings,
     }, hasZaiApiKey, hasAmpCookie);
 
@@ -582,6 +585,7 @@ async function fetchAmpData(forceRefresh = false) {
 
 async function refreshAmpUI(): Promise<void> {
   const hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
+  hasAmpSession = hasAmpCookie;
   updateAmpConnectionBadge(hasAmpCookie);
   await fetchAmpData(true);
 }

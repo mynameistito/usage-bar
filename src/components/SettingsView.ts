@@ -13,6 +13,7 @@ export interface SettingsCallbacks {
 	saveAmpSessionCookie: (cookie: string) => Promise<void>;
 	deleteAmpSessionCookie: () => Promise<void>;
 	onAmpCookieChanged: () => Promise<void>;
+	openUrl: (url: string) => Promise<void>;
 	onClose: () => void;
 }
 
@@ -474,8 +475,7 @@ function createAmpInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 	link.textContent = "ampcode.com/settings";
 	link.addEventListener("click", async (e) => {
 		e.preventDefault();
-		const { invoke } = await import("@tauri-apps/api/core");
-		await invoke("open_url", { url: "https://ampcode.com/settings" });
+		await callbacks.openUrl("https://ampcode.com/settings");
 	});
 	desc.appendChild(link);
 

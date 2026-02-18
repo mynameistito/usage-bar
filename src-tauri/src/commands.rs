@@ -540,6 +540,13 @@ pub async fn refresh_all(
 ) -> Result<RefreshAllResult, String> {
     let client = Arc::clone(&client.0);
 
+    // Clear all caches to force fresh fetches
+    claude_usage_cache.0.clear();
+    claude_tier_cache.0.clear();
+    zai_usage_cache.0.clear();
+    zai_tier_cache.0.clear();
+    amp_usage_cache.0.clear();
+
     // Fetch all APIs in parallel using tokio::join!
     let (claude_result, zai_result, amp_result) = tokio::join!(
         async {
