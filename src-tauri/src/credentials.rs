@@ -286,24 +286,10 @@ impl CredentialManager {
             return cached.map_err(|e| anyhow!("Cached Z.ai API key resolution failed: {}", e));
         }
 
-        let credential = Self::read_credential(Self::ZAI_TARGET)?;
-
-        // Extract blob data BEFORE calling CredFree to avoid use-after-free
-        let blob_slice = unsafe {
-            std::slice::from_raw_parts(
-                credential.CredentialBlob,
-                credential.CredentialBlobSize as usize,
-            )
-        };
-
-        // Clone the data to owned Vec<u8> while the credential is still valid
-        let blob_vec = blob_slice.to_vec();
-
-        // Now CredFree is called inside read_credential, which is safe
-        // because we've already cloned the data we need
+        let blob = Self::read_credential(Self::ZAI_TARGET)?;
 
         let key_str =
-            String::from_utf8(blob_vec).map_err(|e| anyhow!("Failed to decode API key: {}", e))?;
+            String::from_utf8(blob).map_err(|e| anyhow!("Failed to decode API key: {}", e))?;
 
         // Resolve environment variable if using {env:varname} syntax
         let key = Self::resolve_env_reference(&key_str)?;
@@ -336,23 +322,9 @@ impl CredentialManager {
                 .map_err(|e| anyhow!("Cached Amp session cookie resolution failed: {}", e));
         }
 
-        let credential = Self::read_credential(Self::AMP_TARGET)?;
+        let blob = Self::read_credential(Self::AMP_TARGET)?;
 
-        // Extract blob data BEFORE calling CredFree to avoid use-after-free
-        let blob_slice = unsafe {
-            std::slice::from_raw_parts(
-                credential.CredentialBlob,
-                credential.CredentialBlobSize as usize,
-            )
-        };
-
-        // Clone the data to owned Vec<u8> while the credential is still valid
-        let blob_vec = blob_slice.to_vec();
-
-        // Now CredFree is called inside read_credential, which is safe
-        // because we've already cloned the data we need
-
-        let cookie_str = String::from_utf8(blob_vec)
+        let cookie_str = String::from_utf8(blob)
             .map_err(|e| anyhow!("Failed to decode session cookie: {}", e))?;
 
         with_cache(|c| c.amp_set(Ok(cookie_str.clone())));
@@ -406,7 +378,7 @@ impl CredentialManager {
         }
     }
 
-    fn read_credential(target_name: &str) -> Result<CREDENTIALW> {
+    fn read_credential(target_name: &str) -> Result<Vec<u8>> {
         let target_name_wide: Vec<u16> = target_name.encode_utf16().chain(Some(0)).collect();
 
         let mut credential_ptr: *mut CREDENTIALW = std::ptr::null_mut();
@@ -423,10 +395,14 @@ impl CredentialManager {
                 return Err(anyhow!("Credential not found: {}", target_name));
             }
 
-            let credential_data = *credential_ptr;
+            let blob = std::slice::from_raw_parts(
+                (*credential_ptr).CredentialBlob,
+                (*credential_ptr).CredentialBlobSize as usize,
+            )
+            .to_vec();
             CredFree(credential_ptr as *const _);
 
-            Ok(credential_data)
+            Ok(blob)
         }
     }
 

@@ -173,8 +173,18 @@ impl AmpService {
 
     fn extract_number(obj: &str, field: &str) -> Result<f64> {
         let pattern = format!(r"{}:\s*([0-9]+(?:\.[0-9]+)?)", regex::escape(field));
-        let re = Regex::new(&pattern)
-            .map_err(|e| anyhow!("Failed to compile regex for '{}': {}", field, e))?;
+        static RE_CACHE: std::sync::LazyLock<
+            std::sync::Mutex<std::collections::HashMap<String, Regex>>,
+        > = std::sync::LazyLock::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
+
+        let re = {
+            let mut cache = RE_CACHE.lock().unwrap();
+            cache
+                .entry(pattern.clone())
+                .or_insert_with(|| Regex::new(&pattern).expect("Failed to compile regex"))
+                .clone()
+        };
+
         let caps = re
             .captures(obj)
             .ok_or_else(|| anyhow!("Field '{}' not found in freeTierUsage object", field))?;
@@ -185,7 +195,18 @@ impl AmpService {
 
     fn extract_number_optional(obj: &str, field: &str) -> Option<f64> {
         let pattern = format!(r"{}:\s*([0-9]+(?:\.[0-9]+)?)", regex::escape(field));
-        let re = Regex::new(&pattern).ok()?;
+        static RE_CACHE: std::sync::LazyLock<
+            std::sync::Mutex<std::collections::HashMap<String, Regex>>,
+        > = std::sync::LazyLock::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
+
+        let re = {
+            let mut cache = RE_CACHE.lock().unwrap();
+            cache
+                .entry(pattern.clone())
+                .or_insert_with(|| Regex::new(&pattern).expect("Failed to compile regex"))
+                .clone()
+        };
+
         let caps = re.captures(obj)?;
         caps[1].parse::<f64>().ok()
     }

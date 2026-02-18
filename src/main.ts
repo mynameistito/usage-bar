@@ -128,7 +128,7 @@ function updateZaiConnectionBadge(hasApiKey: boolean): void {
 function updateAmpConnectionBadge(hasCookie: boolean): void {
   const ampConnectedStatus = document.getElementById("amp-connected-status");
   if (!ampConnectedStatus) return;
-  createOrUpdateConnectionBadge(ampConnectedStatus, "zai-header-badge", hasCookie);
+  createOrUpdateConnectionBadge(ampConnectedStatus, "amp-header-badge", hasCookie);
 }
 
 interface ClaudeUsageData {

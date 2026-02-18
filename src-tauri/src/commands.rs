@@ -3,7 +3,8 @@ use crate::claude_service::ClaudeService;
 use crate::credentials::CredentialManager;
 use crate::zai_service::ZaiService;
 use crate::{
-    AmpUsageCache, ClaudeTierCache, ClaudeUsageCache, HttpClient, ZaiTierCache, ZaiUsageCache,
+    AmpHttpClient, AmpUsageCache, ClaudeTierCache, ClaudeUsageCache, HttpClient, ZaiTierCache,
+    ZaiUsageCache,
 };
 use std::sync::Arc;
 use tauri::State;
@@ -341,7 +342,7 @@ pub async fn zai_get_tier(
 
 #[tauri::command]
 pub async fn amp_get_usage(
-    client: State<'_, HttpClient>,
+    amp_client: State<'_, AmpHttpClient>,
     usage_cache: State<'_, AmpUsageCache>,
 ) -> Result<crate::models::AmpUsageData, String> {
     debug_amp!("amp_get_usage called");
@@ -351,7 +352,7 @@ pub async fn amp_get_usage(
         return Ok(data);
     }
 
-    let client = Arc::clone(&client.0);
+    let client = Arc::clone(&amp_client.0);
 
     if !AmpService::amp_has_session_cookie() {
         debug_amp!("Amp session cookie not configured");
@@ -373,13 +374,13 @@ pub async fn amp_get_usage(
 
 #[tauri::command]
 pub async fn amp_refresh_usage(
-    client: State<'_, HttpClient>,
+    amp_client: State<'_, AmpHttpClient>,
     usage_cache: State<'_, AmpUsageCache>,
 ) -> Result<crate::models::AmpUsageData, String> {
     debug_amp!("amp_refresh_usage called (force refresh)");
     usage_cache.0.clear();
 
-    let client = Arc::clone(&client.0);
+    let client = Arc::clone(&amp_client.0);
 
     if !AmpService::amp_has_session_cookie() {
         debug_amp!("Amp session cookie not configured");

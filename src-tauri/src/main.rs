@@ -22,6 +22,7 @@ use std::time::Duration;
 use tauri::{tray::TrayIconBuilder, Manager};
 
 pub struct HttpClient(pub Arc<reqwest::Client>);
+pub struct AmpHttpClient(pub Arc<reqwest::Client>);
 pub struct ClaudeUsageCache(pub ResponseCache<UsageData>);
 pub struct ClaudeTierCache(pub ResponseCache<ClaudeTierData>);
 pub struct ZaiUsageCache(pub ResponseCache<ZaiUsageData>);
@@ -36,14 +37,22 @@ async fn main() -> anyhow::Result<()> {
         .setup(|app| {
             debug_app!("Initializing application state");
 
-            // Initialize shared HTTP client
+            // Initialize shared HTTP client (with redirects)
             let client = reqwest::Client::builder()
                 .timeout(Duration::from_secs(15))
-                .redirect(reqwest::redirect::Policy::none())
                 .build()
                 .map_err(|e| anyhow::anyhow!("Failed to build HTTP client: {}", e))?;
             app.manage(HttpClient(Arc::new(client)));
-            debug_app!("HTTP client initialized (timeout: 15s)");
+            debug_app!("HTTP client initialized (timeout: 15s, redirects enabled)");
+
+            // Initialize Amp HTTP client (no redirects for auth detection)
+            let amp_client = reqwest::Client::builder()
+                .timeout(Duration::from_secs(15))
+                .redirect(reqwest::redirect::Policy::none())
+                .build()
+                .map_err(|e| anyhow::anyhow!("Failed to build Amp HTTP client: {}", e))?;
+            app.manage(AmpHttpClient(Arc::new(amp_client)));
+            debug_app!("Amp HTTP client initialized (timeout: 15s, redirects disabled)");
 
             // Initialize response caches (30 second TTL)
             app.manage(ClaudeUsageCache(ResponseCache::new(30)));
