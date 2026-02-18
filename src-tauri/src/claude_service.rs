@@ -84,7 +84,7 @@ impl ClaudeService {
         debug_net!("GET {}", USAGE_API_URL);
 
         let credentials = CredentialManager::claude_read_credentials()?;
-        let token = CredentialManager::claude_read_access_token()?;
+        let token = credentials.claude_ai_oauth.access_token.clone();
         debug_claude!("Using access token (expires_at: N/A)");
 
         let response = client

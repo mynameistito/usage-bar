@@ -175,7 +175,7 @@ impl AmpService {
         > = std::sync::LazyLock::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
 
         let pattern = format!(r"{}:\s*([0-9]+(?:\.[0-9]+)?)", regex::escape(field));
-        let mut cache = RE_CACHE.lock().unwrap();
+        let mut cache = RE_CACHE.lock().unwrap_or_else(|e| e.into_inner());
         cache
             .entry(pattern.clone())
             .or_insert_with(|| Regex::new(&pattern).expect("Failed to compile regex"))
