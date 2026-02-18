@@ -121,10 +121,10 @@ impl AmpService {
                     }
                 }
                 let after_term = &html[abs_pos + term.len()..];
-                let rest = after_term.trim_start_matches([' ', '\t']);
+                let rest = after_term.trim_start();
                 let matched = rest.strip_prefix(':').or_else(|| rest.strip_prefix('='));
                 if let Some(after_sep) = matched {
-                    let after_sep = after_sep.trim_start_matches([' ', '\t']);
+                    let after_sep = after_sep.trim_start();
                     if after_sep.starts_with('{') {
                         let brace_offset = html.len() - after_sep.len();
                         debug_amp!("Found '{}' at position {}", term, abs_pos);

@@ -519,6 +519,13 @@ async function refreshZaiUI(): Promise<void> {
 }
 
 async function fetchAmpData(forceRefresh = false) {
+  const hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
+  if (hasAmpCookie !== hasAmpSession) {
+    hasAmpSession = hasAmpCookie;
+    updateAmpConnectionBadge(hasAmpCookie);
+  }
+  if (!hasAmpCookie) return;
+
   const errorContainer = document.getElementById("amp-error");
   const dataContainer = document.getElementById("amp-data");
   const errorMessage = document.getElementById("amp-error-message");
@@ -528,6 +535,12 @@ async function fetchAmpData(forceRefresh = false) {
   try {
     const command = forceRefresh ? "amp_refresh_usage" : "amp_get_usage";
     const data = await invoke<AmpUsageData>(command);
+
+    const tierEl = document.getElementById("amp-tier");
+    if (tierEl) {
+      tierEl.textContent = "Free";
+      tierEl.title = "";
+    }
 
     if (!data) return;
 
@@ -564,12 +577,6 @@ async function fetchAmpData(forceRefresh = false) {
 
     ampLastRefresh = new Date();
     updateTimestamp("amp");
-
-    const tierEl = document.getElementById("amp-tier");
-    if (tierEl) {
-      tierEl.textContent = "Free";
-      tierEl.title = "";
-    }
   } catch (error) {
     const errorMsg = String(error);
     if (errorMsg.includes("not configured")) {
@@ -590,9 +597,6 @@ async function fetchAmpData(forceRefresh = false) {
 }
 
 async function refreshAmpUI(): Promise<void> {
-  const hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
-  hasAmpSession = hasAmpCookie;
-  updateAmpConnectionBadge(hasAmpCookie);
   await fetchAmpData(true);
 }
 
@@ -631,18 +635,14 @@ function startTimestampUpdater() {
 }
 
 async function handleRefresh() {
-  const promises: Promise<unknown>[] = [fetchClaudeData(), fetchZaiData()];
-  if (hasAmpSession) promises.push(fetchAmpData());
-  await Promise.allSettled(promises);
+  await Promise.allSettled([fetchClaudeData(), fetchZaiData(), fetchAmpData()]);
 }
 
 function startPolling() {
   if (pollingTimer !== null) return;
 
   pollingTimer = window.setInterval(async () => {
-    const promises: Promise<unknown>[] = [fetchClaudeData(), fetchZaiData()];
-    if (hasAmpSession) promises.push(fetchAmpData());
-    await Promise.allSettled(promises);
+    await Promise.allSettled([fetchClaudeData(), fetchZaiData(), fetchAmpData()]);
   }, POLL_INTERVAL);
 }
 

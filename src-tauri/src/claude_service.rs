@@ -278,7 +278,7 @@ impl ClaudeService {
             .map(|b| b.to_lowercase())
             .unwrap_or_default();
 
-        if tier.contains("max") {
+        if tier.contains("max") || tier.contains("tier_2_5x") || tier.contains("tier_3_5x") {
             "Max".into()
         } else if tier.contains("team") || tier.contains("tier_4") || tier.contains("tier_5") {
             // tier_4/tier_5 assumed to map to Team; revisit if Anthropic introduces new tier names

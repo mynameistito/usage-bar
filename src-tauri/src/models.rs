@@ -99,6 +99,7 @@ pub struct ClaudeOAuth {
     #[serde(rename = "refreshToken")]
     pub refresh_token: String,
     #[serde(rename = "expiresAt")]
+    #[serde(default)]
     #[serde(deserialize_with = "deserialize_expires_at")]
     pub expires_at: Option<i64>,
     #[serde(rename = "subscriptionType", default)]
