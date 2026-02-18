@@ -93,8 +93,13 @@ impl AmpService {
         for term in &search_terms {
             if let Some(pos) = html.find(term) {
                 debug_amp!("Found '{}' at position {}", term, pos);
-                // Find the opening brace after the term
-                if let Some(brace_offset) = html[pos..].find('{') {
+                // Look for assignment pattern (variable = { ... } or freeTierUsage: { ... })
+                if let Some(brace_offset) = html[pos..]
+                    .find(&format!("{}{{", term))
+                    .or_else(|| html[pos..].find(&format!("{} = {{", term)))
+                    .or_else(|| html[pos..].find(&format!("{}:{{", term)))
+                    .or_else(|| html[pos..].find(&format!("{} = {{", term)))
+                {
                     obj_start = Some(pos + brace_offset);
                     break;
                 }

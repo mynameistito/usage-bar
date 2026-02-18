@@ -113,7 +113,9 @@ impl ClaudeService {
                 match retry_response.status() {
                     status if status.is_success() => {
                         debug_claude!("Successfully fetched usage+tier data after retry");
-                        Self::handle_combined_response(retry_response, credentials).await
+                        let refreshed_creds =
+                            CredentialManager::claude_read_credentials().unwrap_or(credentials);
+                        Self::handle_combined_response(retry_response, refreshed_creds).await
                     }
                     StatusCode::UNAUTHORIZED => {
                         debug_error!("Still unauthorized after token refresh");

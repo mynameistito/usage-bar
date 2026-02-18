@@ -322,15 +322,15 @@ function switchTab(tab: "claude" | "zai" | "amp") {
   const tabZai = document.getElementById("tab-zai");
   const tabAmp = document.getElementById("tab-amp");
 
-  if (claudeView && zaiView && ampView && tabClaude && tabZai && tabAmp) {
+  if (claudeView && zaiView && tabClaude && tabZai) {
     claudeView.style.display = tab === "claude" ? "block" : "none";
     zaiView.style.display = tab === "zai" ? "block" : "none";
-    ampView.style.display = tab === "amp" ? "block" : "none";
 
     tabClaude.classList.toggle("active", tab === "claude");
     tabZai.classList.toggle("active", tab === "zai");
-    tabAmp.classList.toggle("active", tab === "amp");
   }
+  if (ampView) ampView.style.display = tab === "amp" ? "block" : "none";
+  if (tabAmp) tabAmp.classList.toggle("active", tab === "amp");
 }
 
 async function fetchClaudeData() {
@@ -541,7 +541,7 @@ async function fetchAmpData(forceRefresh = false) {
     infoTitle.appendChild(titleSpan);
     infoSection.appendChild(infoTitle);
 
-        const remaining = Math.max(0, (data.quota - data.used) / 100);
+    const remaining = Math.max(0, (data.quota - data.used) / 100);
     const total = data.quota / 100;
     const balanceRow = document.createElement("div");
     balanceRow.className = "info-row";
