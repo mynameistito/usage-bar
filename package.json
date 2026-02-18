@@ -17,7 +17,7 @@
     "dev": "tauri dev",
     "vite:dev": "vite",
     "vite:build": "vite build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "build": "bun run generate-icon && tauri build",
     "build:nsis": "bun run generate-icon && tauri build --bundles nsis",
     "build:msi": "bun run generate-icon && tauri build --bundles msi",
@@ -29,11 +29,11 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.18",
     "@tauri-apps/cli": "^2.10.0",
+    "@typescript/native-preview": "^7.0.0-dev.20260218.1",
     "png-to-ico": "^3.0.1",
     "serve": "^14.2.5",
     "sharp": "^0.34.5",
     "tailwindcss": "^4.1.18",
-    "typescript": "^5.9.3",
     "vite": "^7.3.1"
   },
   "author": "",

@@ -249,14 +249,14 @@ impl ClaudeService {
     fn infer_plan_name_from_subscription(subscription_type: &str) -> String {
         let subtype_lower = subscription_type.to_lowercase();
 
-        if subtype_lower.contains("pro") {
+        if subtype_lower.contains("max") {
+            "Max".into()
+        } else if subtype_lower.contains("pro") {
             "Pro".into()
         } else if subtype_lower.contains("team") {
             "Team".into()
         } else if subtype_lower.contains("enterprise") {
             "Enterprise".into()
-        } else if subtype_lower.contains("max") {
-            "Max".into()
         } else {
             "Free".into()
         }

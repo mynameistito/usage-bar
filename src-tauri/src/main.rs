@@ -39,6 +39,7 @@ async fn main() -> anyhow::Result<()> {
             // Initialize shared HTTP client
             let client = reqwest::Client::builder()
                 .timeout(Duration::from_secs(15))
+                .redirect(reqwest::redirect::Policy::none())
                 .build()
                 .map_err(|e| anyhow::anyhow!("Failed to build HTTP client: {}", e))?;
             app.manage(HttpClient(Arc::new(client)));

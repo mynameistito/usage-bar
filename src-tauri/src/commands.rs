@@ -358,7 +358,7 @@ pub async fn amp_get_usage(
         return Err("Amp session cookie not configured".to_string());
     }
 
-    match AmpService::amp_fetch_usage(client).await {
+    match AmpService::amp_fetch_usage(&client).await {
         Ok(data) => {
             debug_amp!("amp_fetch_usage succeeded, caching result");
             usage_cache.0.set(data.clone());
@@ -386,7 +386,7 @@ pub async fn amp_refresh_usage(
         return Err("Amp session cookie not configured".to_string());
     }
 
-    match AmpService::amp_fetch_usage(client).await {
+    match AmpService::amp_fetch_usage(&client).await {
         Ok(data) => {
             debug_amp!("amp_fetch_usage succeeded, caching result");
             usage_cache.0.set(data.clone());
@@ -562,7 +562,7 @@ pub async fn refresh_all(
         },
         async {
             if AmpService::amp_has_session_cookie() {
-                match AmpService::amp_fetch_usage(client.clone()).await {
+                match AmpService::amp_fetch_usage(&client).await {
                     Ok(data) => {
                         amp_usage_cache.0.set(data.clone());
                         Ok(Some(data))

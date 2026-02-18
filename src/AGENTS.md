@@ -61,3 +61,6 @@ src/
 - **Tauri commands:** `claude_get_usage`, `claude_get_tier`, `zai_get_usage`, `zai_save_api_key`
 - **DOM IDs:** `loading`, `content`, `claude-view`, `zai-view`, tab buttons
 - **Error containers:** `claude-error`, `zai-error` with message spans
+
+# NPM
+Never use NPM, use Bun

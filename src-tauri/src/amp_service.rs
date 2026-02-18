@@ -12,21 +12,14 @@ const AMP_SETTINGS_URL: &str = "https://ampcode.com/settings";
 pub struct AmpService;
 
 impl AmpService {
-    pub async fn amp_fetch_usage(_client: Arc<reqwest::Client>) -> Result<AmpUsageData> {
+    pub async fn amp_fetch_usage(client: &Arc<reqwest::Client>) -> Result<AmpUsageData> {
         debug_amp!("amp_fetch_usage: Starting request");
         debug_net!("GET {}", AMP_SETTINGS_URL);
 
         let session_cookie = CredentialManager::amp_read_session_cookie()?;
         debug_amp!("Using session cookie: ***REDACTED***");
 
-        // Build a no-redirect client to detect login redirects
-        let amp_client = reqwest::Client::builder()
-            .redirect(reqwest::redirect::Policy::none())
-            .timeout(std::time::Duration::from_secs(15))
-            .build()
-            .map_err(|e| anyhow!("Failed to build Amp HTTP client: {}", e))?;
-
-        let response = amp_client
+        let response = client
             .get(AMP_SETTINGS_URL)
             .header("Cookie", format!("session={}", session_cookie))
             .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
@@ -77,9 +70,11 @@ impl AmpService {
         let body = response.text().await?;
         debug_amp!("Response body length: {} bytes", body.len());
 
-        // Check for login page content
+        // Check for login page content (more specific markers)
         let body_lower = body.to_lowercase();
-        if body_lower.contains("sign in") || body_lower.contains("log in") {
+        if body_lower.contains("sign in to your account")
+            || body_lower.contains("log in to your account")
+        {
             debug_error!("Amp session expired (login page detected)");
             return Err(anyhow!(
                 "Amp session expired — please update your session cookie"

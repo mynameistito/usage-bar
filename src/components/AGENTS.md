@@ -75,3 +75,6 @@ interface McpUsageGaugeOptions {
 - **gauge--warning:** 70-90% utilization (yellow/orange)
 - **gauge--critical:** >90% utilization (red)
 - **empty-state:** Shown when no data available
+
+# NPM
+Never use NPM, use Bun

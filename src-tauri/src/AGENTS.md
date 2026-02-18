@@ -117,3 +117,7 @@ pub struct ResponseCache<T> {
 - **Cache-first:** All commands check cache before network call
 - **Error mapping:** anyhow::Error → String via `to_string()`
 - **State access:** `State<'_, HttpClient>`, `State<'_, *UsageCache>`
+
+
+# NPM
+Never use NPM, use Bun

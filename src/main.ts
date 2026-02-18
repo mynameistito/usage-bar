@@ -41,16 +41,17 @@ function updateZaiHeaderState(hasApiKey: boolean): void {
   }
 }
 
-function updateZaiConnectionBadge(hasApiKey: boolean): void {
-  const zaiConnectedStatus = document.getElementById("zai-connected-status");
-  if (!zaiConnectedStatus) return;
-
+function createOrUpdateConnectionBadge(
+  container: HTMLElement,
+  className: string,
+  isConnected: boolean
+): void {
   // Check if badge exists, create if not
-  let badge = zaiConnectedStatus.querySelector(".zai-header-badge") as HTMLElement;
+  let badge = container.querySelector(`.${className}`) as HTMLElement;
 
   if (!badge) {
     badge = document.createElement("span");
-    badge.className = "zai-header-badge";
+    badge.className = className;
     badge.style.cursor = "pointer";
 
     // Attach click handler directly to the new badge element
@@ -60,13 +61,13 @@ function updateZaiConnectionBadge(hasApiKey: boolean): void {
       openSettings().catch(console.error);
     });
 
-    zaiConnectedStatus.appendChild(badge);
+    container.appendChild(badge);
   }
 
   // Update badge classes without recreating element
-  badge.className = hasApiKey
-    ? "zai-header-badge zai-header-badge-connected"
-    : "zai-header-badge zai-header-badge-disconnected";
+  badge.className = isConnected
+    ? `${className} zai-header-badge-connected`
+    : `${className} zai-header-badge-disconnected`;
 
   // Update icon
   let icon = badge.querySelector(".zai-header-badge-icon") as HTMLElement;
@@ -85,7 +86,7 @@ function updateZaiConnectionBadge(hasApiKey: boolean): void {
   svg.setAttribute("stroke-linecap", "round");
   svg.setAttribute("stroke-linejoin", "round");
 
-  if (hasApiKey) {
+  if (isConnected) {
     svg.setAttribute("stroke-width", "3");
     const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
     polyline.setAttribute("points", "20 6 9 17 4 12");
@@ -115,79 +116,19 @@ function updateZaiConnectionBadge(hasApiKey: boolean): void {
     label.className = "zai-header-badge-label";
     badge.appendChild(label);
   }
-  label.textContent = hasApiKey ? "Connected" : "Not connected";
+  label.textContent = isConnected ? "Connected" : "Not connected";
+}
+
+function updateZaiConnectionBadge(hasApiKey: boolean): void {
+  const zaiConnectedStatus = document.getElementById("zai-connected-status");
+  if (!zaiConnectedStatus) return;
+  createOrUpdateConnectionBadge(zaiConnectedStatus, "zai-header-badge", hasApiKey);
 }
 
 function updateAmpConnectionBadge(hasCookie: boolean): void {
   const ampConnectedStatus = document.getElementById("amp-connected-status");
   if (!ampConnectedStatus) return;
-
-  let badge = ampConnectedStatus.querySelector(".zai-header-badge") as HTMLElement;
-
-  if (!badge) {
-    badge = document.createElement("span");
-    badge.className = "zai-header-badge";
-    badge.style.cursor = "pointer";
-
-    badge.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      openSettings().catch(console.error);
-    });
-
-    ampConnectedStatus.appendChild(badge);
-  }
-
-  badge.className = hasCookie
-    ? "zai-header-badge zai-header-badge-connected"
-    : "zai-header-badge zai-header-badge-disconnected";
-
-  let icon = badge.querySelector(".zai-header-badge-icon") as HTMLElement;
-  if (!icon) {
-    icon = document.createElement("span");
-    icon.className = "zai-header-badge-icon";
-    badge.appendChild(icon);
-  }
-
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("width", "12");
-  svg.setAttribute("height", "12");
-  svg.setAttribute("viewBox", "0 0 24 24");
-  svg.setAttribute("fill", "none");
-  svg.setAttribute("stroke", "currentColor");
-  svg.setAttribute("stroke-linecap", "round");
-  svg.setAttribute("stroke-linejoin", "round");
-
-  if (hasCookie) {
-    svg.setAttribute("stroke-width", "3");
-    const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-    polyline.setAttribute("points", "20 6 9 17 4 12");
-    svg.appendChild(polyline);
-  } else {
-    svg.setAttribute("stroke-width", "2");
-    const line1 = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    line1.setAttribute("x1", "12");
-    line1.setAttribute("y1", "5");
-    line1.setAttribute("x2", "12");
-    line1.setAttribute("y2", "19");
-    const line2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    line2.setAttribute("x1", "5");
-    line2.setAttribute("y1", "12");
-    line2.setAttribute("x2", "19");
-    line2.setAttribute("y2", "12");
-    svg.appendChild(line1);
-    svg.appendChild(line2);
-  }
-
-  icon.replaceChildren(svg);
-
-  let label = badge.querySelector(".zai-header-badge-label") as HTMLElement;
-  if (!label) {
-    label = document.createElement("span");
-    label.className = "zai-header-badge-label";
-    badge.appendChild(label);
-  }
-  label.textContent = hasCookie ? "Connected" : "Not connected";
+  createOrUpdateConnectionBadge(ampConnectedStatus, "zai-header-badge", hasCookie);
 }
 
 interface ClaudeUsageData {
@@ -409,7 +350,7 @@ async function fetchClaudeData() {
     const sessionGauge = createUsageGauge({
       title: "Session",
       utilization: usageData.five_hour_utilization / 100,
-      resetsAt: usageData.five_hour_resets_at,
+      resetsAt: usageData.five_hour_resets_at ?? "",
     });
 
     if (dataContainer) {
@@ -647,7 +588,7 @@ async function fetchClaudeUsage() {
     const sessionGauge = createUsageGauge({
       title: "Session",
       utilization: data.five_hour_utilization / 100, // Convert percentage to 0-1 ratio
-      resetsAt: data.five_hour_resets_at,
+      resetsAt: data.five_hour_resets_at ?? "",
     });
 
     dataContainer.appendChild(sessionGauge);
