@@ -100,7 +100,10 @@ impl ClaudeService {
             StatusCode::UNAUTHORIZED => {
                 debug_claude!("Unauthorized: Attempting token refresh");
                 Self::refresh_token(client.clone()).await?;
-                let token = CredentialManager::claude_read_access_token()?;
+                let token = CredentialManager::claude_read_credentials()?
+                    .claude_ai_oauth
+                    .access_token
+                    .clone();
                 let retry_response = client
                     .get(USAGE_API_URL)
                     .header("Authorization", format!("Bearer {}", token))

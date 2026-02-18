@@ -322,14 +322,12 @@ function switchTab(tab: "claude" | "zai" | "amp") {
   const tabZai = document.getElementById("tab-zai");
   const tabAmp = document.getElementById("tab-amp");
 
-  if (claudeView && zaiView && tabClaude && tabZai) {
-    claudeView.style.display = tab === "claude" ? "block" : "none";
-    zaiView.style.display = tab === "zai" ? "block" : "none";
-
-    tabClaude.classList.toggle("active", tab === "claude");
-    tabZai.classList.toggle("active", tab === "zai");
-  }
+  if (claudeView) claudeView.style.display = tab === "claude" ? "block" : "none";
+  if (zaiView) zaiView.style.display = tab === "zai" ? "block" : "none";
   if (ampView) ampView.style.display = tab === "amp" ? "block" : "none";
+
+  if (tabClaude) tabClaude.classList.toggle("active", tab === "claude");
+  if (tabZai) tabZai.classList.toggle("active", tab === "zai");
   if (tabAmp) tabAmp.classList.toggle("active", tab === "amp");
 }
 

@@ -98,9 +98,11 @@ impl AmpService {
                     .find(&format!("{}{{", term))
                     .or_else(|| html[pos..].find(&format!("{} = {{", term)))
                     .or_else(|| html[pos..].find(&format!("{}:{{", term)))
-                    .or_else(|| html[pos..].find(&format!("{} = {{", term)))
+                    .or_else(|| html[pos..].find(&format!("{}: {{", term)))
                 {
-                    obj_start = Some(pos + brace_offset);
+                    let search_start = pos + brace_offset;
+                    let actual_brace = search_start + html[search_start..].find('{').unwrap_or(0);
+                    obj_start = Some(actual_brace);
                     break;
                 }
             }

@@ -262,11 +262,6 @@ impl CredentialManager {
         Ok(())
     }
 
-    pub fn claude_read_access_token() -> Result<String> {
-        let credentials = Self::claude_read_credentials()?;
-        Ok(credentials.claude_ai_oauth.access_token)
-    }
-
     pub fn claude_update_token(
         access_token: &str,
         refresh_token: &str,
