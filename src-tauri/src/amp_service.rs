@@ -96,6 +96,11 @@ impl AmpService {
             let mut search_from = 0;
             while let Some(pos) = html[search_from..].find(term) {
                 let abs_pos = search_from + pos;
+                // Skip occurrences inside string literals (preceded by a quote)
+                if abs_pos > 0 && matches!(html.as_bytes()[abs_pos - 1], b'"' | b'\'') {
+                    search_from = abs_pos + 1;
+                    continue;
+                }
                 let after_term = &html[abs_pos + term.len()..];
                 let rest = after_term.trim_start_matches([' ', '\t']);
                 let matched = rest.strip_prefix(':').or_else(|| rest.strip_prefix('='));

@@ -610,14 +610,20 @@ function startTimestampUpdater() {
 }
 
 async function handleRefresh() {
-  await Promise.allSettled([fetchClaudeData(), fetchZaiData(), fetchAmpData()]);
+  const promises: Promise<unknown>[] = [fetchClaudeData(), fetchZaiData()];
+  const hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
+  if (hasAmpCookie) promises.push(fetchAmpData());
+  await Promise.allSettled(promises);
 }
 
 function startPolling() {
   if (pollingTimer !== null) return;
 
   pollingTimer = window.setInterval(async () => {
-    await Promise.allSettled([fetchClaudeData(), fetchZaiData(), fetchAmpData()]);
+    const promises: Promise<unknown>[] = [fetchClaudeData(), fetchZaiData()];
+    const hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
+    if (hasAmpCookie) promises.push(fetchAmpData());
+    await Promise.allSettled(promises);
   }, POLL_INTERVAL);
 }
 

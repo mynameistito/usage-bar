@@ -275,7 +275,7 @@ impl ClaudeService {
             || tier_lower.contains("tier_5")
         {
             "Max".into()
-        } else if tier_lower.contains("tier_1") || tier_lower.contains("tier") {
+        } else if tier_lower.contains("tier_1") || tier_lower.ends_with("_tier") {
             "Pro".into()
         } else {
             "Free".into()
