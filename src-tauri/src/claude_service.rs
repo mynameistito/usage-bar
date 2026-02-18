@@ -50,12 +50,19 @@ impl ClaudeService {
             extra_usage_utilization: extra_usage.as_ref().and_then(|e| e.utilization),
         };
 
-        // Extract tier info from the same response
-        let plan_name = Self::infer_plan_name(
-            &usage_response.rate_limit_tier,
-            &usage_response.billing_type,
-        );
-        let raw_tier = usage_response.rate_limit_tier.unwrap_or_default();
+        // Extract tier info from credentials file instead of API response
+        let credentials = CredentialManager::claude_read_credentials()?;
+        let subscription_type = credentials
+            .claude_ai_oauth
+            .subscription_type
+            .clone()
+            .unwrap_or_default();
+        let plan_name = Self::infer_plan_name_from_subscription(&subscription_type);
+        let raw_tier = credentials
+            .claude_ai_oauth
+            .rate_limit_tier
+            .clone()
+            .unwrap_or_default();
 
         let tier_data = ClaudeTierData {
             plan_name,
@@ -239,18 +246,17 @@ impl ClaudeService {
         Ok(())
     }
 
-    fn infer_plan_name(rate_limit_tier: &Option<String>, billing_type: &Option<String>) -> String {
-        let tier = rate_limit_tier.as_deref().unwrap_or("").to_lowercase();
-        let billing = billing_type.as_deref().unwrap_or("").to_lowercase();
+    fn infer_plan_name_from_subscription(subscription_type: &str) -> String {
+        let subtype_lower = subscription_type.to_lowercase();
 
-        if tier.contains("max") {
-            "Max".into()
-        } else if tier.contains("pro") || billing.contains("stripe") {
+        if subtype_lower.contains("pro") {
             "Pro".into()
-        } else if tier.contains("team") {
+        } else if subtype_lower.contains("team") {
             "Team".into()
-        } else if tier.contains("enterprise") {
+        } else if subtype_lower.contains("enterprise") {
             "Enterprise".into()
+        } else if subtype_lower.contains("max") {
+            "Max".into()
         } else {
             "Free".into()
         }

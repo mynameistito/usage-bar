@@ -48,6 +48,15 @@
 						</svg>
 						<span>Z.ai</span>
 					</button>
+					<button id="tab-amp" class="tab-button" data-tab="amp">
+						<svg viewBox="0 0 28 28" fill="currentColor">
+							<path d="M13.9197 13.61L17.3816 26.566L14.242 27.4049L11.2645 16.2643L0.119926 13.2906L0.957817 10.15L13.9197 13.61Z"/>
+							<path d="M13.7391 16.0892L4.88169 24.9056L2.58872 22.6019L11.4461 13.7865L13.7391 16.0892Z"/>
+							<path d="M18.9386 8.58315L22.4005 21.5392L19.2609 22.3781L16.2833 11.2374L5.13879 8.26381L5.97668 5.12318L18.9386 8.58315Z"/>
+							<path d="M23.9803 3.55632L27.4422 16.5124L24.3025 17.3512L21.325 6.21062L10.1805 3.23698L11.0183 0.0963593L23.9803 3.55632Z"/>
+						</svg>
+						<span>Amp</span>
+					</button>
 				</div>
 
 				<!-- Claude View -->
@@ -88,37 +97,15 @@
 
 				<!-- Extra Usage -->
 				<div id="extra-usage-section" class="info-section">
-					<div class="info-section-title">Extra usage</div>
-					<div id="extra-usage-content" class="info-section-row">
-						<span id="extra-usage-label" class="info-label">Not enabled</span>
-						<span id="extra-usage-value" class="info-value muted">—</span>
+					<div class="info-section-header">
+						<span class="info-section-title">Extra usage</span>
 					</div>
-					<div class="divider"></div>
+					<div id="extra-usage-label" class="info-row">Not enabled</div>
+					<div id="extra-usage-value" class="info-row muted" style="display: none;">—</div>
 				</div>
 
-					<!-- Cost (placeholder) -->
-					<div class="info-section clickable">
-						<div class="info-section-header">
-							<span class="info-section-title">Cost</span>
-							<svg
-								class="chevron-icon"
-								width="16"
-								height="16"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							>
-								<polyline points="9 18 15 12 9 6"></polyline>
-							</svg>
-						</div>
-						<div class="info-row">Today: $ 0.00 · 0 tokens</div>
-						<div class="info-row">
-							Last 30 days: $ 0.00 · 0 tokens
-						</div>
-					</div>
+				<div class="divider"></div>
+
 				</div>
 
 				<!-- Z.ai View -->
@@ -155,6 +142,42 @@
 					</div>
 
 					<div id="zai-data" style="display: none"></div>
+				</div>
+
+				<!-- Amp View -->
+				<div id="amp-view" class="provider-view" style="display: none">
+					<div class="provider-header">
+						<div class="provider-header-row">
+							<div class="provider-name">Amp</div>
+							<span id="amp-tier" class="provider-tier">Free</span>
+						</div>
+						<div class="provider-meta">
+							<span id="amp-updated" class="provider-updated"
+								>Updated just now</span
+							>
+							<div id="amp-connected-status" class="zai-header-status"></div>
+						</div>
+					</div>
+
+					<div
+						id="amp-error"
+						class="error-container"
+						style="display: none"
+					>
+						<div class="error-icon">
+							<svg viewBox="0 0 24 24" fill="currentColor">
+								<path
+									d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
+								/>
+							</svg>
+						</div>
+						<div class="error-content">
+							<h3>Error</h3>
+							<p id="amp-error-message"></p>
+						</div>
+					</div>
+
+					<div id="amp-data" style="display: none"></div>
 				</div>
 
 				<div class="divider"></div>

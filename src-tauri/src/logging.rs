@@ -103,6 +103,23 @@ macro_rules! debug_net {
     ($($arg:tt)*) => {};
 }
 
+// [AMP] - Bright Cyan - Amp API calls, usage
+pub const COLOR_BRIGHT_CYAN: &str = "\x1b[96m";
+
+#[macro_export]
+#[cfg(debug_assertions)]
+macro_rules! debug_amp {
+    ($($arg:tt)*) => {
+        println!("{}[AMP]{} {}", $crate::COLOR_BRIGHT_CYAN, $crate::COLOR_RESET, format!($($arg)*));
+    };
+}
+
+#[macro_export]
+#[cfg(not(debug_assertions))]
+macro_rules! debug_amp {
+    ($($arg:tt)*) => {};
+}
+
 // [ERROR] - Red - Failures, exceptions, retries
 #[macro_export]
 #[cfg(debug_assertions)]

@@ -1,11 +1,20 @@
+use crate::amp_service::AmpService;
 use crate::claude_service::ClaudeService;
 use crate::credentials::CredentialManager;
 use crate::zai_service::ZaiService;
-use crate::{ClaudeTierCache, ClaudeUsageCache, HttpClient, ZaiTierCache, ZaiUsageCache};
+use crate::{
+    AmpUsageCache, ClaudeTierCache, ClaudeUsageCache, HttpClient, ZaiTierCache, ZaiUsageCache,
+};
 use std::sync::Arc;
 use tauri::State;
 
-use crate::{debug_cache, debug_claude, debug_cred, debug_zai};
+use crate::{debug_amp, debug_cache, debug_claude, debug_cred, debug_zai};
+
+type RefreshAllResult = (
+    Option<crate::models::UsageData>,
+    Option<crate::models::ZaiUsageData>,
+    Option<crate::models::AmpUsageData>,
+);
 
 #[cfg(target_os = "windows")]
 const RPC_E_CHANGED_MODE: i32 = -2147417850; // 0x80010106
@@ -331,6 +340,84 @@ pub async fn zai_get_tier(
 }
 
 #[tauri::command]
+pub async fn amp_get_usage(
+    client: State<'_, HttpClient>,
+    usage_cache: State<'_, AmpUsageCache>,
+) -> Result<crate::models::AmpUsageData, String> {
+    debug_amp!("amp_get_usage called");
+
+    if let Some(data) = usage_cache.0.get() {
+        debug_cache!("Returning cached Amp usage data");
+        return Ok(data);
+    }
+
+    let client = Arc::clone(&client.0);
+
+    if !AmpService::amp_has_session_cookie() {
+        debug_amp!("Amp session cookie not configured");
+        return Err("Amp session cookie not configured".to_string());
+    }
+
+    match AmpService::amp_fetch_usage(client).await {
+        Ok(data) => {
+            debug_amp!("amp_fetch_usage succeeded, caching result");
+            usage_cache.0.set(data.clone());
+            Ok(data)
+        }
+        Err(e) => {
+            debug_amp!("amp_fetch_usage failed: {}", e);
+            Err(e.to_string())
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn amp_refresh_usage(
+    client: State<'_, HttpClient>,
+    usage_cache: State<'_, AmpUsageCache>,
+) -> Result<crate::models::AmpUsageData, String> {
+    debug_amp!("amp_refresh_usage called (force refresh)");
+    usage_cache.0.clear();
+
+    let client = Arc::clone(&client.0);
+
+    if !AmpService::amp_has_session_cookie() {
+        debug_amp!("Amp session cookie not configured");
+        return Err("Amp session cookie not configured".to_string());
+    }
+
+    match AmpService::amp_fetch_usage(client).await {
+        Ok(data) => {
+            debug_amp!("amp_fetch_usage succeeded, caching result");
+            usage_cache.0.set(data.clone());
+            Ok(data)
+        }
+        Err(e) => {
+            debug_amp!("amp_fetch_usage failed: {}", e);
+            Err(e.to_string())
+        }
+    }
+}
+
+#[tauri::command]
+pub fn amp_check_session_cookie() -> bool {
+    debug_cred!("amp_check_session_cookie called");
+    let has_cookie = AmpService::amp_has_session_cookie();
+    debug_cred!("[Amp] has_session_cookie: {}", has_cookie);
+    has_cookie
+}
+
+#[tauri::command]
+pub fn amp_save_session_cookie(cookie: String) -> Result<(), String> {
+    CredentialManager::amp_write_session_cookie(&cookie).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn amp_delete_session_cookie() -> Result<(), String> {
+    CredentialManager::amp_delete_session_cookie().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn zai_check_api_key() -> bool {
     debug_cred!("zai_check_api_key called");
     let has_key = ZaiService::zai_has_api_key();
@@ -436,17 +523,12 @@ pub async fn refresh_all(
     claude_tier_cache: State<'_, ClaudeTierCache>,
     zai_usage_cache: State<'_, ZaiUsageCache>,
     zai_tier_cache: State<'_, ZaiTierCache>,
-) -> Result<
-    (
-        Option<crate::models::UsageData>,
-        Option<crate::models::ZaiUsageData>,
-    ),
-    String,
-> {
+    amp_usage_cache: State<'_, AmpUsageCache>,
+) -> Result<RefreshAllResult, String> {
     let client = Arc::clone(&client.0);
 
-    // Fetch both APIs in parallel using tokio::join!
-    let (claude_result, zai_result) = tokio::join!(
+    // Fetch all APIs in parallel using tokio::join!
+    let (claude_result, zai_result, amp_result) = tokio::join!(
         async {
             if let Err(e) = ClaudeService::check_and_refresh_if_needed(client.clone()).await {
                 return Err(e.to_string());
@@ -477,8 +559,21 @@ pub async fn refresh_all(
             } else {
                 Ok(None)
             }
+        },
+        async {
+            if AmpService::amp_has_session_cookie() {
+                match AmpService::amp_fetch_usage(client.clone()).await {
+                    Ok(data) => {
+                        amp_usage_cache.0.set(data.clone());
+                        Ok(Some(data))
+                    }
+                    Err(e) => Err(e.to_string()),
+                }
+            } else {
+                Ok(None)
+            }
         }
     );
 
-    Ok((claude_result?, zai_result?))
+    Ok((claude_result?, zai_result?, amp_result?))
 }

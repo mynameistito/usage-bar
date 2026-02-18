@@ -99,7 +99,35 @@ pub struct ClaudeOAuth {
     #[serde(rename = "refreshToken")]
     pub refresh_token: String,
     #[serde(rename = "expiresAt")]
+    #[serde(deserialize_with = "deserialize_expires_at")]
     pub expires_at: Option<i64>,
+    #[serde(rename = "subscriptionType", default)]
+    pub subscription_type: Option<String>,
+    #[serde(rename = "rateLimitTier", default)]
+    pub rate_limit_tier: Option<String>,
+}
+
+fn deserialize_expires_at<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::{self, Deserialize};
+    use serde_json::Value;
+
+    let value = Value::deserialize(deserializer)?;
+    match value {
+        Value::Null => Ok(None),
+        Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                Ok(Some(i))
+            } else if let Some(f) = n.as_f64() {
+                Ok(Some(f as i64))
+            } else {
+                Err(de::Error::custom("invalid number for expires_at"))
+            }
+        }
+        _ => Err(de::Error::custom("expected number or null for expires_at")),
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -116,4 +144,14 @@ pub struct TokenRefreshResponse {
 pub struct ClaudeTierData {
     pub plan_name: String,
     pub rate_limit_tier: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AmpUsageData {
+    pub quota: f64,
+    pub used: f64,
+    pub used_percent: f64,
+    pub hourly_replenishment: f64,
+    pub window_hours: Option<f64>,
+    pub resets_at: Option<i64>,
 }

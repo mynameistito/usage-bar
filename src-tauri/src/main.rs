@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod amp_service;
 mod cache;
 mod claude_service;
 mod commands;
@@ -10,12 +11,12 @@ mod zai_service;
 
 // Re-export logging constants so macros can find them via $crate
 pub use logging::{
-    COLOR_BLUE, COLOR_BRIGHT_RED, COLOR_CYAN, COLOR_GRAY, COLOR_GREEN, COLOR_MAGENTA, COLOR_RED,
-    COLOR_RESET, COLOR_YELLOW,
+    COLOR_BLUE, COLOR_BRIGHT_CYAN, COLOR_BRIGHT_RED, COLOR_CYAN, COLOR_GRAY, COLOR_GREEN,
+    COLOR_MAGENTA, COLOR_RED, COLOR_RESET, COLOR_YELLOW,
 };
 
 use cache::ResponseCache;
-use models::{ClaudeTierData, UsageData, ZaiTierData, ZaiUsageData};
+use models::{AmpUsageData, ClaudeTierData, UsageData, ZaiTierData, ZaiUsageData};
 use std::sync::Arc;
 use std::time::Duration;
 use tauri::{tray::TrayIconBuilder, Manager};
@@ -25,6 +26,7 @@ pub struct ClaudeUsageCache(pub ResponseCache<UsageData>);
 pub struct ClaudeTierCache(pub ResponseCache<ClaudeTierData>);
 pub struct ZaiUsageCache(pub ResponseCache<ZaiUsageData>);
 pub struct ZaiTierCache(pub ResponseCache<ZaiTierData>);
+pub struct AmpUsageCache(pub ResponseCache<AmpUsageData>);
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -47,6 +49,7 @@ async fn main() -> anyhow::Result<()> {
             app.manage(ClaudeTierCache(ResponseCache::new(30)));
             app.manage(ZaiUsageCache(ResponseCache::new(30)));
             app.manage(ZaiTierCache(ResponseCache::new(30)));
+            app.manage(AmpUsageCache(ResponseCache::new(30)));
             debug_app!("Response caches initialized (TTL: 30s)");
 
             // Get the window that was automatically created from tauri.conf.json
@@ -118,6 +121,11 @@ async fn main() -> anyhow::Result<()> {
             commands::zai_validate_api_key,
             commands::zai_save_api_key,
             commands::zai_delete_api_key,
+            commands::amp_get_usage,
+            commands::amp_refresh_usage,
+            commands::amp_check_session_cookie,
+            commands::amp_save_session_cookie,
+            commands::amp_delete_session_cookie,
             commands::quit_app,
             commands::refresh_all,
             commands::open_url,

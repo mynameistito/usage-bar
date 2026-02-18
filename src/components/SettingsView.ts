@@ -8,6 +8,10 @@ export interface SettingsCallbacks {
 	saveZaiApiKey: (apiKey: string) => Promise<void>;
 	deleteZaiApiKey: () => Promise<void>;
 	onZaiKeyChanged: () => Promise<void>;
+	checkAmpSessionCookie: () => Promise<boolean>;
+	saveAmpSessionCookie: (cookie: string) => Promise<void>;
+	deleteAmpSessionCookie: () => Promise<void>;
+	onAmpCookieChanged: () => Promise<void>;
 	onClose: () => void;
 }
 
@@ -53,7 +57,7 @@ function createEyeIcon(crossed: boolean): SVGElement {
 	return svg;
 }
 
-export function createSettingsView(callbacks: SettingsCallbacks, hasZaiApiKey: boolean): HTMLElement {
+export function createSettingsView(callbacks: SettingsCallbacks, hasZaiApiKey: boolean, hasAmpCookie: boolean): HTMLElement {
 	const root = document.createElement("div");
 	root.id = "settings-view";
 	root.className = "settings-view";
@@ -65,6 +69,11 @@ export function createSettingsView(callbacks: SettingsCallbacks, hasZaiApiKey: b
 
 	const zaiSection = createZaiSection(callbacks, hasZaiApiKey);
 	content.appendChild(zaiSection);
+
+	content.appendChild(createDivider());
+
+	const ampSection = createAmpSection(callbacks, hasAmpCookie);
+	content.appendChild(ampSection);
 
 	content.appendChild(createDivider());
 
@@ -354,6 +363,203 @@ function createZaiInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 	input.addEventListener("input", () => {
 		if (errorElement.style.display !== "none") {
 			setValidationState(false);
+		}
+	});
+
+	container.appendChild(inputRow);
+	container.appendChild(errorElement);
+
+	return container;
+}
+
+function createAmpSection(callbacks: SettingsCallbacks, hasCookie: boolean): HTMLElement {
+	const section = document.createElement("div");
+	section.className = "settings-section";
+
+	const sectionTitle = document.createElement("div");
+	sectionTitle.className = "settings-section-title";
+	sectionTitle.textContent = "AMP SESSION COOKIE";
+
+	section.appendChild(sectionTitle);
+
+	if (hasCookie) {
+		section.appendChild(createAmpConnectedState(callbacks, section));
+	} else {
+		section.appendChild(createAmpInputState(callbacks, section));
+	}
+
+	return section;
+}
+
+function rebuildAmpSection(section: HTMLElement, callbacks: SettingsCallbacks, hasCookie: boolean): void {
+	const title = section.querySelector(".settings-section-title");
+	while (section.lastChild) {
+		section.removeChild(section.lastChild);
+	}
+	if (title) {
+		section.appendChild(title);
+	}
+
+	if (hasCookie) {
+		section.appendChild(createAmpConnectedState(callbacks, section));
+	} else {
+		section.appendChild(createAmpInputState(callbacks, section));
+	}
+}
+
+function createAmpConnectedState(callbacks: SettingsCallbacks, section: HTMLElement): HTMLElement {
+	const container = document.createElement("div");
+	container.className = "settings-zai-connected";
+
+	const row = document.createElement("div");
+	row.className = "settings-zai-row";
+
+	const statusLeft = document.createElement("div");
+	statusLeft.className = "settings-zai-status";
+
+	const dot = document.createElement("span");
+	dot.className = "gauge-dot status-success";
+
+	const statusText = document.createElement("span");
+	statusText.textContent = "Session cookie configured";
+
+	statusLeft.appendChild(dot);
+	statusLeft.appendChild(statusText);
+
+	const actions = document.createElement("div");
+	actions.className = "settings-zai-actions";
+
+	const updateButton = document.createElement("button");
+	updateButton.className = "btn btn-ghost";
+	updateButton.textContent = "Update";
+	updateButton.addEventListener("click", () => {
+		rebuildAmpSection(section, callbacks, false);
+	});
+
+	const removeButton = document.createElement("button");
+	removeButton.className = "btn btn-destructive";
+	removeButton.textContent = "Remove";
+	removeButton.addEventListener("click", async () => {
+		try {
+			await callbacks.deleteAmpSessionCookie();
+			await callbacks.onAmpCookieChanged();
+			rebuildAmpSection(section, callbacks, false);
+		} catch (error) {
+			console.error("Failed to delete session cookie:", error);
+		}
+	});
+
+	actions.appendChild(updateButton);
+	actions.appendChild(removeButton);
+
+	row.appendChild(statusLeft);
+	row.appendChild(actions);
+	container.appendChild(row);
+
+	return container;
+}
+
+function createAmpInputState(callbacks: SettingsCallbacks, section: HTMLElement): HTMLElement {
+	const container = document.createElement("div");
+	container.className = "settings-zai-input";
+
+	const desc = document.createElement("div");
+	desc.className = "settings-zai-desc";
+	desc.textContent = "Copy your session cookie from ampcode.com. Open DevTools → Application → Cookies → session. ";
+
+	const link = document.createElement("a");
+	link.href = "javascript:void(0)";
+	link.className = "zai-link";
+	link.textContent = "ampcode.com/settings";
+	link.addEventListener("click", async (e) => {
+		e.preventDefault();
+		const { invoke } = await import("@tauri-apps/api/core");
+		await invoke("open_url", { url: "https://ampcode.com/settings" });
+	});
+	desc.appendChild(link);
+
+	container.appendChild(desc);
+
+	const inputRow = document.createElement("div");
+	inputRow.className = "settings-zai-input-row";
+
+	const inputWrapper = document.createElement("div");
+	inputWrapper.className = "settings-input-wrapper";
+
+	const input = document.createElement("input");
+	input.type = "password";
+	input.placeholder = "Paste session cookie value";
+	input.className = "zai-modal-input-field";
+
+	const toggleButton = document.createElement("button");
+	toggleButton.type = "button";
+	toggleButton.className = "settings-toggle-visibility";
+	toggleButton.setAttribute("aria-label", "Toggle cookie visibility");
+	toggleButton.appendChild(createEyeIcon(false));
+
+	toggleButton.addEventListener("click", () => {
+		if (input.type === "password") {
+			input.type = "text";
+			toggleButton.replaceChildren(createEyeIcon(true));
+		} else {
+			input.type = "password";
+			toggleButton.replaceChildren(createEyeIcon(false));
+		}
+	});
+
+	inputWrapper.appendChild(input);
+	inputWrapper.appendChild(toggleButton);
+
+	const saveButton = document.createElement("button");
+	saveButton.type = "button";
+	saveButton.className = "btn btn-primary";
+	saveButton.textContent = "Save";
+
+	inputRow.appendChild(inputWrapper);
+	inputRow.appendChild(saveButton);
+
+	requestAnimationFrame(() => {
+		input.focus();
+	});
+
+	const errorElement = document.createElement("div");
+	errorElement.className = "zai-modal-error";
+	errorElement.style.display = "none";
+
+	saveButton.addEventListener("click", async () => {
+		const cookie = input.value.trim();
+		if (!cookie) {
+			errorElement.textContent = "Please enter a session cookie";
+			errorElement.style.display = "block";
+			return;
+		}
+
+		saveButton.disabled = true;
+		saveButton.textContent = "Saving...";
+		input.disabled = true;
+
+		try {
+			await callbacks.saveAmpSessionCookie(cookie);
+			await callbacks.onAmpCookieChanged();
+			rebuildAmpSection(section, callbacks, true);
+		} catch (error) {
+			errorElement.textContent = String(error);
+			errorElement.style.display = "block";
+			saveButton.disabled = false;
+			saveButton.textContent = "Save";
+			input.disabled = false;
+		}
+	});
+
+	input.addEventListener("keydown", (e) => {
+		if (e.key === "Enter" && !saveButton.disabled) {
+			saveButton.click();
+		}
+	});
+
+	input.addEventListener("input", () => {
+		if (errorElement.style.display !== "none") {
+			errorElement.style.display = "none";
 		}
 	});
 

@@ -15,6 +15,7 @@ use crate::debug_cred;
 struct CredentialCache {
     claude_credentials: Option<(Instant, ClaudeOAuthCredentials)>,
     zai_api_key: Option<(Instant, Result<String, String>)>,
+    amp_session: Option<(Instant, Result<String, String>)>,
 }
 
 impl CredentialCache {
@@ -24,6 +25,7 @@ impl CredentialCache {
         Self {
             claude_credentials: None,
             zai_api_key: None,
+            amp_session: None,
         }
     }
 
@@ -64,6 +66,24 @@ impl CredentialCache {
     fn zai_invalidate(&mut self) {
         self.zai_api_key = None;
     }
+
+    fn amp_get(&self) -> Option<Result<String, String>> {
+        self.amp_session.as_ref().and_then(|(instant, result)| {
+            if instant.elapsed() < Self::TTL {
+                Some(result.clone())
+            } else {
+                None
+            }
+        })
+    }
+
+    fn amp_set(&mut self, result: Result<String, String>) {
+        self.amp_session = Some((Instant::now(), result));
+    }
+
+    fn amp_invalidate(&mut self) {
+        self.amp_session = None;
+    }
 }
 
 static CACHE: Mutex<Option<CredentialCache>> = Mutex::new(None);
@@ -83,6 +103,7 @@ pub struct CredentialManager;
 
 impl CredentialManager {
     const ZAI_TARGET: &'static str = "usage-bar-zai-credentials";
+    const AMP_TARGET: &'static str = "usage-bar-amp-credentials";
 
     /// Resolve {env:varname} or $ENV:varname syntax to environment variable value
     /// Returns the input string unchanged if it doesn't match the pattern
@@ -306,6 +327,59 @@ impl CredentialManager {
         // Invalidate cache after deleting
         with_cache(|c| c.zai_invalidate());
         Ok(())
+    }
+
+    pub fn amp_read_session_cookie() -> Result<String> {
+        if let Some(cached) = with_cache(|c| c.amp_get()) {
+            debug_cred!("Returning cached Amp session cookie");
+            return cached
+                .map_err(|e| anyhow!("Cached Amp session cookie resolution failed: {}", e));
+        }
+
+        let credential = Self::read_credential(Self::AMP_TARGET)?;
+
+        let blob_slice = unsafe {
+            std::slice::from_raw_parts(
+                credential.CredentialBlob,
+                credential.CredentialBlobSize as usize,
+            )
+        };
+
+        let blob_vec = blob_slice.to_vec();
+
+        let cookie_str = String::from_utf8(blob_vec)
+            .map_err(|e| anyhow!("Failed to decode session cookie: {}", e))?;
+
+        with_cache(|c| c.amp_set(Ok(cookie_str.clone())));
+
+        Ok(cookie_str)
+    }
+
+    pub fn amp_write_session_cookie(cookie: &str) -> Result<()> {
+        Self::write_credential(Self::AMP_TARGET, cookie)?;
+        with_cache(|c| c.amp_invalidate());
+        Ok(())
+    }
+
+    pub fn amp_delete_session_cookie() -> Result<()> {
+        Self::delete_credential(Self::AMP_TARGET)?;
+        with_cache(|c| c.amp_invalidate());
+        Ok(())
+    }
+
+    pub fn amp_has_session_cookie() -> bool {
+        if let Some(cached) = with_cache(|c| c.amp_get()) {
+            debug_cred!("Returning cached Amp session cookie for has_session_cookie check");
+            return cached.is_ok();
+        }
+
+        match Self::amp_read_session_cookie() {
+            Ok(_) => true,
+            Err(e) => {
+                with_cache(|c| c.amp_set(Err(e.to_string())));
+                false
+            }
+        }
     }
 
     pub fn zai_has_api_key() -> bool {
