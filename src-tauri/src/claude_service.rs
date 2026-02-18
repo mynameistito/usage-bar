@@ -269,13 +269,11 @@ impl ClaudeService {
             "Enterprise".into()
         } else if tier_lower.contains("team") {
             "Team".into()
-        } else if tier_lower.contains("tier_2")
-            || tier_lower.contains("tier_3")
-            || tier_lower.contains("tier_4")
-            || tier_lower.contains("tier_5")
-        {
+        } else if tier_lower.contains("tier_5") {
             "Max".into()
-        } else if tier_lower.contains("tier_1") || tier_lower.ends_with("_tier") {
+        } else if tier_lower.contains("tier_4") || tier_lower.contains("tier_3") {
+            "Team".into()
+        } else if tier_lower.contains("tier_2") || tier_lower.contains("tier_1") {
             "Pro".into()
         } else {
             "Free".into()

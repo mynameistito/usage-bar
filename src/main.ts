@@ -387,6 +387,8 @@ async function fetchClaudeData() {
         extraUsageValue.style.display = "block";
       } else {
         extraUsageSection.style.display = "none";
+        extraUsageLabel.textContent = "Not enabled";
+        extraUsageValue.style.display = "none";
       }
     }
 
@@ -565,6 +567,12 @@ async function fetchAmpData(forceRefresh = false) {
       errorMessage.textContent = errorMsg;
       errorContainer.style.display = "flex";
       dataContainer.style.display = "none";
+
+      const tierEl = document.getElementById("amp-tier");
+      if (tierEl) {
+        tierEl.textContent = "Error";
+        tierEl.title = String(error);
+      }
     }
   }
 }
@@ -610,9 +618,12 @@ function startTimestampUpdater() {
 }
 
 async function handleRefresh() {
-  const promises: Promise<unknown>[] = [fetchClaudeData(), fetchZaiData()];
   const hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
-  if (hasAmpCookie) promises.push(fetchAmpData());
+  const promises: Promise<unknown>[] = [
+    fetchClaudeData(),
+    fetchZaiData(),
+    ...(hasAmpCookie ? [fetchAmpData()] : [])
+  ];
   await Promise.allSettled(promises);
 }
 

@@ -96,8 +96,26 @@ impl AmpService {
             let mut search_from = 0;
             while let Some(pos) = html[search_from..].find(term) {
                 let abs_pos = search_from + pos;
-                // Skip occurrences inside string literals (preceded by a quote)
-                if abs_pos > 0 && matches!(html.as_bytes()[abs_pos - 1], b'"' | b'\'') {
+                // Skip occurrences that are string values (term is both preceded and followed by a quote)
+                let bytes = html.as_bytes();
+                let preceded_by_quote =
+                    abs_pos > 0 && matches!(bytes[abs_pos - 1], b'"' | b'\'' | b'`');
+                let end_pos = abs_pos + term.len();
+                let followed_by_quote =
+                    end_pos < bytes.len() && matches!(bytes[end_pos], b'"' | b'\'' | b'`');
+                // Skip only if it's a string literal (both quotes present)
+                if preceded_by_quote && followed_by_quote {
+                    search_from = abs_pos + 1;
+                    continue;
+                }
+
+                // Skip if it's part of a longer quoted string
+                if preceded_by_quote
+                    && end_pos < bytes.len()
+                    && !matches!(bytes[end_pos], b':')
+                    && !matches!(bytes[end_pos], b'=')
+                    && !matches!(bytes[end_pos], b'{')
+                {
                     search_from = abs_pos + 1;
                     continue;
                 }
@@ -180,7 +198,7 @@ impl AmpService {
             }
             let window_start = now_secs - (now_secs % window_seconds);
             let reset_secs = window_start + window_seconds;
-            Some((reset_secs * 1000) as i64)
+            Some(i64::try_from(reset_secs * 1000).unwrap_or(i64::MAX))
         });
 
         Ok(AmpUsageData {
