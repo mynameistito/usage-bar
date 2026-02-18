@@ -178,13 +178,13 @@ function rebuildZaiSection(section: HTMLElement, callbacks: SettingsCallbacks, h
 
 function createZaiConnectedState(callbacks: SettingsCallbacks, section: HTMLElement): HTMLElement {
 	const container = document.createElement("div");
-	container.className = "settings-zai-connected";
+	container.className = "settings-credential-connected";
 
 	const row = document.createElement("div");
-	row.className = "settings-zai-row";
+	row.className = "settings-credential-row";
 
 	const statusLeft = document.createElement("div");
-	statusLeft.className = "settings-zai-status";
+	statusLeft.className = "settings-credential-status";
 
 	const dot = document.createElement("span");
 	dot.className = "gauge-dot status-success";
@@ -196,7 +196,7 @@ function createZaiConnectedState(callbacks: SettingsCallbacks, section: HTMLElem
 	statusLeft.appendChild(statusText);
 
 	const actions = document.createElement("div");
-	actions.className = "settings-zai-actions";
+	actions.className = "settings-credential-actions";
 
 	const updateButton = document.createElement("button");
 	updateButton.className = "btn btn-ghost";
@@ -230,10 +230,10 @@ function createZaiConnectedState(callbacks: SettingsCallbacks, section: HTMLElem
 
 function createZaiInputState(callbacks: SettingsCallbacks, section: HTMLElement): HTMLElement {
 	const container = document.createElement("div");
-	container.className = "settings-zai-input";
+	container.className = "settings-credential-input";
 
 	const desc = document.createElement("div");
-	desc.className = "settings-zai-desc";
+	desc.className = "settings-credential-desc";
 	desc.textContent = "Get your API key from ";
 
 	const link = document.createElement("a");
@@ -256,7 +256,7 @@ function createZaiInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 	container.appendChild(helperText);
 
 	const inputRow = document.createElement("div");
-	inputRow.className = "settings-zai-input-row";
+	inputRow.className = "settings-credential-input-row";
 
 	const inputWrapper = document.createElement("div");
 	inputWrapper.className = "settings-input-wrapper";
@@ -410,13 +410,13 @@ function rebuildAmpSection(section: HTMLElement, callbacks: SettingsCallbacks, h
 
 function createAmpConnectedState(callbacks: SettingsCallbacks, section: HTMLElement): HTMLElement {
 	const container = document.createElement("div");
-	container.className = "settings-zai-connected";
+	container.className = "settings-credential-connected";
 
 	const row = document.createElement("div");
-	row.className = "settings-zai-row";
+	row.className = "settings-credential-row";
 
 	const statusLeft = document.createElement("div");
-	statusLeft.className = "settings-zai-status";
+	statusLeft.className = "settings-credential-status";
 
 	const dot = document.createElement("span");
 	dot.className = "gauge-dot status-success";
@@ -428,7 +428,7 @@ function createAmpConnectedState(callbacks: SettingsCallbacks, section: HTMLElem
 	statusLeft.appendChild(statusText);
 
 	const actions = document.createElement("div");
-	actions.className = "settings-zai-actions";
+	actions.className = "settings-credential-actions";
 
 	const updateButton = document.createElement("button");
 	updateButton.className = "btn btn-ghost";
@@ -462,10 +462,10 @@ function createAmpConnectedState(callbacks: SettingsCallbacks, section: HTMLElem
 
 function createAmpInputState(callbacks: SettingsCallbacks, section: HTMLElement): HTMLElement {
 	const container = document.createElement("div");
-	container.className = "settings-zai-input";
+	container.className = "settings-credential-input";
 
 	const desc = document.createElement("div");
-	desc.className = "settings-zai-desc";
+	desc.className = "settings-credential-desc";
 	desc.textContent = "Copy your session cookie from ampcode.com. Open DevTools → Application → Cookies → session. ";
 
 	const link = document.createElement("a");
@@ -482,7 +482,7 @@ function createAmpInputState(callbacks: SettingsCallbacks, section: HTMLElement)
 	container.appendChild(desc);
 
 	const inputRow = document.createElement("div");
-	inputRow.className = "settings-zai-input-row";
+	inputRow.className = "settings-credential-input-row";
 
 	const inputWrapper = document.createElement("div");
 	inputWrapper.className = "settings-input-wrapper";
