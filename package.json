@@ -1,6 +1,6 @@
 {
   "name": "usage-bar-windows",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Windows system tray app for monitoring Claude, Z.ai, and Amp API usage",
   "type": "module",
   "scripts": {
