@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod amp_service;
 mod cache;
 mod claude_service;
 mod commands;
@@ -10,21 +11,23 @@ mod zai_service;
 
 // Re-export logging constants so macros can find them via $crate
 pub use logging::{
-    COLOR_BLUE, COLOR_BRIGHT_RED, COLOR_CYAN, COLOR_GRAY, COLOR_GREEN, COLOR_MAGENTA, COLOR_RED,
-    COLOR_RESET, COLOR_YELLOW,
+    COLOR_BLUE, COLOR_BRIGHT_CYAN, COLOR_BRIGHT_RED, COLOR_CYAN, COLOR_GRAY, COLOR_GREEN,
+    COLOR_MAGENTA, COLOR_RED, COLOR_RESET, COLOR_YELLOW,
 };
 
 use cache::ResponseCache;
-use models::{ClaudeTierData, UsageData, ZaiTierData, ZaiUsageData};
+use models::{AmpUsageData, ClaudeTierData, UsageData, ZaiTierData, ZaiUsageData};
 use std::sync::Arc;
 use std::time::Duration;
 use tauri::{tray::TrayIconBuilder, Manager};
 
 pub struct HttpClient(pub Arc<reqwest::Client>);
+pub struct AmpHttpClient(pub Arc<reqwest::Client>);
 pub struct ClaudeUsageCache(pub ResponseCache<UsageData>);
 pub struct ClaudeTierCache(pub ResponseCache<ClaudeTierData>);
 pub struct ZaiUsageCache(pub ResponseCache<ZaiUsageData>);
 pub struct ZaiTierCache(pub ResponseCache<ZaiTierData>);
+pub struct AmpUsageCache(pub ResponseCache<AmpUsageData>);
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -34,19 +37,37 @@ async fn main() -> anyhow::Result<()> {
         .setup(|app| {
             debug_app!("Initializing application state");
 
-            // Initialize shared HTTP client
+            // Initialize shared HTTP client (with redirects)
             let client = reqwest::Client::builder()
                 .timeout(Duration::from_secs(15))
                 .build()
                 .map_err(|e| anyhow::anyhow!("Failed to build HTTP client: {}", e))?;
             app.manage(HttpClient(Arc::new(client)));
-            debug_app!("HTTP client initialized (timeout: 15s)");
+            debug_app!("HTTP client initialized (timeout: 15s, redirects enabled)");
 
-            // Initialize response caches (30 second TTL)
+            // Redirects disabled: Amp returns HTTP 302 to /login when the session cookie expires.
+            // We detect this by inspecting the redirect Location header instead of following it,
+            // which lets us distinguish "valid session" from "expired session" responses.
+            // Chrome UA used to avoid bot-detection heuristics on ampcode.com.
+            // If Amp tightens bot detection, consider rotating or using a generic UA.
+            let amp_client = reqwest::Client::builder()
+                .timeout(Duration::from_secs(15))
+                .redirect(reqwest::redirect::Policy::none())
+                .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36")
+                .build()
+                .map_err(|e| anyhow::anyhow!("Failed to build Amp HTTP client: {}", e))?;
+            app.manage(AmpHttpClient(Arc::new(amp_client)));
+            debug_app!("Amp HTTP client initialized (timeout: 15s, redirects disabled)");
+
+            // 30s TTL balances freshness with external API rate limits:
+            // - Amp replenishes hourly, so 30s is more than precise enough
+            // - Claude resets every 5 hours, Z.ai resets daily
+            // - Short enough that manual refreshes feel responsive
             app.manage(ClaudeUsageCache(ResponseCache::new(30)));
             app.manage(ClaudeTierCache(ResponseCache::new(30)));
             app.manage(ZaiUsageCache(ResponseCache::new(30)));
             app.manage(ZaiTierCache(ResponseCache::new(30)));
+            app.manage(AmpUsageCache(ResponseCache::new(30)));
             debug_app!("Response caches initialized (TTL: 30s)");
 
             // Get the window that was automatically created from tauri.conf.json
@@ -118,6 +139,12 @@ async fn main() -> anyhow::Result<()> {
             commands::zai_validate_api_key,
             commands::zai_save_api_key,
             commands::zai_delete_api_key,
+            commands::amp_get_usage,
+            commands::amp_refresh_usage,
+            commands::amp_check_session_cookie,
+            commands::amp_validate_session_cookie,
+            commands::amp_save_session_cookie,
+            commands::amp_delete_session_cookie,
             commands::quit_app,
             commands::refresh_all,
             commands::open_url,

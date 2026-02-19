@@ -1,204 +1,241 @@
 <!doctype html>
 <html lang="en" class="dark">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Usage Bar</title>
-		<link
-			href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap"
-			rel="stylesheet"
-		/>
-		<link rel="stylesheet" href="styles/base.css" />
-		<style>
-			/* Prevent white flash during initial load */
-			html {
-				background-color: hsl(0 0% 3.9%);
-				color: hsl(0 0% 98%);
-			}
-			body {
-				background-color: hsl(0 0% 3.9%);
-				color: hsl(0 0% 98%);
-			}
-		</style>
-	</head>
-	<body>
-		<div id="app">
-			<div id="loading" class="loading-container">
-				<div class="spinner"></div>
-				<span>Loading...</span>
-			</div>
-			<div id="content" class="content" style="display: none">
-				<!-- Tab Bar -->
-				<div class="tab-bar">
-					<button
-						id="tab-claude"
-						class="tab-button active"
-						data-tab="claude"
-					>
-						<svg viewBox="0 0 26 26" fill="currentColor">
-							<path d="M5.1373 17.4108L10.2887 14.5221L10.4303 14.2989L10.2887 14.1282H10.034L9.17071 14.0757L6.22703 13.9969L3.67961 13.8919L1.20295 13.7606H0.806683L0.580246 13.6293L0.297199 13.3666L0.0566093 13.1172L0 12.8546L0.0566093 12.4738L0.226437 12.1849L0.367961 12.1193H0.580246L1.33032 12.1849L2.98614 12.3031L5.47695 12.4738L7.2743 12.5788L9.94909 12.8546H10.3737L10.4303 12.6839L10.2887 12.5788L10.1755 12.4738L7.5998 10.7275L4.81179 8.88921L3.3541 7.82566L2.57573 7.28732L2.17946 6.78837L2.00963 6.42072L1.92472 6.03994L2.00963 5.68542L2.17946 5.37029L2.39174 5.13395L2.71725 4.8976H3.07106L3.67961 4.96325L3.9202 5.0289L4.89671 5.77733L6.9771 7.39236L9.69435 9.38817L10.0906 9.71642H10.2746V9.5326L10.0906 9.2306L8.61877 6.56515L7.04786 3.84718L6.34025 2.71797L6.15627 2.04833C6.11853 1.89952 6.04305 1.59927 6.04305 1.58877V1.24738L6.18457 0.827209L6.43931 0.393909L6.84973 0.144433L7.30261 0H7.65641L7.91116 0.0393909L8.39233 0.144433L8.84521 0.538342L9.52452 2.08772L10.6143 4.51682L12.3125 7.82566L12.8079 8.81043L13.0768 9.71642L13.1758 9.99216H13.3457V9.83459L13.4872 7.97009L13.7419 5.68542L13.9967 2.74423L14.0816 1.91702L14.492 0.919121L14.6901 0.682776L15.0864 0.380779H15.3128L15.9497 0.682776L16.3176 1.08982L16.4733 1.4312L16.4026 1.91702L16.0912 3.93909L15.4827 7.10349L15.0864 9.2306H15.3128L15.5817 8.95487L16.6573 7.53679L18.4546 5.27838L19.2472 4.38552L20.1812 3.40075L20.7756 2.92806L21.2993 2.74423L21.9078 2.92806L22.4456 3.37449L22.7287 4.16231V4.51682L22.3607 5.43594L21.2002 6.90654L20.2378 8.15392L19.6434 9.11243L18.0018 11.489V11.5941H18.2848L21.3983 10.9244L23.0825 10.6224L25.0921 10.281L25.4884 10.3861L25.9978 10.7012L26.0969 11.1345L25.9978 11.6597L25.7431 12.0142L23.5919 12.5394L21.0728 13.0515L17.3215 13.9346C17.2972 13.9403 17.28 13.9621 17.28 13.9871C17.28 14.0149 17.3013 14.0382 17.329 14.0407L19.0207 14.1939L19.7425 14.2332H21.5116L24.809 14.4827L25.6723 15.0473L26.0969 15.3756L26.1818 15.7432L26.0969 16.2816L25.9271 16.531L25.2195 16.8593L24.7666 16.9512L22.9834 16.531L18.8085 15.5331L17.3791 15.1786H17.1809V15.2968L18.3697 16.4654L20.5633 18.4349L23.2947 20.9822L23.4363 21.4286V21.6125L23.0825 22.1114L22.7853 22.1246L22.7145 22.0589L20.3086 20.2469L20.1246 20.1681L19.3745 19.4328L17.28 17.6603H17.1385V17.8441L17.6197 18.5531L20.1812 22.4003L20.3086 23.582L20.1246 23.9628L19.4595 24.1991L19.0915 24.1466L18.7377 24.0678L18.4263 23.7921L17.2234 21.9539L15.6808 19.5904L14.4354 17.4633H14.3892C14.3352 17.4633 14.29 17.5044 14.285 17.5583L13.5438 25.4728L13.2041 25.8798L12.5107 26.1818H12.4116L11.7464 25.6829L11.3926 24.8688L11.7464 23.2538L12.171 21.1529L12.5107 19.4854L12.822 17.4108L13.0122 16.7177C13.0169 16.7003 13.0102 16.6817 12.9954 16.6714C12.9462 16.6372 12.8787 16.6485 12.8435 16.6969L11.2794 18.842L8.90182 22.0589L7.01956 24.0678L6.56668 24.2517H6.22703L5.78831 23.8446V23.6477L5.85907 23.1225L6.29779 22.4791L8.90182 19.1702L10.4727 17.1088L11.4852 15.9255C11.5284 15.875 11.524 15.7995 11.4753 15.7543C11.46 15.7401 11.4369 15.7381 11.4194 15.7495L4.50044 20.2601L3.26919 20.4176L2.7314 19.9187L2.80216 19.1046L3.0569 18.842L5.1373 17.4108Z" />
-						</svg>
-						<span>Claude</span>
-					</button>
-					<button id="tab-zai" class="tab-button" data-tab="zai">
-						<svg viewBox="20 20 120 120" fill="currentColor">
-							<path d="M82.771 33.208L75.0661 44.157C74.4609 45.0175 73.6581 45.7202 72.7251 46.2063C71.7922 46.6924 70.7562 46.9476 69.7043 46.9506H27.7104V33.1629L82.771 33.208Z" />
-							<path d="M135.083 33.2075L68.9835 126.837H24.917L91.0167 33.2075H135.083Z" />
-							<path d="M77.2741 126.837L85.024 115.843C85.6316 114.988 86.4359 114.292 87.3692 113.814C88.3025 113.336 89.3372 113.089 90.3859 113.095H132.335V126.612L77.2741 126.837Z" />
-						</svg>
-						<span>Z.ai</span>
-					</button>
-				</div>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usage Bar</title>
+    <link
+      href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap"
+      rel="stylesheet"
+    >
+    <link rel="stylesheet" href="styles/base.css">
+    <style>
+    /* Prevent white flash during initial load */
+    html {
+      color: hsl(0 0% 98%);
+      background-color: hsl(0 0% 3.9%);
+    }
+    body {
+      color: hsl(0 0% 98%);
+      background-color: hsl(0 0% 3.9%);
+    }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="loading" class="loading-container">
+        <div class="spinner"></div>
+        <span>Loading...</span>
+      </div>
+      <div id="content" class="content" style="display: none">
+        <!-- Tab Bar -->
+        <div class="tab-bar">
+          <button
+            type="button"
+            id="tab-claude"
+            class="tab-button active"
+            data-tab="claude"
+          >
+            <svg viewBox="0 0 26 26" fill="currentColor" aria-hidden="true">
+              <path
+                d="M5.1373 17.4108L10.2887 14.5221L10.4303 14.2989L10.2887 14.1282H10.034L9.17071 14.0757L6.22703 13.9969L3.67961 13.8919L1.20295 13.7606H0.806683L0.580246 13.6293L0.297199 13.3666L0.0566093 13.1172L0 12.8546L0.0566093 12.4738L0.226437 12.1849L0.367961 12.1193H0.580246L1.33032 12.1849L2.98614 12.3031L5.47695 12.4738L7.2743 12.5788L9.94909 12.8546H10.3737L10.4303 12.6839L10.2887 12.5788L10.1755 12.4738L7.5998 10.7275L4.81179 8.88921L3.3541 7.82566L2.57573 7.28732L2.17946 6.78837L2.00963 6.42072L1.92472 6.03994L2.00963 5.68542L2.17946 5.37029L2.39174 5.13395L2.71725 4.8976H3.07106L3.67961 4.96325L3.9202 5.0289L4.89671 5.77733L6.9771 7.39236L9.69435 9.38817L10.0906 9.71642H10.2746V9.5326L10.0906 9.2306L8.61877 6.56515L7.04786 3.84718L6.34025 2.71797L6.15627 2.04833C6.11853 1.89952 6.04305 1.59927 6.04305 1.58877V1.24738L6.18457 0.827209L6.43931 0.393909L6.84973 0.144433L7.30261 0H7.65641L7.91116 0.0393909L8.39233 0.144433L8.84521 0.538342L9.52452 2.08772L10.6143 4.51682L12.3125 7.82566L12.8079 8.81043L13.0768 9.71642L13.1758 9.99216H13.3457V9.83459L13.4872 7.97009L13.7419 5.68542L13.9967 2.74423L14.0816 1.91702L14.492 0.919121L14.6901 0.682776L15.0864 0.380779H15.3128L15.9497 0.682776L16.3176 1.08982L16.4733 1.4312L16.4026 1.91702L16.0912 3.93909L15.4827 7.10349L15.0864 9.2306H15.3128L15.5817 8.95487L16.6573 7.53679L18.4546 5.27838L19.2472 4.38552L20.1812 3.40075L20.7756 2.92806L21.2993 2.74423L21.9078 2.92806L22.4456 3.37449L22.7287 4.16231V4.51682L22.3607 5.43594L21.2002 6.90654L20.2378 8.15392L19.6434 9.11243L18.0018 11.489V11.5941H18.2848L21.3983 10.9244L23.0825 10.6224L25.0921 10.281L25.4884 10.3861L25.9978 10.7012L26.0969 11.1345L25.9978 11.6597L25.7431 12.0142L23.5919 12.5394L21.0728 13.0515L17.3215 13.9346C17.2972 13.9403 17.28 13.9621 17.28 13.9871C17.28 14.0149 17.3013 14.0382 17.329 14.0407L19.0207 14.1939L19.7425 14.2332H21.5116L24.809 14.4827L25.6723 15.0473L26.0969 15.3756L26.1818 15.7432L26.0969 16.2816L25.9271 16.531L25.2195 16.8593L24.7666 16.9512L22.9834 16.531L18.8085 15.5331L17.3791 15.1786H17.1809V15.2968L18.3697 16.4654L20.5633 18.4349L23.2947 20.9822L23.4363 21.4286V21.6125L23.0825 22.1114L22.7853 22.1246L22.7145 22.0589L20.3086 20.2469L20.1246 20.1681L19.3745 19.4328L17.28 17.6603H17.1385V17.8441L17.6197 18.5531L20.1812 22.4003L20.3086 23.582L20.1246 23.9628L19.4595 24.1991L19.0915 24.1466L18.7377 24.0678L18.4263 23.7921L17.2234 21.9539L15.6808 19.5904L14.4354 17.4633H14.3892C14.3352 17.4633 14.29 17.5044 14.285 17.5583L13.5438 25.4728L13.2041 25.8798L12.5107 26.1818H12.4116L11.7464 25.6829L11.3926 24.8688L11.7464 23.2538L12.171 21.1529L12.5107 19.4854L12.822 17.4108L13.0122 16.7177C13.0169 16.7003 13.0102 16.6817 12.9954 16.6714C12.9462 16.6372 12.8787 16.6485 12.8435 16.6969L11.2794 18.842L8.90182 22.0589L7.01956 24.0678L6.56668 24.2517H6.22703L5.78831 23.8446V23.6477L5.85907 23.1225L6.29779 22.4791L8.90182 19.1702L10.4727 17.1088L11.4852 15.9255C11.5284 15.875 11.524 15.7995 11.4753 15.7543C11.46 15.7401 11.4369 15.7381 11.4194 15.7495L4.50044 20.2601L3.26919 20.4176L2.7314 19.9187L2.80216 19.1046L3.0569 18.842L5.1373 17.4108Z"
+              />
+            </svg>
+            <span>Claude</span>
+          </button>
+          <button type="button" id="tab-zai" class="tab-button" data-tab="zai">
+            <svg viewBox="20 20 120 120" fill="currentColor" aria-hidden="true">
+              <path
+                d="M82.771 33.208L75.0661 44.157C74.4609 45.0175 73.6581 45.7202 72.7251 46.2063C71.7922 46.6924 70.7562 46.9476 69.7043 46.9506H27.7104V33.1629L82.771 33.208Z"
+              />
+              <path
+                d="M135.083 33.2075L68.9835 126.837H24.917L91.0167 33.2075H135.083Z"
+              />
+              <path
+                d="M77.2741 126.837L85.024 115.843C85.6316 114.988 86.4359 114.292 87.3692 113.814C88.3025 113.336 89.3372 113.089 90.3859 113.095H132.335V126.612L77.2741 126.837Z"
+              />
+            </svg>
+            <span>Z.ai</span>
+          </button>
+          <button type="button" id="tab-amp" class="tab-button" data-tab="amp">
+            <svg viewBox="0 0 28 28" fill="currentColor" aria-hidden="true">
+              <path
+                d="M13.9197 13.61L17.3816 26.566L14.242 27.4049L11.2645 16.2643L0.119926 13.2906L0.957817 10.15L13.9197 13.61Z"
+              />
+              <path
+                d="M13.7391 16.0892L4.88169 24.9056L2.58872 22.6019L11.4461 13.7865L13.7391 16.0892Z"
+              />
+              <path
+                d="M18.9386 8.58315L22.4005 21.5392L19.2609 22.3781L16.2833 11.2374L5.13879 8.26381L5.97668 5.12318L18.9386 8.58315Z"
+              />
+              <path
+                d="M23.9803 3.55632L27.4422 16.5124L24.3025 17.3512L21.325 6.21062L10.1805 3.23698L11.0183 0.0963593L23.9803 3.55632Z"
+              />
+            </svg>
+            <span>Amp</span>
+          </button>
+        </div>
 
-				<!-- Claude View -->
-				<div id="claude-view" class="provider-view">
-					<div class="provider-header">
-						<div class="provider-header-row">
-							<div class="provider-name">Claude</div>
-							<span id="claude-tier" class="provider-tier">--</span>
-						</div>
-						<div class="provider-meta">
-							<span id="claude-updated" class="provider-updated"
-								>Updated just now</span
-							>
-						</div>
-					</div>
+        <!-- Claude View -->
+        <div id="claude-view" class="provider-view">
+          <div class="provider-header">
+            <div class="provider-header-row">
+              <div class="provider-name">Claude</div>
+              <span id="claude-tier" class="provider-tier">--</span>
+            </div>
+            <div class="provider-meta">
+              <span id="claude-updated" class="provider-updated"
+                >Updated just now</span
+              >
+            </div>
+          </div>
 
-					<div
-						id="claude-error"
-						class="error-container"
-						style="display: none"
-					>
-						<div class="error-icon">
-							<svg viewBox="0 0 24 24" fill="currentColor">
-								<path
-									d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
-								/>
-							</svg>
-						</div>
-						<div class="error-content">
-							<h3>Error</h3>
-							<p id="claude-error-message"></p>
-						</div>
-					</div>
+          <div id="claude-error" class="error-container" style="display: none">
+            <div class="error-icon">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
+                />
+              </svg>
+            </div>
+            <div class="error-content">
+              <h3>Error</h3>
+              <p id="claude-error-message"></p>
+            </div>
+          </div>
 
-					<div id="claude-data" style="display: none"></div>
+          <div id="claude-data" style="display: none"></div>
 
-					<div class="divider"></div>
+          <div class="divider"></div>
 
-				<!-- Extra Usage -->
-				<div id="extra-usage-section" class="info-section">
-					<div class="info-section-title">Extra usage</div>
-					<div id="extra-usage-content" class="info-section-row">
-						<span id="extra-usage-label" class="info-label">Not enabled</span>
-						<span id="extra-usage-value" class="info-value muted">—</span>
-					</div>
-					<div class="divider"></div>
-				</div>
+          <!-- Extra Usage -->
+          <div
+            id="extra-usage-section"
+            class="info-section"
+            style="display: none"
+          >
+            <div class="info-section-header">
+              <span class="info-section-title">Extra usage</span>
+            </div>
+            <div id="extra-usage-label" class="info-row">Not enabled</div>
+            <div
+              id="extra-usage-value"
+              class="info-row muted"
+              style="display: none;"
+            >
+              —
+            </div>
+          </div>
 
-					<!-- Cost (placeholder) -->
-					<div class="info-section clickable">
-						<div class="info-section-header">
-							<span class="info-section-title">Cost</span>
-							<svg
-								class="chevron-icon"
-								width="16"
-								height="16"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							>
-								<polyline points="9 18 15 12 9 6"></polyline>
-							</svg>
-						</div>
-						<div class="info-row">Today: $ 0.00 · 0 tokens</div>
-						<div class="info-row">
-							Last 30 days: $ 0.00 · 0 tokens
-						</div>
-					</div>
-				</div>
+          <div class="divider"></div>
+        </div>
 
-				<!-- Z.ai View -->
-				<div id="zai-view" class="provider-view" style="display: none">
-					<div class="provider-header">
-						<div class="provider-header-row">
-							<div class="provider-name">Z.ai Coding Plan</div>
-							<span id="zai-tier" class="provider-tier">--</span>
-						</div>
-						<div class="provider-meta">
-							<span id="zai-updated" class="provider-updated"
-								>Updated just now</span
-							>
-							<div id="zai-connected-status" class="zai-header-status"></div>
-						</div>
-					</div>
+        <!-- Z.ai View -->
+        <div id="zai-view" class="provider-view" style="display: none">
+          <div class="provider-header">
+            <div class="provider-header-row">
+              <div class="provider-name">Z.ai Coding Plan</div>
+              <span id="zai-tier" class="provider-tier">--</span>
+            </div>
+            <div class="provider-meta">
+              <span id="zai-updated" class="provider-updated"
+                >Updated just now</span
+              >
+              <div id="zai-connected-status" class="zai-header-status"></div>
+            </div>
+          </div>
 
-					<div
-						id="zai-error"
-						class="error-container"
-						style="display: none"
-					>
-						<div class="error-icon">
-							<svg viewBox="0 0 24 24" fill="currentColor">
-								<path
-									d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
-								/>
-							</svg>
-						</div>
-						<div class="error-content">
-							<h3>Error</h3>
-							<p id="zai-error-message"></p>
-						</div>
-					</div>
+          <div id="zai-error" class="error-container" style="display: none">
+            <div class="error-icon">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
+                />
+              </svg>
+            </div>
+            <div class="error-content">
+              <h3>Error</h3>
+              <p id="zai-error-message"></p>
+            </div>
+          </div>
 
-					<div id="zai-data" style="display: none"></div>
-				</div>
+          <div id="zai-data" style="display: none"></div>
+        </div>
 
-				<div class="divider"></div>
+        <!-- Amp View -->
+        <div id="amp-view" class="provider-view" style="display: none">
+          <div class="provider-header">
+            <div class="provider-header-row">
+              <div class="provider-name">Amp</div>
+              <span id="amp-tier" class="provider-tier">Free</span>
+            </div>
+            <div class="provider-meta">
+              <span id="amp-updated" class="provider-updated"
+                >Updated just now</span
+              >
+              <div id="amp-connected-status" class="amp-header-status"></div>
+            </div>
+          </div>
 
-				<!-- Menu Section -->
-				<div class="menu-section">
-					<button id="settings-button" class="menu-button">
-						<span class="icon">
-							<svg
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							>
-								<circle cx="12" cy="12" r="3"></circle>
-								<path
-									d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
-								></path>
-							</svg>
-						</span>
-						<span>Settings...</span>
-					</button>
-					<button id="quit-button" class="menu-button">
-						<span class="icon">
-							<svg
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							>
-								<path
-									d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"
-								/>
-							</svg>
-						</span>
-						<span>Quit</span>
-					</button>
-				</div>
-			</div>
-		</div>
-		<script type="module" src="./main.ts"></script>
-	</body>
+          <div id="amp-error" class="error-container" style="display: none">
+            <div class="error-icon">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
+                />
+              </svg>
+            </div>
+            <div class="error-content">
+              <h3>Error</h3>
+              <p id="amp-error-message"></p>
+            </div>
+          </div>
+
+          <div id="amp-data" style="display: none"></div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Menu Section -->
+        <div class="menu-section">
+          <button type="button" id="settings-button" class="menu-button">
+            <span class="icon">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="3"></circle>
+                <path
+                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+                ></path>
+              </svg>
+            </span>
+            <span>Settings...</span>
+          </button>
+          <button type="button" id="quit-button" class="menu-button">
+            <span class="icon">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10" />
+              </svg>
+            </span>
+            <span>Quit</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
 </html>

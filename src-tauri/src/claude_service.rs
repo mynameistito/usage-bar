@@ -1,5 +1,7 @@
 use crate::credentials::CredentialManager;
-use crate::models::{ClaudeTierData, TokenRefreshResponse, UsageData, UsageResponse};
+use crate::models::{
+    ClaudeOAuthCredentials, ClaudeTierData, TokenRefreshResponse, UsageData, UsageResponse,
+};
 use anyhow::{anyhow, Result};
 use reqwest::StatusCode;
 use std::sync::Arc;
@@ -7,9 +9,17 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{debug_claude, debug_error, debug_net};
 
+/// Claude Code's OAuth client ID registered with Anthropic.
+/// Used in token refresh requests to console.anthropic.com/v1/oauth/token.
+/// Claude Code's OAuth client ID registered with Anthropic.
+/// Used in token refresh requests to console.anthropic.com/v1/oauth/token.
 const OAUTH_CLIENT_ID: &str = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
 const USAGE_API_URL: &str = "https://api.anthropic.com/api/oauth/usage";
 const TOKEN_REFRESH_URL: &str = "https://console.anthropic.com/v1/oauth/token";
+
+/// Treat tokens as expired this many milliseconds before actual expiry,
+/// to prevent using a token that expires mid-request.
+const TOKEN_EXPIRY_BUFFER_MS: i64 = 60 * 1_000;
 
 pub struct ClaudeService;
 
@@ -23,13 +33,14 @@ impl ClaudeService {
 
     async fn handle_combined_response(
         response: reqwest::Response,
+        credentials: ClaudeOAuthCredentials,
     ) -> Result<(UsageData, ClaudeTierData)> {
         let response_text = response.text().await?;
 
         let usage_response: UsageResponse = serde_json::from_str(&response_text)
             .map_err(|e| anyhow!("Failed to parse usage response: {}", e))?;
 
-        let extra_usage = usage_response.extra_usage;
+        let extra_usage = usage_response.extra_usage.as_ref();
 
         let usage_data = UsageData {
             five_hour_utilization: usage_response
@@ -37,25 +48,52 @@ impl ClaudeService {
                 .as_ref()
                 .map(|p| p.utilization)
                 .unwrap_or(0.0),
-            five_hour_resets_at: usage_response.five_hour.and_then(|p| p.resets_at),
+            five_hour_resets_at: usage_response
+                .five_hour
+                .as_ref()
+                .and_then(|p| p.resets_at.clone()),
             seven_day_utilization: usage_response
                 .seven_day
                 .as_ref()
                 .map(|p| p.utilization)
                 .unwrap_or(0.0),
-            seven_day_resets_at: usage_response.seven_day.and_then(|p| p.resets_at),
-            extra_usage_enabled: extra_usage.as_ref().map(|e| e.is_enabled).unwrap_or(false),
-            extra_usage_monthly_limit: extra_usage.as_ref().and_then(|e| e.monthly_limit),
-            extra_usage_used_credits: extra_usage.as_ref().and_then(|e| e.used_credits),
-            extra_usage_utilization: extra_usage.as_ref().and_then(|e| e.utilization),
+            seven_day_resets_at: usage_response
+                .seven_day
+                .as_ref()
+                .and_then(|p| p.resets_at.clone()),
+            extra_usage_enabled: extra_usage.map(|e| e.is_enabled).unwrap_or(false),
+            extra_usage_monthly_limit: extra_usage.and_then(|e| e.monthly_limit),
+            extra_usage_used_credits: extra_usage.and_then(|e| e.used_credits),
+            extra_usage_utilization: extra_usage.and_then(|e| e.utilization),
         };
 
-        // Extract tier info from the same response
-        let plan_name = Self::infer_plan_name(
-            &usage_response.rate_limit_tier,
-            &usage_response.billing_type,
-        );
-        let raw_tier = usage_response.rate_limit_tier.unwrap_or_default();
+        // Extract tier info from credentials, falling back to API response for older credential files
+        // Tier inference precedence:
+        // 1. subscription_type from credential file (most reliable, modern accounts)
+        // 2. rate_limit_tier + billing_type from API response (fallback for legacy credentials)
+        // Within each path, infer_plan_name_from_subscription or infer_plan_name_from_usage_response
+        // handles the mapping.
+        let sub_type = credentials
+            .claude_ai_oauth
+            .subscription_type
+            .clone()
+            .unwrap_or_default();
+        let plan_name = if sub_type.is_empty() {
+            // For legacy credential files, infer plan from rate_limit_tier patterns
+            // NOTE: These tier mappings are speculative based on observed patterns:
+            // - "tier_2"/"tier_3" → "Pro" (assumed)
+            // - "tier_4"/"tier_5" → "Team" (assumed)
+            // - "tier_1_5x"/"tier_free_5x" etc. (actual API values) not yet mapped
+            // Fallback to billing type detection for reliability
+            Self::infer_plan_name_from_usage_response(&usage_response)
+        } else {
+            Self::infer_plan_name_from_subscription(&sub_type)
+        };
+        let raw_tier = credentials
+            .claude_ai_oauth
+            .rate_limit_tier
+            .clone()
+            .unwrap_or_else(|| usage_response.rate_limit_tier.clone().unwrap_or_default());
 
         let tier_data = ClaudeTierData {
             plan_name,
@@ -74,7 +112,8 @@ impl ClaudeService {
         debug_claude!("claude_fetch_usage_and_tier: Starting request");
         debug_net!("GET {}", USAGE_API_URL);
 
-        let token = CredentialManager::claude_read_access_token()?;
+        let credentials = CredentialManager::claude_read_credentials()?;
+        let token = credentials.claude_ai_oauth.access_token.clone();
         debug_claude!("Using access token (expires_at: N/A)");
 
         let response = client
@@ -90,7 +129,8 @@ impl ClaudeService {
             StatusCode::UNAUTHORIZED => {
                 debug_claude!("Unauthorized: Attempting token refresh");
                 Self::refresh_token(client.clone()).await?;
-                let token = CredentialManager::claude_read_access_token()?;
+                let refreshed_creds = CredentialManager::claude_read_credentials()?;
+                let token = refreshed_creds.claude_ai_oauth.access_token.clone();
                 let retry_response = client
                     .get(USAGE_API_URL)
                     .header("Authorization", format!("Bearer {}", token))
@@ -103,7 +143,7 @@ impl ClaudeService {
                 match retry_response.status() {
                     status if status.is_success() => {
                         debug_claude!("Successfully fetched usage+tier data after retry");
-                        Self::handle_combined_response(retry_response).await
+                        Self::handle_combined_response(retry_response, refreshed_creds).await
                     }
                     StatusCode::UNAUTHORIZED => {
                         debug_error!("Still unauthorized after token refresh");
@@ -129,7 +169,7 @@ impl ClaudeService {
             }
             status if status.is_success() => {
                 debug_claude!("Successfully fetched usage+tier data");
-                Self::handle_combined_response(response).await
+                Self::handle_combined_response(response, credentials).await
             }
             StatusCode::FORBIDDEN => {
                 debug_error!("Access denied — check your permissions");
@@ -202,7 +242,7 @@ impl ClaudeService {
                 if let Some(expires_at) = credentials.claude_ai_oauth.expires_at {
                     match Self::now_millis() {
                         Ok(now) => {
-                            let buffer: i64 = 60 * 1000; // 60 second buffer
+                            let buffer: i64 = TOKEN_EXPIRY_BUFFER_MS;
                             let expired = now + buffer >= expires_at;
                             debug_claude!(
                                 "Token expiry check: now={}, expires_at={}, expired={}",
@@ -239,19 +279,54 @@ impl ClaudeService {
         Ok(())
     }
 
-    fn infer_plan_name(rate_limit_tier: &Option<String>, billing_type: &Option<String>) -> String {
-        let tier = rate_limit_tier.as_deref().unwrap_or("").to_lowercase();
-        let billing = billing_type.as_deref().unwrap_or("").to_lowercase();
+    fn infer_plan_name_from_usage_response(response: &UsageResponse) -> String {
+        let tier = response
+            .rate_limit_tier
+            .as_ref()
+            .map(|t| t.to_lowercase())
+            .unwrap_or_default();
+        let billing = response
+            .billing_type
+            .as_ref()
+            .map(|b| b.to_lowercase())
+            .unwrap_or_default();
 
-        if tier.contains("max") {
+        if tier.contains("max") || tier == "tier_2_5x" || tier == "tier_3_5x" {
             "Max".into()
-        } else if tier.contains("pro") || billing.contains("stripe") {
-            "Pro".into()
-        } else if tier.contains("team") {
+        } else if tier.contains("team") || tier == "tier_4" || tier == "tier_5" {
+            // tier_4/tier_5 assumed to map to Team; revisit if Anthropic introduces new tier names
             "Team".into()
-        } else if tier.contains("enterprise") {
+        } else if tier == "tier_2" || tier == "tier_3" {
+            "Pro".into()
+        } else if billing.contains("stripe") {
+            // Stripe-billed user with unrecognized tier: assume at least Pro
+            "Pro".into()
+        } else {
+            debug_claude!(
+                "Unknown rate_limit_tier {:?} with billing {:?}; defaulting to Free",
+                tier,
+                billing
+            );
+            "Free".into()
+        }
+    }
+
+    fn infer_plan_name_from_subscription(subscription_type: &str) -> String {
+        let subtype_lower = subscription_type.to_lowercase();
+
+        if subtype_lower.contains("max") {
+            "Max".into()
+        } else if subtype_lower.contains("pro") {
+            "Pro".into()
+        } else if subtype_lower.contains("team") {
+            "Team".into()
+        } else if subtype_lower.contains("enterprise") {
             "Enterprise".into()
         } else {
+            debug_claude!(
+                "Unknown subscription type encountered: {:?}; defaulting to Free",
+                subscription_type
+            );
             "Free".into()
         }
     }

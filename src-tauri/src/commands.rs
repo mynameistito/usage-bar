@@ -1,11 +1,25 @@
+use crate::amp_service::AmpService;
 use crate::claude_service::ClaudeService;
 use crate::credentials::CredentialManager;
 use crate::zai_service::ZaiService;
-use crate::{ClaudeTierCache, ClaudeUsageCache, HttpClient, ZaiTierCache, ZaiUsageCache};
+use crate::{
+    AmpHttpClient, AmpUsageCache, ClaudeTierCache, ClaudeUsageCache, HttpClient, ZaiTierCache,
+    ZaiUsageCache,
+};
 use std::sync::Arc;
 use tauri::State;
 
-use crate::{debug_cache, debug_claude, debug_cred, debug_zai};
+use crate::{debug_amp, debug_cache, debug_claude, debug_cred, debug_zai};
+
+#[derive(Debug, serde::Serialize)]
+pub struct RefreshAllResult {
+    pub claude: Option<crate::models::UsageData>,
+    pub zai: Option<crate::models::ZaiUsageData>,
+    pub amp: Option<crate::models::AmpUsageData>,
+    pub claude_error: Option<String>,
+    pub zai_error: Option<String>,
+    pub amp_error: Option<String>,
+}
 
 #[cfg(target_os = "windows")]
 const RPC_E_CHANGED_MODE: i32 = -2147417850; // 0x80010106
@@ -176,7 +190,7 @@ pub async fn zai_refresh_all(
 ) -> Result<(crate::models::ZaiUsageData, crate::models::ZaiTierData), String> {
     debug_zai!("zai_refresh_all called (force refresh)");
 
-    // Clear caches to force a fresh fetch
+    // Clear cache before force-refresh to ensure fresh data
     usage_cache.0.clear();
     tier_cache.0.clear();
 
@@ -257,7 +271,7 @@ pub async fn zai_refresh_usage(
 ) -> Result<crate::models::ZaiUsageData, String> {
     debug_zai!("zai_refresh_usage called (force refresh)");
 
-    // Clear caches to force a fresh fetch
+    // Clear cache before force-refresh to ensure fresh data
     usage_cache.0.clear();
     tier_cache.0.clear();
 
@@ -331,6 +345,96 @@ pub async fn zai_get_tier(
 }
 
 #[tauri::command]
+pub async fn amp_get_usage(
+    amp_client: State<'_, AmpHttpClient>,
+    usage_cache: State<'_, AmpUsageCache>,
+) -> Result<crate::models::AmpUsageData, String> {
+    debug_amp!("amp_get_usage called");
+
+    if let Some(data) = usage_cache.0.get() {
+        debug_cache!("Returning cached Amp usage data");
+        return Ok(data);
+    }
+
+    let client = Arc::clone(&amp_client.0);
+
+    if !AmpService::amp_has_session_cookie() {
+        debug_amp!("Amp session cookie not configured");
+        return Err("Amp session cookie not configured".to_string());
+    }
+
+    match AmpService::amp_fetch_usage(&client).await {
+        Ok(data) => {
+            debug_amp!("amp_fetch_usage succeeded, caching result");
+            usage_cache.0.set(data.clone());
+            Ok(data)
+        }
+        Err(e) => {
+            debug_amp!("amp_fetch_usage failed: {}", e);
+            Err(e.to_string())
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn amp_refresh_usage(
+    amp_client: State<'_, AmpHttpClient>,
+    usage_cache: State<'_, AmpUsageCache>,
+) -> Result<crate::models::AmpUsageData, String> {
+    debug_amp!("amp_refresh_usage called (force refresh)");
+    // Clear cache before force-refresh to ensure fresh data
+    usage_cache.0.clear();
+
+    let client = Arc::clone(&amp_client.0);
+
+    if !AmpService::amp_has_session_cookie() {
+        debug_amp!("Amp session cookie not configured");
+        return Err("Amp session cookie not configured".to_string());
+    }
+
+    match AmpService::amp_fetch_usage(&client).await {
+        Ok(data) => {
+            debug_amp!("amp_fetch_usage succeeded, caching result");
+            usage_cache.0.set(data.clone());
+            Ok(data)
+        }
+        Err(e) => {
+            debug_amp!("amp_fetch_usage failed: {}", e);
+            Err(e.to_string())
+        }
+    }
+}
+
+#[tauri::command]
+pub fn amp_check_session_cookie() -> bool {
+    debug_cred!("amp_check_session_cookie called");
+    let has_cookie = AmpService::amp_has_session_cookie();
+    debug_cred!("[Amp] has_session_cookie: {}", has_cookie);
+    has_cookie
+}
+
+#[tauri::command]
+pub fn amp_save_session_cookie(cookie: String) -> Result<(), String> {
+    CredentialManager::amp_write_session_cookie(&cookie).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn amp_delete_session_cookie() -> Result<(), String> {
+    CredentialManager::amp_delete_session_cookie().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn amp_validate_session_cookie(
+    amp_client: State<'_, AmpHttpClient>,
+    cookie: String,
+) -> Result<(), String> {
+    let client = Arc::clone(&amp_client.0);
+    AmpService::validate_session_cookie(&client, &cookie)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn zai_check_api_key() -> bool {
     debug_cred!("zai_check_api_key called");
     let has_key = ZaiService::zai_has_api_key();
@@ -370,9 +474,10 @@ pub fn open_url(url: String) -> Result<(), String> {
     use windows::Win32::UI::Shell::ShellExecuteW;
     use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
 
-    // Validate that the URL starts with http:// or https://
-    if !url.starts_with("http://") && !url.starts_with("https://") {
-        return Err("URL must start with http:// or https://".to_string());
+    // Validate URL scheme using the URL parser — rejects javascript:, data:, file:, malformed URLs.
+    let parsed = reqwest::Url::parse(&url).map_err(|_| "Invalid URL format".to_string())?;
+    if parsed.scheme() != "http" && parsed.scheme() != "https" {
+        return Err("URL must use http or https scheme".to_string());
     }
 
     unsafe {
@@ -412,8 +517,10 @@ pub fn open_url(url: String) -> Result<(), String> {
 #[cfg(not(target_os = "windows"))]
 #[tauri::command]
 pub fn open_url(url: String) -> Result<(), String> {
-    if !url.starts_with("http://") && !url.starts_with("https://") {
-        return Err("URL must start with http:// or https://".to_string());
+    // Validate URL scheme using the URL parser — rejects javascript:, data:, file:, malformed URLs.
+    let parsed = reqwest::Url::parse(&url).map_err(|_| "Invalid URL format".to_string())?;
+    if parsed.scheme() != "http" && parsed.scheme() != "https" {
+        return Err("URL must use http or https scheme".to_string());
     }
 
     std::process::Command::new("open")
@@ -432,21 +539,24 @@ pub fn quit_app(app: tauri::AppHandle) {
 #[tauri::command]
 pub async fn refresh_all(
     client: State<'_, HttpClient>,
+    amp_client: State<'_, AmpHttpClient>,
     claude_usage_cache: State<'_, ClaudeUsageCache>,
     claude_tier_cache: State<'_, ClaudeTierCache>,
     zai_usage_cache: State<'_, ZaiUsageCache>,
     zai_tier_cache: State<'_, ZaiTierCache>,
-) -> Result<
-    (
-        Option<crate::models::UsageData>,
-        Option<crate::models::ZaiUsageData>,
-    ),
-    String,
-> {
+    amp_usage_cache: State<'_, AmpUsageCache>,
+) -> Result<RefreshAllResult, String> {
     let client = Arc::clone(&client.0);
 
-    // Fetch both APIs in parallel using tokio::join!
-    let (claude_result, zai_result) = tokio::join!(
+    // Clear cache before force-refresh to ensure fresh data
+    claude_usage_cache.0.clear();
+    claude_tier_cache.0.clear();
+    zai_usage_cache.0.clear();
+    zai_tier_cache.0.clear();
+    amp_usage_cache.0.clear();
+
+    // Fetch all APIs in parallel using tokio::join!
+    let (claude_result, zai_result, amp_result) = tokio::join!(
         async {
             if let Err(e) = ClaudeService::check_and_refresh_if_needed(client.clone()).await {
                 return Err(e.to_string());
@@ -477,8 +587,51 @@ pub async fn refresh_all(
             } else {
                 Ok(None)
             }
+        },
+        async {
+            if AmpService::amp_has_session_cookie() {
+                let amp = Arc::clone(&amp_client.0);
+                match AmpService::amp_fetch_usage(&amp).await {
+                    Ok(data) => {
+                        amp_usage_cache.0.set(data.clone());
+                        Ok(Some(data))
+                    }
+                    Err(e) => Err(e.to_string()),
+                }
+            } else {
+                Ok(None)
+            }
         }
     );
 
-    Ok((claude_result?, zai_result?))
+    let (claude, claude_error) = match claude_result {
+        Ok(data) => (data, None),
+        Err(e) => {
+            debug_claude!("refresh_all: Claude failed: {}", e);
+            (None, Some(e))
+        }
+    };
+    let (zai, zai_error) = match zai_result {
+        Ok(data) => (data, None),
+        Err(e) => {
+            debug_zai!("refresh_all: Z.ai failed: {}", e);
+            (None, Some(e))
+        }
+    };
+    let (amp, amp_error) = match amp_result {
+        Ok(data) => (data, None),
+        Err(e) => {
+            debug_amp!("refresh_all: Amp failed: {}", e);
+            (None, Some(e))
+        }
+    };
+
+    Ok(RefreshAllResult {
+        claude,
+        zai,
+        amp,
+        claude_error,
+        zai_error,
+        amp_error,
+    })
 }

@@ -15,6 +15,7 @@ use crate::debug_cred;
 struct CredentialCache {
     claude_credentials: Option<(Instant, ClaudeOAuthCredentials)>,
     zai_api_key: Option<(Instant, Result<String, String>)>,
+    amp_session: Option<(Instant, Result<String, String>)>,
 }
 
 impl CredentialCache {
@@ -24,6 +25,7 @@ impl CredentialCache {
         Self {
             claude_credentials: None,
             zai_api_key: None,
+            amp_session: None,
         }
     }
 
@@ -64,10 +66,30 @@ impl CredentialCache {
     fn zai_invalidate(&mut self) {
         self.zai_api_key = None;
     }
+
+    fn amp_get(&self) -> Option<Result<String, String>> {
+        self.amp_session.as_ref().and_then(|(instant, result)| {
+            if instant.elapsed() < Self::TTL {
+                Some(result.clone())
+            } else {
+                None
+            }
+        })
+    }
+
+    fn amp_set(&mut self, result: Result<String, String>) {
+        self.amp_session = Some((Instant::now(), result));
+    }
+
+    fn amp_invalidate(&mut self) {
+        self.amp_session = None;
+    }
 }
 
 static CACHE: Mutex<Option<CredentialCache>> = Mutex::new(None);
 
+/// IMPORTANT: The credential cache mutex is held for the entire duration of `f`.
+/// `f` must not perform I/O, blocking calls, or acquire other locks — only cache lookups.
 fn with_cache<F, R>(f: F) -> R
 where
     F: FnOnce(&mut CredentialCache) -> R,
@@ -83,6 +105,7 @@ pub struct CredentialManager;
 
 impl CredentialManager {
     const ZAI_TARGET: &'static str = "usage-bar-zai-credentials";
+    const AMP_TARGET: &'static str = "usage-bar-amp-credentials";
 
     /// Resolve {env:varname} or $ENV:varname syntax to environment variable value
     /// Returns the input string unchanged if it doesn't match the pattern
@@ -99,9 +122,17 @@ impl CredentialManager {
                     .and_then(|s| s.strip_suffix('}'))
                     .unwrap_or("");
                 debug_cred!("Resolving env variable: {}", original_var_name);
-                return std::env::var(original_var_name).map_err(|_| {
-                    anyhow!("Environment variable '{}' not found", original_var_name)
-                });
+                return std::env::var(original_var_name)
+                    .inspect(|_v| {
+                        debug_cred!(
+                            "Resolved env variable {}: ***REDACTED***",
+                            original_var_name
+                        );
+                    })
+                    .map_err(|_| {
+                        debug_cred!("Failed to resolve env variable: {}", original_var_name);
+                        anyhow!("Environment variable '{}' not found", original_var_name)
+                    });
             }
         }
 
@@ -117,7 +148,16 @@ impl CredentialManager {
             let original_var_name = &input[prefix_end_char..]; // Skip prefix, keep everything after
             debug_cred!("Resolving env variable: {}", original_var_name);
             return std::env::var(original_var_name)
-                .map_err(|_| anyhow!("Environment variable '{}' not found", original_var_name));
+                .inspect(|_v| {
+                    debug_cred!(
+                        "Resolved env variable {}: ***REDACTED***",
+                        original_var_name
+                    );
+                })
+                .map_err(|_| {
+                    debug_cred!("Failed to resolve env variable: {}", original_var_name);
+                    anyhow!("Environment variable '{}' not found", original_var_name)
+                });
         }
 
         Ok(input.to_string())
@@ -241,11 +281,6 @@ impl CredentialManager {
         Ok(())
     }
 
-    pub fn claude_read_access_token() -> Result<String> {
-        let credentials = Self::claude_read_credentials()?;
-        Ok(credentials.claude_ai_oauth.access_token)
-    }
-
     pub fn claude_update_token(
         access_token: &str,
         refresh_token: &str,
@@ -265,24 +300,10 @@ impl CredentialManager {
             return cached.map_err(|e| anyhow!("Cached Z.ai API key resolution failed: {}", e));
         }
 
-        let credential = Self::read_credential(Self::ZAI_TARGET)?;
-
-        // Extract blob data BEFORE calling CredFree to avoid use-after-free
-        let blob_slice = unsafe {
-            std::slice::from_raw_parts(
-                credential.CredentialBlob,
-                credential.CredentialBlobSize as usize,
-            )
-        };
-
-        // Clone the data to owned Vec<u8> while the credential is still valid
-        let blob_vec = blob_slice.to_vec();
-
-        // Now CredFree is called inside read_credential, which is safe
-        // because we've already cloned the data we need
+        let blob = Self::read_credential(Self::ZAI_TARGET)?;
 
         let key_str =
-            String::from_utf8(blob_vec).map_err(|e| anyhow!("Failed to decode API key: {}", e))?;
+            String::from_utf8(blob).map_err(|e| anyhow!("Failed to decode API key: {}", e))?;
 
         // Resolve environment variable if using {env:varname} syntax
         let key = Self::resolve_env_reference(&key_str)?;
@@ -308,6 +329,50 @@ impl CredentialManager {
         Ok(())
     }
 
+    pub fn amp_read_session_cookie() -> Result<String> {
+        if let Some(cached) = with_cache(|c| c.amp_get()) {
+            debug_cred!("Returning cached Amp session cookie");
+            return cached
+                .map_err(|e| anyhow!("Cached Amp session cookie resolution failed: {}", e));
+        }
+
+        let blob = Self::read_credential(Self::AMP_TARGET)?;
+
+        let cookie_str = String::from_utf8(blob)
+            .map_err(|e| anyhow!("Failed to decode session cookie: {}", e))?;
+
+        with_cache(|c| c.amp_set(Ok(cookie_str.clone())));
+
+        Ok(cookie_str)
+    }
+
+    pub fn amp_write_session_cookie(cookie: &str) -> Result<()> {
+        Self::write_credential(Self::AMP_TARGET, cookie)?;
+        with_cache(|c| c.amp_invalidate());
+        Ok(())
+    }
+
+    pub fn amp_delete_session_cookie() -> Result<()> {
+        Self::delete_credential(Self::AMP_TARGET)?;
+        with_cache(|c| c.amp_invalidate());
+        Ok(())
+    }
+
+    pub fn amp_has_session_cookie() -> bool {
+        if let Some(cached) = with_cache(|c| c.amp_get()) {
+            debug_cred!("Returning cached Amp session cookie for has_session_cookie check");
+            return cached.is_ok();
+        }
+
+        match Self::amp_read_session_cookie() {
+            Ok(_) => true,
+            Err(e) => {
+                with_cache(|c| c.amp_set(Err(e.to_string())));
+                false
+            }
+        }
+    }
+
     pub fn zai_has_api_key() -> bool {
         // Check cache first to avoid double reading
         // Cache stores the resolved API key result
@@ -327,7 +392,7 @@ impl CredentialManager {
         }
     }
 
-    fn read_credential(target_name: &str) -> Result<CREDENTIALW> {
+    fn read_credential(target_name: &str) -> Result<Vec<u8>> {
         let target_name_wide: Vec<u16> = target_name.encode_utf16().chain(Some(0)).collect();
 
         let mut credential_ptr: *mut CREDENTIALW = std::ptr::null_mut();
@@ -344,10 +409,14 @@ impl CredentialManager {
                 return Err(anyhow!("Credential not found: {}", target_name));
             }
 
-            let credential_data = *credential_ptr;
+            let blob = std::slice::from_raw_parts(
+                (*credential_ptr).CredentialBlob,
+                (*credential_ptr).CredentialBlobSize as usize,
+            )
+            .to_vec();
             CredFree(credential_ptr as *const _);
 
-            Ok(credential_data)
+            Ok(blob)
         }
     }
 

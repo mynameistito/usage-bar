@@ -3903,6 +3903,7 @@ name = "usage-bar-windows"
 version = "1.0.0"
 dependencies = [
  "anyhow",
+ "regex",
  "reqwest 0.11.27",
  "serde",
  "serde_json",

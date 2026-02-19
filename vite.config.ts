@@ -1,15 +1,15 @@
-import { defineConfig } from 'vite';
-import tailwindcss from '@tailwindcss/vite';
+import tailwindcss from "@tailwindcss/vite";
+import { defineConfig } from "vite";
 
 export default defineConfig({
-  root: 'src',
+  root: "src",
   plugins: [tailwindcss()],
   server: {
     port: 1421,
     strictPort: true,
   },
   build: {
-    outDir: '../dist',
+    outDir: "../dist",
     emptyOutDir: true,
   },
 });

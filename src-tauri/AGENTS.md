@@ -79,3 +79,6 @@ refresh_all()            // Invalidate all caches
 - **Claude:** Target = "Claude Code-credentials" (reads Claude Code's entry)
 - **Z.ai:** Target = "usage-bar-zai-credentials" (app-specific, read/write)
 - **Format:** Claude = JSON with OAuth tokens, Z.ai = plaintext API key
+
+# NPM
+Never use NPM, use Bun
