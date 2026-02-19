@@ -14,6 +14,8 @@ jobs:
     permissions:
       contents: write       # push tags, create releases
       pull-requests: write  # create / update the version PR
+    env:
+      LEFTHOOK: 0           # disable git hooks in CI (pre-commit runs cargo:precheck which needs Linux GTK libs)
 
     steps:
       - uses: actions/checkout@v4
