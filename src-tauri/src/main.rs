@@ -79,8 +79,8 @@ async fn main() -> anyhow::Result<()> {
                 window.on_window_event(move |event| {
                     if let tauri::WindowEvent::CloseRequested { .. } = event {
                         debug_app!("Window close requested, exiting gracefully");
-                        if let Err(e) = window_clone.hide() {
-                            debug_error!("Failed to hide window: {}", e);
+                        if window_clone.hide().is_err() {
+                            debug_error!("Failed to hide window");
                         }
                     }
                 });
@@ -101,11 +101,11 @@ async fn main() -> anyhow::Result<()> {
                 .on_menu_event(move |app, event| match event.id.as_ref() {
                     "open" => {
                         if let Some(window) = app.get_webview_window("main") {
-                            if let Err(e) = window.show() {
-                                debug_error!("Failed to show window: {}", e);
+                            if window.show().is_err() {
+                                debug_error!("Failed to show window");
                             }
-                            if let Err(e) = window.set_focus() {
-                                debug_error!("Failed to focus window: {}", e);
+                            if window.set_focus().is_err() {
+                                debug_error!("Failed to focus window");
                             }
                         }
                     }
