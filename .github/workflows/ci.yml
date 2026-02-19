@@ -35,11 +35,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-      - name: Generate icon
-        working-directory: .
-        run: |
-          bun install --frozen-lockfile
-          bun run generate-icon
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt

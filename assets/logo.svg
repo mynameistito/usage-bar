@@ -31,13 +31,13 @@
     </filter>
 
     <clipPath id="clip-claude">
-      <rect x="44" y="82"  width="152" height="20" rx="10" />
+      <rect x="28" y="60"  width="210" height="48" rx="24" />
     </clipPath>
     <clipPath id="clip-zai">
-      <rect x="44" y="110" width="152" height="20" rx="10" />
+      <rect x="28" y="120" width="210" height="48" rx="24" />
     </clipPath>
     <clipPath id="clip-amp">
-      <rect x="44" y="138" width="152" height="20" rx="10" />
+      <rect x="28" y="180" width="210" height="48" rx="24" />
     </clipPath>
   </defs>
 
@@ -46,22 +46,22 @@
   <rect width="240" height="240" rx="52" fill="none" stroke="hsl(0 0% 12%)" stroke-width="1.5" />
 
   <!-- Service dots -->
-  <circle cx="30" cy="92"  r="4" fill="hsl(142 47% 42%)" opacity="0.9" />
-  <circle cx="30" cy="120" r="4" fill="hsl(38 75% 52%)"  opacity="0.9" />
-  <circle cx="30" cy="148" r="4" fill="hsl(0 55% 52%)"   opacity="0.9" />
+  <circle cx="8" cy="80"  r="6" fill="hsl(142 47% 42%)" opacity="0.9" />
+  <circle cx="8" cy="140" r="6" fill="hsl(38 75% 52%)"  opacity="0.9" />
+  <circle cx="8" cy="200" r="6" fill="hsl(0 55% 52%)"   opacity="0.9" />
 
   <!-- Bar tracks -->
-  <rect x="44" y="82"  width="152" height="20" rx="10" fill="hsl(0 0% 10%)" />
-  <rect x="44" y="110" width="152" height="20" rx="10" fill="hsl(0 0% 10%)" />
-  <rect x="44" y="138" width="152" height="20" rx="10" fill="hsl(0 0% 10%)" />
+  <rect x="28" y="60"  width="210" height="48" rx="24" fill="hsl(0 0% 10%)" />
+  <rect x="28" y="120" width="210" height="48" rx="24" fill="hsl(0 0% 10%)" />
+  <rect x="28" y="180" width="210" height="48" rx="24" fill="hsl(0 0% 10%)" />
 
   <!-- Bar fills -->
   <!-- Claude: 62% -->
-  <rect x="44" y="82"  width="94"  height="20" rx="10" fill="url(#g-claude)" clip-path="url(#clip-claude)" filter="url(#bar-glow)" />
+  <rect x="28" y="60"  width="130" height="48" rx="24" fill="url(#g-claude)" clip-path="url(#clip-claude)" filter="url(#bar-glow)" />
   <!-- Z.ai: 83% -->
-  <rect x="44" y="110" width="126" height="20" rx="10" fill="url(#g-zai)"    clip-path="url(#clip-zai)"    filter="url(#bar-glow)" />
+  <rect x="28" y="120" width="174" height="48" rx="24" fill="url(#g-zai)"    clip-path="url(#clip-zai)"    filter="url(#bar-glow)" />
   <!-- Amp: 91% -->
-  <rect x="44" y="138" width="138" height="20" rx="10" fill="url(#g-amp)"    clip-path="url(#clip-amp)"    filter="url(#bar-glow)" />
+  <rect x="28" y="180" width="191" height="48" rx="24" fill="url(#g-amp)"    clip-path="url(#clip-amp)"    filter="url(#bar-glow)" />
 
   <!-- Live pulse dot -->
   <circle cx="200" cy="48" r="6"   fill="hsl(142 47% 42%)" opacity="0.25" />
