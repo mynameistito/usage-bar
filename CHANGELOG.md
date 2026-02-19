@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.5
+
+### Patch Changes
+
+- 5e30592: Fix release pipeline not triggering Windows builds after version PR merge. Inline build jobs directly into the release workflow to bypass GitHub's restriction on cross-workflow event triggers from GITHUB_TOKEN.
+
 ## 1.0.4
 
 ### Patch Changes
