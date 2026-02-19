@@ -319,15 +319,11 @@ async function loadContent() {
     hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
     updateAmpConnectionBadge(hasAmpCookie);
 
-    const initialPromises: Promise<unknown>[] = [
+    await Promise.allSettled([
       fetchClaudeData(),
       fetchZaiData(),
-    ];
-    if (hasAmpCookie) {
-      initialPromises.push(fetchAmpData(false, true));
-    }
-
-    await Promise.allSettled(initialPromises);
+      ...(hasAmpCookie ? [fetchAmpData(false, true)] : []),
+    ]);
 
     loading.style.display = "none";
     content.style.display = "flex";

@@ -133,19 +133,19 @@ impl AmpService {
                     continue;
                 }
 
-                // Skip if it's part of a longer quoted string
-                if preceded_by_quote && end_pos < html.len() {
-                    // Check the character immediately after the term
-                    if !html[end_pos..].starts_with(':')
-                        && !html[end_pos..].starts_with('=')
-                        && !html[end_pos..].starts_with('{')
-                    {
-                        search_from = abs_pos + 1;
-                        continue;
-                    }
-                }
                 let after_term = &html[abs_pos + term.len()..];
                 let rest = after_term.trim_start();
+
+                // Skip if it's part of a longer quoted string (preceded by quote
+                // but not followed by a separator like :, =, or {)
+                if preceded_by_quote
+                    && !rest.starts_with(':')
+                    && !rest.starts_with('=')
+                    && !rest.starts_with('{')
+                {
+                    search_from = abs_pos + 1;
+                    continue;
+                }
                 let matched = rest.strip_prefix(':').or_else(|| rest.strip_prefix('='));
                 if let Some(after_sep) = matched {
                     let after_sep = after_sep.trim_start();
@@ -245,9 +245,7 @@ impl AmpService {
             // Assumes usage windows align to the Unix epoch.
             let window_start = now_secs - (now_secs % window_seconds);
             let reset_secs = window_start + window_seconds;
-            i64::try_from(reset_secs)
-                .ok()
-                .and_then(|s| s.checked_mul(1000))
+            i64::try_from(reset_secs * 1000).ok()
         });
 
         Ok(AmpUsageData {
