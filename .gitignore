@@ -4,7 +4,6 @@ src-tauri/gen/
 dist/
 .wixobj/
 .wixpdb/
-src-tauri/icons/icon.ico
 .vscode/
 .idea/
 *.swp
@@ -24,4 +23,3 @@ usage-bar/
 *.backup
 .temp/
 scripts/svg-to-png.js
-src-tauri/icons/icon.png

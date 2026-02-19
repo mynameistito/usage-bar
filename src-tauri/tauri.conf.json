@@ -37,7 +37,7 @@
   },
   "bundle": {
     "active": true,
-    "icon": ["../assets/logo.svg"],
+    "icon": ["icons/icon.png", "icons/icon.ico"],
     "targets": "all"
   }
 }
