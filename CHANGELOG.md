@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.4
+
+### Patch Changes
+
+- 5748c91: Add automated release pipeline that builds and attaches Windows x64 and ARM64 NSIS/MSI installers to GitHub Releases. Also fixes version sync to keep `tauri.conf.json` in step with `package.json` and `Cargo.toml`.
+
 ## 1.0.3
 
 ### Patch Changes
