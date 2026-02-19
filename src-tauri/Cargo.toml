@@ -1,6 +1,6 @@
 [package]
 name = "usage-bar-windows"
-version = "1.0.4"
+version = "1.0.5"
 description = "A usage bar for Windows"
 authors = ["You"]
 license = "MIT"
