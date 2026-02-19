@@ -23,3 +23,5 @@ usage-bar/
 *.bak
 *.backup
 .temp/
+scripts/svg-to-png.js
+src-tauri/icons/icon.png
