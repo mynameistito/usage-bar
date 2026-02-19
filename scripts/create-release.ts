@@ -4,8 +4,8 @@
  * Called via `bun run release` by the CI release workflow after the
  * "Version Packages" PR is merged (i.e. when there are no pending changesets).
  *
- * Exits 1 if the tag already exists, signalling to CI that no release was
- * created this run (used to avoid triggering duplicate builds).
+ * This script assumes the caller has verified the tag doesn't exist.
+ * Exits 1 if the tag exists as a defensive check for unexpected scenarios.
  *
  * Requires:
  *   - GH_TOKEN env var (set automatically in GitHub Actions)
@@ -24,9 +24,10 @@ const { version } = JSON.parse(
 
 const tag = `v${version}`;
 
-// ── Idempotency guard ────────────────────────────────────────────────────────
-// On normal pushes to main where the version hasn't changed, the tag already
-// exists and we have nothing to do.
+// ── Defensive guard ──────────────────────────────────────────────────────────
+// The CI workflow checks for an existing tag before calling this script, so
+// this guard should not trigger in normal CI flow. It exists as a safety net
+// when the script is invoked outside of CI (e.g. locally).
 try {
   execSync(`git rev-parse --verify refs/tags/${tag}`, { stdio: "pipe" });
   console.log(`Tag ${tag} already exists — nothing to release.`);
