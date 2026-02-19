@@ -1,7 +1,7 @@
 {
   "name": "usage-bar-windows",
   "version": "1.0.0",
-  "description": "Usage Bar for Windows - System tray application for monitoring Claude and Z.ai API usage",
+  "description": "Windows system tray app for monitoring Claude, Z.ai, and Amp API usage",
   "type": "module",
   "scripts": {
     "cargo:check": "cd src-tauri && cargo check",
@@ -24,6 +24,10 @@
     "generate-icon": "node scripts/generate-icon.js",
     "check": "ultracite check",
     "fix": "ultracite fix",
+    "changeset": "changeset",
+    "version": "changeset version && bun run sync-version",
+    "sync-version": "bun scripts/sync-cargo-version.ts",
+    "release": "bun scripts/create-release.ts",
     "prepare": "lefthook install"
   },
   "dependencies": {
@@ -31,6 +35,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.0",
+    "@changesets/cli": "^2.29.8",
     "@tailwindcss/vite": "^4.2.0",
     "@tauri-apps/cli": "^2.10.0",
     "@typescript/native-preview": "^7.0.0-dev.20260218.1",
