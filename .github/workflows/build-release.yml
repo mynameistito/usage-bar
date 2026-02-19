@@ -4,6 +4,11 @@ on:
   release:
     types: [created]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build (e.g., v0.1.0)'
+        required: true
+        type: string
 
 jobs:
   build:
@@ -28,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ inputs.tag || github.event.release.tag_name }}
 
       - uses: oven-sh/setup-bun@v2
 
@@ -51,13 +56,12 @@ jobs:
       - name: Upload installers to release
         shell: bash
         run: |
-          for pattern in "src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe" "src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi"; do
-            if ! ls $pattern 1> /dev/null 2>&1; then
-              echo "Error: No files found matching pattern: $pattern"
-              exit 1
-            fi
-          done
-          gh release upload ${{ github.event.release.tag_name }} \
+          if ! compgen -G "src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe" > /dev/null || \
+             ! compgen -G "src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi" > /dev/null; then
+            echo "Error: Missing required installer files"
+            exit 1
+          fi
+          gh release upload ${{ inputs.tag || github.event.release.tag_name }} \
             src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe \
             src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi
         env:

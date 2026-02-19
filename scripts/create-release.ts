@@ -4,8 +4,8 @@
  * Called via `bun run release` by the CI release workflow after the
  * "Version Packages" PR is merged (i.e. when there are no pending changesets).
  *
- * Idempotent: exits 0 cleanly if the tag already exists so the workflow step
- * is safe to run on every push to main.
+ * Exits 1 if the tag already exists, signalling to CI that no release was
+ * created this run (used to avoid triggering duplicate builds).
  *
  * Requires:
  *   - GH_TOKEN env var (set automatically in GitHub Actions)
@@ -30,7 +30,7 @@ const tag = `v${version}`;
 try {
   execSync(`git rev-parse --verify refs/tags/${tag}`, { stdio: "pipe" });
   console.log(`Tag ${tag} already exists — nothing to release.`);
-  process.exit(0);
+  process.exit(1);
 } catch {
   // Tag does not exist yet — proceed with the release.
 }
