@@ -40,7 +40,7 @@ Built installers are placed in `src-tauri/target/release/bundle/`.
 
 ### Configuring Z.ai
 
-Open Settings, enter your Z.ai API key, and save. You can also pass the key as an environment variable using `$ENV_VAR` syntax.
+Open Settings, enter your Z.ai API key, and save. You can also pass the key as an environment variable using `{env:VAR_NAME}` or `$env:VAR_NAME` syntax.
 
 ### Configuring Amp
 
@@ -58,7 +58,7 @@ Claude credentials are read automatically — no configuration needed if Claude 
 
 ## Troubleshooting
 
-**Claude usage not showing** — Ensure Claude Code is installed and authenticated. Check Windows Credential Manager for an entry named `Claude Code-credentials`.
+**Claude usage not showing** — Ensure Claude Code is installed and authenticated. Check that `~/.claude/.credentials.json` exists and contains valid credentials.
 
 **Z.ai / Amp credentials invalid** — Delete the existing entry in Settings and re-enter your key/cookie.
 

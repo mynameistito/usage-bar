@@ -12,7 +12,7 @@
  *   - git configured with push access to origin
  */
 import { execSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 // Script is always invoked from the project root via `bun run release`.
@@ -64,3 +64,4 @@ execSync(
   { stdio: "inherit" }
 );
 console.log(`Published GitHub release ${tag}.`);
+unlinkSync(notesPath);
