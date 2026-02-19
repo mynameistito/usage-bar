@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.1
+
+### Patch Changes
+
+- d5c7d49: Set up Changesets, release workflow, clean up README and add assets (logo).
+- 51ffe1b: Fix release CI failing due to lefthook pre-commit hooks running cargo:precheck on Ubuntu, which requires Linux GTK/glib system libraries that are not installed on the runner.
+
 All notable changes to this project will be documented in this file.
 
 ## 1.0.0 — 2026-02-19
