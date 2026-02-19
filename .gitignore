@@ -4,7 +4,6 @@ src-tauri/gen/
 dist/
 .wixobj/
 .wixpdb/
-src-tauri/icons/icon.ico
 .vscode/
 .idea/
 *.swp

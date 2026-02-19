@@ -18,17 +18,17 @@
     "vite:dev": "vite",
     "vite:build": "vite build",
     "typecheck": "tsgo --noEmit",
-    "build": "bun run generate-icon && tauri build",
-    "build:nsis": "bun run generate-icon && tauri build --bundles nsis",
-    "build:msi": "bun run generate-icon && tauri build --bundles msi",
-    "generate-icon": "node scripts/generate-icon.js",
+    "build": "tauri build",
+    "build:nsis": "tauri build --bundles nsis",
+    "build:msi": "tauri build --bundles msi",
     "check": "ultracite check",
     "fix": "ultracite fix",
     "changeset": "changeset",
     "version": "changeset version && bun run sync-version",
     "sync-version": "bun scripts/sync-cargo-version.ts",
     "release": "bun scripts/create-release.ts",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install",
+    "regenerate-icon": "node scripts/svg-to-png.js"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.10.1"
@@ -40,12 +40,15 @@
     "@tauri-apps/cli": "^2.10.0",
     "@typescript/native-preview": "^7.0.0-dev.20260218.1",
     "lefthook": "^2.1.1",
-    "png-to-ico": "^3.0.1",
     "serve": "^14.2.5",
     "sharp": "^0.34.5",
     "tailwindcss": "^4.2.0",
     "ultracite": "7.2.3",
     "vite": "^7.3.1"
+  },
+  "overrides": {
+    "ajv": "^8.18.0",
+    "minimatch": "^10.2.1"
   },
   "author": "",
   "license": "ISC"
