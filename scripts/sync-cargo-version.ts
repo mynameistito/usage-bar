@@ -40,3 +40,11 @@ if (!replaced) {
 
 writeFileSync(cargoPath, updated.join("\n"), "utf8");
 console.log(`Synced Cargo.toml version → ${version}`);
+
+const tauriConfPath = join(root, "src-tauri", "tauri.conf.json");
+const tauriConf = JSON.parse(readFileSync(tauriConfPath, "utf8")) as {
+  version: string;
+};
+tauriConf.version = version;
+writeFileSync(tauriConfPath, `${JSON.stringify(tauriConf, null, 2)}\n`, "utf8");
+console.log(`Synced tauri.conf.json version → ${version}`);
