@@ -11,6 +11,10 @@ import { join } from "node:path";
 // Dependency lines always include `{`, so we skip those separately.
 const PACKAGE_VERSION_RE = /^version\s*=\s*"[^"]+"/;
 
+// Matches the `"version": "..."` line in tauri.conf.json.
+const TAURI_CONF_VERSION_RE = /^\s*"version":\s*"[^"]+"/;
+const TAURI_CONF_VERSION_REPLACE_RE = /"version":\s*"[^"]+"/;
+
 const root = process.cwd();
 
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
@@ -42,9 +46,15 @@ writeFileSync(cargoPath, updated.join("\n"), "utf8");
 console.log(`Synced Cargo.toml version → ${version}`);
 
 const tauriConfPath = join(root, "src-tauri", "tauri.conf.json");
-const tauriConf = JSON.parse(readFileSync(tauriConfPath, "utf8")) as {
-  version: string;
-};
-tauriConf.version = version;
-writeFileSync(tauriConfPath, `${JSON.stringify(tauriConf, null, 2)}\n`, "utf8");
+const tauriConfLines = readFileSync(tauriConfPath, "utf8").split("\n");
+const updatedTauriConf = tauriConfLines.map((line) => {
+  if (TAURI_CONF_VERSION_RE.test(line)) {
+    return line.replace(
+      TAURI_CONF_VERSION_REPLACE_RE,
+      `"version": "${version}"`
+    );
+  }
+  return line;
+});
+writeFileSync(tauriConfPath, updatedTauriConf.join("\n"), "utf8");
 console.log(`Synced tauri.conf.json version → ${version}`);
