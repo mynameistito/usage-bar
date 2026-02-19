@@ -58,7 +58,8 @@ jobs:
           version=$(jq -r '.version' package.json)
           tag="v${version}"
 
-          if git ls-remote --tags origin "refs/tags/${tag}" | grep -q "${tag}"; then
+          git fetch --tags
+          if git rev-parse --verify "refs/tags/${tag}" > /dev/null 2>&1; then
             echo "Tag ${tag} already exists — skipping release."
             echo "released=false" >> "$GITHUB_OUTPUT"
           else
