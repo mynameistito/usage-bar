@@ -30,7 +30,7 @@ src/
 | Claude usage+tier fetch | `claude_service.rs` - `claude_fetch_usage_and_tier()` | Returns both in one request |
 | Z.ai quota parsing | `zai_service.rs` - `zai_fetch_quota()` | Nested JSON → ZaiUsageData |
 | Amp HTML scraping | `amp_service.rs` - `amp_fetch_usage()` | GETs `/settings`, regex-extracts `freeTierUsage` JS object |
-| Amp auth detection | `amp_service.rs` - redirect/body checks | Detects login redirect or login page content |
+| Amp auth detection | `amp_service.rs` - redirect checks | Detects 3xx login redirect (redirects disabled on AmpHttpClient) |
 | Amp regex extraction | `amp_service.rs` - `extract_number()` / `extract_number_optional()` | Cached regex via `LazyLock` |
 | Credential I/O | `credentials.rs` - `read_credential()` / `save_credential()` | Win32 `CredReadW`/`CredWriteW` |
 | Cache logic | `cache.rs` - `get()`, `set()`, `clear()` | Thread-safe, TTL checked on read |
@@ -85,7 +85,7 @@ Response: nested JSON with token_usage.mcp_usage paths
 GET https://ampcode.com/settings
   Headers: Cookie: session={cookie}, Accept: text/html, Referer: ampcode.com
 
-Auth detection: redirect to */login|signin|auth* OR body contains "sign in to your account"
+Auth detection: redirect to */login|signin|auth* (redirects disabled → 302→login always surfaces as 3xx)
 Data: regex-extract freeTierUsage:{quota, used, hourlyReplenishment, windowHours} from embedded JS
 Units: values in cents → divided by 100 for dollar display
 resets_at: computed from windowHours aligned to Unix epoch

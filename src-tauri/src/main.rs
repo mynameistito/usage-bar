@@ -45,7 +45,11 @@ async fn main() -> anyhow::Result<()> {
             app.manage(HttpClient(Arc::new(client)));
             debug_app!("HTTP client initialized (timeout: 15s, redirects enabled)");
 
-            // Initialize Amp HTTP client (no redirects for auth detection)
+            // Redirects disabled: Amp returns HTTP 302 to /login when the session cookie expires.
+            // We detect this by inspecting the redirect Location header instead of following it,
+            // which lets us distinguish "valid session" from "expired session" responses.
+            // Chrome UA used to avoid bot-detection heuristics on ampcode.com.
+            // If Amp tightens bot detection, consider rotating or using a generic UA.
             let amp_client = reqwest::Client::builder()
                 .timeout(Duration::from_secs(15))
                 .redirect(reqwest::redirect::Policy::none())
@@ -55,7 +59,10 @@ async fn main() -> anyhow::Result<()> {
             app.manage(AmpHttpClient(Arc::new(amp_client)));
             debug_app!("Amp HTTP client initialized (timeout: 15s, redirects disabled)");
 
-            // Initialize response caches (30 second TTL)
+            // 30s TTL balances freshness with external API rate limits:
+            // - Amp replenishes hourly, so 30s is more than precise enough
+            // - Claude resets every 5 hours, Z.ai resets daily
+            // - Short enough that manual refreshes feel responsive
             app.manage(ClaudeUsageCache(ResponseCache::new(30)));
             app.manage(ClaudeTierCache(ResponseCache::new(30)));
             app.manage(ZaiUsageCache(ResponseCache::new(30)));

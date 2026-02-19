@@ -1,27 +1,30 @@
 import { invoke } from "@tauri-apps/api/core";
-import { createUsageGauge } from "./components/UsageGauge";
-import { createMcpUsageGauge } from "./components/McpUsageGauge";
-import { createSettingsView } from "./components/SettingsView";
+import { createMcpUsageGauge } from "./components/mcp-usage-gauge";
+import { createSettingsView } from "./components/settings-view";
+import { createUsageGauge } from "./components/usage-gauge";
 
-const POLL_INTERVAL = 300000; // 5 minutes
+const POLL_INTERVAL = 300_000; // 5 minutes
 
 let pollingTimer: number | null = null;
-let activeTab: "claude" | "zai" | "amp" = "claude";
 let claudeLastRefresh: Date | null = null;
 let zaiLastRefresh: Date | null = null;
 let ampLastRefresh: Date | null = null;
 let timestampTimer: number | null = null;
 
-let hasAmpSession: boolean = false;
+// Renamed from hasAmpSession to match backend naming (amp_has_session_cookie).
+let hasAmpCookie = false;
 
 // Cache for API key check to avoid spamming logs
 let cachedZaiApiKeyCheck: boolean | null = null;
-let zaiApiKeyCacheTime: number = 0;
+let zaiApiKeyCacheTime = 0;
 const ZAI_CACHE_TTL = 5000; // 5 seconds
 
 async function checkZaiApiKey(): Promise<boolean> {
   const now = Date.now();
-  if (cachedZaiApiKeyCheck !== null && (now - zaiApiKeyCacheTime) < ZAI_CACHE_TTL) {
+  if (
+    cachedZaiApiKeyCheck !== null &&
+    now - zaiApiKeyCacheTime < ZAI_CACHE_TTL
+  ) {
     return cachedZaiApiKeyCheck;
   }
 
@@ -31,6 +34,8 @@ async function checkZaiApiKey(): Promise<boolean> {
 }
 
 function invalidateZaiApiKeyCache(): void {
+  // Explicit invalidation is required because the 5s TTL cache is shared between
+  // polling and Settings. Always call this after saving/deleting a Z.ai API key.
   cachedZaiApiKeyCheck = null;
   zaiApiKeyCacheTime = 0;
 }
@@ -90,17 +95,26 @@ function createOrUpdateConnectionBadge(
 
   if (isConnected) {
     svg.setAttribute("stroke-width", "3");
-    const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+    const polyline = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "polyline"
+    );
     polyline.setAttribute("points", "20 6 9 17 4 12");
     svg.appendChild(polyline);
   } else {
     svg.setAttribute("stroke-width", "2");
-    const line1 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    const line1 = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "line"
+    );
     line1.setAttribute("x1", "12");
     line1.setAttribute("y1", "5");
     line1.setAttribute("x2", "12");
     line1.setAttribute("y2", "19");
-    const line2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    const line2 = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "line"
+    );
     line2.setAttribute("x1", "5");
     line2.setAttribute("y1", "12");
     line2.setAttribute("x2", "19");
@@ -123,25 +137,37 @@ function createOrUpdateConnectionBadge(
 
 function updateZaiConnectionBadge(hasApiKey: boolean): void {
   const zaiConnectedStatus = document.getElementById("zai-connected-status");
-  if (!zaiConnectedStatus) return;
-  createOrUpdateConnectionBadge(zaiConnectedStatus, "zai-header-badge", hasApiKey);
+  if (!zaiConnectedStatus) {
+    return;
+  }
+  createOrUpdateConnectionBadge(
+    zaiConnectedStatus,
+    "zai-header-badge",
+    hasApiKey
+  );
 }
 
 function updateAmpConnectionBadge(hasCookie: boolean): void {
   const ampConnectedStatus = document.getElementById("amp-connected-status");
-  if (!ampConnectedStatus) return;
-  createOrUpdateConnectionBadge(ampConnectedStatus, "amp-header-badge", hasCookie);
+  if (!ampConnectedStatus) {
+    return;
+  }
+  createOrUpdateConnectionBadge(
+    ampConnectedStatus,
+    "amp-header-badge",
+    hasCookie
+  );
 }
 
 interface ClaudeUsageData {
-  five_hour_utilization: number;
-  five_hour_resets_at: string | null;
-  seven_day_utilization: number;
-  seven_day_resets_at: string | null;
   extra_usage_enabled: boolean;
   extra_usage_monthly_limit: number | null;
   extra_usage_used_credits: number | null;
   extra_usage_utilization: number | null;
+  five_hour_resets_at: string | null;
+  five_hour_utilization: number;
+  seven_day_resets_at: string | null;
+  seven_day_utilization: number;
 }
 
 interface ClaudeTierData {
@@ -150,16 +176,16 @@ interface ClaudeTierData {
 }
 
 interface ZaiUsageData {
-  token_usage?: {
-    percentage: number;
-    resets_at?: string;
-  };
   mcp_usage?: {
     percentage: number;
     used: number;
     total: number;
   };
   tier_name?: string;
+  token_usage?: {
+    percentage: number;
+    resets_at?: string;
+  };
 }
 
 interface ZaiTierData {
@@ -167,55 +193,64 @@ interface ZaiTierData {
 }
 
 interface AmpUsageData {
+  hourly_replenishment: number;
   quota: number;
+  resets_at?: number | null; // epoch millis; optional to match Rust Option<i64>
   used: number;
   used_percent: number;
-  hourly_replenishment: number;
   window_hours: number | null;
-  resets_at: number | null;  // epoch millis
 }
 
 let settingsOpening = false;
 
 async function openSettings(): Promise<void> {
   const existing = document.getElementById("settings-view");
-  if (existing) return;
-  if (settingsOpening) return;
+  if (existing) {
+    return;
+  }
+  if (settingsOpening) {
+    return;
+  }
   settingsOpening = true;
 
   try {
     const hasZaiApiKey = await checkZaiApiKey();
-    const hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
+    const hasAmpCookieNow = await invoke<boolean>("amp_check_session_cookie");
     const content = document.getElementById("content");
 
-    const settingsView = createSettingsView({
-      checkZaiApiKey,
-      validateZaiApiKey: async (apiKey: string) => {
-        await invoke("zai_validate_api_key", { apiKey });
+    const settingsView = createSettingsView(
+      {
+        checkZaiApiKey,
+        validateZaiApiKey: async (apiKey: string) => {
+          await invoke("zai_validate_api_key", { apiKey });
+        },
+        saveZaiApiKey: async (apiKey: string) => {
+          await invoke("zai_save_api_key", { apiKey });
+        },
+        deleteZaiApiKey: async () => {
+          await invoke("zai_delete_api_key");
+        },
+        onZaiKeyChanged: refreshZaiUI,
+        checkAmpSessionCookie: async () =>
+          invoke<boolean>("amp_check_session_cookie"),
+        validateAmpSessionCookie: async (cookie: string) => {
+          await invoke("amp_validate_session_cookie", { cookie });
+        },
+        saveAmpSessionCookie: async (cookie: string) => {
+          await invoke("amp_save_session_cookie", { cookie });
+        },
+        deleteAmpSessionCookie: async () => {
+          await invoke("amp_delete_session_cookie");
+        },
+        onAmpCookieChanged: refreshAmpUI,
+        openUrl: async (url: string) => {
+          await invoke("open_url", { url });
+        },
+        onClose: closeSettings,
       },
-      saveZaiApiKey: async (apiKey: string) => {
-        await invoke("zai_save_api_key", { apiKey });
-      },
-      deleteZaiApiKey: async () => {
-        await invoke("zai_delete_api_key");
-      },
-      onZaiKeyChanged: refreshZaiUI,
-      checkAmpSessionCookie: async () => invoke<boolean>("amp_check_session_cookie"),
-      validateAmpSessionCookie: async (cookie: string) => {
-        await invoke("amp_validate_session_cookie", { cookie });
-      },
-      saveAmpSessionCookie: async (cookie: string) => {
-        await invoke("amp_save_session_cookie", { cookie });
-      },
-      deleteAmpSessionCookie: async () => {
-        await invoke("amp_delete_session_cookie");
-      },
-      onAmpCookieChanged: refreshAmpUI,
-      openUrl: async (url: string) => {
-        await invoke("open_url", { url });
-      },
-      onClose: closeSettings,
-    }, hasZaiApiKey, hasAmpCookie);
+      hasZaiApiKey,
+      hasAmpCookieNow
+    );
 
     const app = document.getElementById("app");
 
@@ -237,7 +272,9 @@ function closeSettings(): void {
   const settingsView = document.getElementById("settings-view");
   const content = document.getElementById("content");
 
-  if (!settingsView) return;
+  if (!settingsView) {
+    return;
+  }
 
   // Show content immediately when close starts
   if (content) {
@@ -245,17 +282,22 @@ function closeSettings(): void {
     delete content.dataset.originalDisplay;
   }
 
-  settingsView.style.animation = "settings-slide-out 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards";
+  settingsView.style.animation =
+    "settings-slide-out 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards";
 
   const cleanup = () => {
     settingsView.remove();
   };
 
   const cleanupTimeout = window.setTimeout(cleanup, 250);
-  settingsView.addEventListener("animationend", () => {
-    clearTimeout(cleanupTimeout);
-    cleanup();
-  }, { once: true });
+  settingsView.addEventListener(
+    "animationend",
+    () => {
+      clearTimeout(cleanupTimeout);
+      cleanup();
+    },
+    { once: true }
+  );
 }
 
 async function loadContent() {
@@ -263,7 +305,9 @@ async function loadContent() {
   const content = document.getElementById("content");
   const quitButton = document.getElementById("quit-button");
 
-  if (!loading || !content || !quitButton) return;
+  if (!(loading && content && quitButton)) {
+    return;
+  }
 
   content.style.display = "none";
 
@@ -272,11 +316,13 @@ async function loadContent() {
     updateZaiHeaderState(hasZaiApiKey);
     updateZaiConnectionBadge(hasZaiApiKey);
 
-    const hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
-    hasAmpSession = hasAmpCookie;
+    hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
     updateAmpConnectionBadge(hasAmpCookie);
 
-    const initialPromises: Promise<unknown>[] = [fetchClaudeData(), fetchZaiData()];
+    const initialPromises: Promise<unknown>[] = [
+      fetchClaudeData(),
+      fetchZaiData(),
+    ];
     if (hasAmpCookie) {
       initialPromises.push(fetchAmpData(false, true));
     }
@@ -324,7 +370,6 @@ function setupTabSwitching() {
 }
 
 function switchTab(tab: "claude" | "zai" | "amp") {
-  activeTab = tab;
   localStorage.setItem("activeTab", tab);
 
   const claudeView = document.getElementById("claude-view");
@@ -334,69 +379,108 @@ function switchTab(tab: "claude" | "zai" | "amp") {
   const tabZai = document.getElementById("tab-zai");
   const tabAmp = document.getElementById("tab-amp");
 
-  if (claudeView) claudeView.style.display = tab === "claude" ? "block" : "none";
-  if (zaiView) zaiView.style.display = tab === "zai" ? "block" : "none";
-  if (ampView) ampView.style.display = tab === "amp" ? "block" : "none";
+  if (claudeView) {
+    claudeView.style.display = tab === "claude" ? "block" : "none";
+  }
+  if (zaiView) {
+    zaiView.style.display = tab === "zai" ? "block" : "none";
+  }
+  if (ampView) {
+    ampView.style.display = tab === "amp" ? "block" : "none";
+  }
 
-  if (tabClaude) tabClaude.classList.toggle("active", tab === "claude");
-  if (tabZai) tabZai.classList.toggle("active", tab === "zai");
-  if (tabAmp) tabAmp.classList.toggle("active", tab === "amp");
+  if (tabClaude) {
+    tabClaude.classList.toggle("active", tab === "claude");
+  }
+  if (tabZai) {
+    tabZai.classList.toggle("active", tab === "zai");
+  }
+  if (tabAmp) {
+    tabAmp.classList.toggle("active", tab === "amp");
+  }
+}
+
+function renderClaudeGauges(
+  dataContainer: HTMLElement,
+  usageData: ClaudeUsageData
+) {
+  dataContainer.style.display = "block";
+  dataContainer.innerHTML = "";
+
+  const sessionGauge = createUsageGauge({
+    title: "Session",
+    utilization: usageData.five_hour_utilization / 100,
+    resetsAt: usageData.five_hour_resets_at ?? "",
+  });
+  dataContainer.appendChild(sessionGauge);
+
+  if (usageData.seven_day_resets_at) {
+    const weeklyGauge = createUsageGauge({
+      title: "Weekly",
+      utilization: usageData.seven_day_utilization / 100,
+      resetsAt: usageData.seven_day_resets_at,
+    });
+    dataContainer.appendChild(weeklyGauge);
+  }
+}
+
+function renderClaudeExtraUsage(usageData: ClaudeUsageData) {
+  const extraUsageLabel = document.getElementById("extra-usage-label");
+  const extraUsageValue = document.getElementById("extra-usage-value");
+  const extraUsageSection = document.getElementById("extra-usage-section");
+
+  if (!(extraUsageLabel && extraUsageValue && extraUsageSection)) {
+    return;
+  }
+
+  if (usageData.extra_usage_enabled) {
+    extraUsageSection.style.display = "block";
+    const monthlyLimit = (usageData.extra_usage_monthly_limit ?? 0) / 100;
+    const usedCredits = (usageData.extra_usage_used_credits ?? 0) / 100;
+    const utilization = usageData.extra_usage_utilization ?? 0;
+
+    extraUsageLabel.textContent = `This month: $${usedCredits.toFixed(2)} / $${monthlyLimit.toFixed(2)}`;
+    extraUsageValue.textContent = `${utilization.toFixed(0)}% used`;
+    extraUsageValue.style.display = "block";
+  } else {
+    extraUsageSection.style.display = "none";
+    extraUsageLabel.textContent = "Not enabled";
+    extraUsageValue.style.display = "none";
+  }
+}
+
+function getClaudeErrorMessage(errorMsg: string): string {
+  if (
+    errorMsg.includes("Credential not found") ||
+    errorMsg.includes("not found")
+  ) {
+    return "Claude credentials not found. Please sign in to Claude Code first.";
+  }
+  if (errorMsg.includes("Access denied")) {
+    return "Access denied -- check your permissions";
+  }
+  if (errorMsg.includes("Rate limited")) {
+    return "Rate limited -- please wait and try again";
+  }
+  return errorMsg;
 }
 
 async function fetchClaudeData() {
   try {
-    const [usageData, tierData] = await invoke<[ClaudeUsageData, ClaudeTierData]>("claude_get_all");
+    const [usageData, tierData] =
+      await invoke<[ClaudeUsageData, ClaudeTierData]>("claude_get_all");
 
     const errorContainer = document.getElementById("claude-error");
     const dataContainer = document.getElementById("claude-data");
-    const errorMessage = document.getElementById("claude-error-message");
 
-    if (errorContainer) errorContainer.style.display = "none";
+    if (errorContainer) {
+      errorContainer.style.display = "none";
+    }
     if (dataContainer) {
-      dataContainer.style.display = "block";
-      dataContainer.innerHTML = "";
+      renderClaudeGauges(dataContainer, usageData);
     }
 
-    const sessionGauge = createUsageGauge({
-      title: "Session",
-      utilization: usageData.five_hour_utilization / 100,
-      resetsAt: usageData.five_hour_resets_at ?? "",
-    });
-
-    if (dataContainer) {
-      dataContainer.appendChild(sessionGauge);
-
-      // Only show weekly gauge if there is weekly limit data
-      if (usageData.seven_day_resets_at) {
-        const weeklyGauge = createUsageGauge({
-          title: "Weekly",
-          utilization: usageData.seven_day_utilization / 100,
-          resetsAt: usageData.seven_day_resets_at,
-        });
-        dataContainer.appendChild(weeklyGauge);
-      }
-    }
-
-    const extraUsageLabel = document.getElementById("extra-usage-label");
-    const extraUsageValue = document.getElementById("extra-usage-value");
-    const extraUsageSection = document.getElementById("extra-usage-section");
-
-    if (extraUsageLabel && extraUsageValue && extraUsageSection) {
-      if (usageData.extra_usage_enabled) {
-        extraUsageSection.style.display = "block";
-        const monthlyLimit = (usageData.extra_usage_monthly_limit ?? 0) / 100;
-        const usedCredits = (usageData.extra_usage_used_credits ?? 0) / 100;
-        const utilization = usageData.extra_usage_utilization ?? 0;
-
-        extraUsageLabel.textContent = `This month: $${usedCredits.toFixed(2)} / $${monthlyLimit.toFixed(2)}`;
-        extraUsageValue.textContent = `${utilization.toFixed(0)}% used`;
-        extraUsageValue.style.display = "block";
-      } else {
-        extraUsageSection.style.display = "none";
-        extraUsageLabel.textContent = "Not enabled";
-        extraUsageValue.style.display = "none";
-      }
-    }
+    renderClaudeExtraUsage(usageData);
 
     const tierEl = document.getElementById("claude-tier");
     if (tierEl) {
@@ -413,22 +497,12 @@ async function fetchClaudeData() {
     const errorMessage = document.getElementById("claude-error-message");
 
     if (errorContainer && errorMessage) {
-      if (
-        errorMsg.includes("Credential not found") ||
-        errorMsg.includes("not found")
-      ) {
-        errorMessage.textContent =
-          "Claude credentials not found. Please sign in to Claude Code first.";
-      } else if (errorMsg.includes("Access denied")) {
-        errorMessage.textContent = "Access denied -- check your permissions";
-      } else if (errorMsg.includes("Rate limited")) {
-        errorMessage.textContent = "Rate limited -- please wait and try again";
-      } else {
-        errorMessage.textContent = errorMsg;
-      }
+      errorMessage.textContent = getClaudeErrorMessage(errorMsg);
       errorContainer.style.display = "flex";
     }
-    if (dataContainer) dataContainer.style.display = "none";
+    if (dataContainer) {
+      dataContainer.style.display = "none";
+    }
 
     const tierEl = document.getElementById("claude-tier");
     if (tierEl) {
@@ -444,13 +518,18 @@ async function fetchZaiData(forceRefresh = false) {
   const dataContainer = document.getElementById("zai-data");
   const errorMessage = document.getElementById("zai-error-message");
 
-  if (!zaiView || !errorContainer || !dataContainer || !errorMessage) return;
+  if (!(zaiView && errorContainer && dataContainer && errorMessage)) {
+    return;
+  }
 
   try {
     const command = forceRefresh ? "zai_refresh_all" : "zai_get_all";
-    const [usageData, tierData] = await invoke<[ZaiUsageData, ZaiTierData]>(command);
+    const [usageData, tierData] =
+      await invoke<[ZaiUsageData, ZaiTierData]>(command);
 
-    if (!usageData) return;
+    if (!usageData) {
+      return;
+    }
 
     errorContainer.style.display = "none";
     dataContainer.style.display = "block";
@@ -520,19 +599,23 @@ async function refreshZaiUI(): Promise<void> {
 
 async function fetchAmpData(forceRefresh = false, skipCookieCheck = false) {
   if (!skipCookieCheck) {
-    const hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
-    if (hasAmpCookie !== hasAmpSession) {
-      hasAmpSession = hasAmpCookie;
+    const freshCookie = await invoke<boolean>("amp_check_session_cookie");
+    if (freshCookie !== hasAmpCookie) {
+      hasAmpCookie = freshCookie;
       updateAmpConnectionBadge(hasAmpCookie);
     }
-    if (!hasAmpCookie) return;
+    if (!freshCookie) {
+      return;
+    }
   }
 
   const errorContainer = document.getElementById("amp-error");
   const dataContainer = document.getElementById("amp-data");
   const errorMessage = document.getElementById("amp-error-message");
 
-  if (!errorContainer || !dataContainer || !errorMessage) return;
+  if (!(errorContainer && dataContainer && errorMessage)) {
+    return;
+  }
 
   try {
     const command = forceRefresh ? "amp_refresh_usage" : "amp_get_usage";
@@ -544,7 +627,9 @@ async function fetchAmpData(forceRefresh = false, skipCookieCheck = false) {
       tierEl.title = "";
     }
 
-    if (!data) return;
+    if (!data) {
+      return;
+    }
 
     errorContainer.style.display = "none";
     dataContainer.style.display = "block";
@@ -600,17 +685,28 @@ async function fetchAmpData(forceRefresh = false, skipCookieCheck = false) {
 }
 
 async function refreshAmpUI(): Promise<void> {
-  hasAmpSession = await invoke<boolean>("amp_check_session_cookie");
-  updateAmpConnectionBadge(hasAmpSession);
-  await fetchAmpData(true, true);
+  // hasAmpCookie is updated here so polling uses fresh state after Settings changes.
+  hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
+  updateAmpConnectionBadge(hasAmpCookie);
+  if (hasAmpCookie) {
+    await fetchAmpData(true, true);
+  }
 }
 
 function updateTimestamp(provider: "claude" | "zai" | "amp") {
   const el = document.getElementById(`${provider}-updated`);
-  if (!el) return;
+  if (!el) {
+    return;
+  }
 
-  const lastRefresh =
-    provider === "claude" ? claudeLastRefresh : provider === "zai" ? zaiLastRefresh : ampLastRefresh;
+  let lastRefresh: Date | null = null;
+  if (provider === "claude") {
+    lastRefresh = claudeLastRefresh;
+  } else if (provider === "zai") {
+    lastRefresh = zaiLastRefresh;
+  } else {
+    lastRefresh = ampLastRefresh;
+  }
   if (!lastRefresh) {
     el.textContent = "Updated just now";
     return;
@@ -618,7 +714,7 @@ function updateTimestamp(provider: "claude" | "zai" | "amp") {
 
   const now = new Date();
   const diffMs = now.getTime() - lastRefresh.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
+  const diffMin = Math.floor(diffMs / 60_000);
 
   if (diffMin < 1) {
     el.textContent = "Updated just now";
@@ -630,24 +726,37 @@ function updateTimestamp(provider: "claude" | "zai" | "amp") {
   }
 }
 
-function startTimestampUpdater() {
-  if (timestampTimer !== null) return;
-  timestampTimer = window.setInterval(() => {
-    updateTimestamp("claude");
-    updateTimestamp("zai");
-    updateTimestamp("amp");
-  }, 30000); // update every 30s
+function updateAllTimestamps(): void {
+  updateTimestamp("claude");
+  updateTimestamp("zai");
+  updateTimestamp("amp");
 }
 
-async function handleRefresh() {
-  await Promise.allSettled([fetchClaudeData(), fetchZaiData(), ...(hasAmpSession ? [fetchAmpData(false, true)] : [])]);
+function startTimestampUpdater() {
+  if (timestampTimer !== null) {
+    return;
+  }
+  timestampTimer = window.setInterval(() => {
+    updateAllTimestamps();
+  }, 30_000); // update every 30s
+}
+
+/// Shared refresh logic. forceRefresh=true bypasses cache; false uses cached data.
+async function doRefresh(forceRefresh: boolean): Promise<void> {
+  await Promise.allSettled([
+    fetchClaudeData(),
+    fetchZaiData(forceRefresh),
+    fetchAmpData(forceRefresh),
+  ]);
 }
 
 function startPolling() {
-  if (pollingTimer !== null) return;
+  if (pollingTimer !== null) {
+    return;
+  }
 
   pollingTimer = window.setInterval(async () => {
-    await Promise.allSettled([fetchClaudeData(), fetchZaiData(), ...(hasAmpSession ? [fetchAmpData(false, true)] : [])]);
+    await doRefresh(false);
   }, POLL_INTERVAL);
 }
 

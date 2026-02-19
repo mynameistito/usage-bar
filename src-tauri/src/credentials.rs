@@ -88,6 +88,8 @@ impl CredentialCache {
 
 static CACHE: Mutex<Option<CredentialCache>> = Mutex::new(None);
 
+/// IMPORTANT: The credential cache mutex is held for the entire duration of `f`.
+/// `f` must not perform I/O, blocking calls, or acquire other locks — only cache lookups.
 fn with_cache<F, R>(f: F) -> R
 where
     F: FnOnce(&mut CredentialCache) -> R,
@@ -120,9 +122,17 @@ impl CredentialManager {
                     .and_then(|s| s.strip_suffix('}'))
                     .unwrap_or("");
                 debug_cred!("Resolving env variable: {}", original_var_name);
-                return std::env::var(original_var_name).map_err(|_| {
-                    anyhow!("Environment variable '{}' not found", original_var_name)
-                });
+                return std::env::var(original_var_name)
+                    .inspect(|_v| {
+                        debug_cred!(
+                            "Resolved env variable {}: ***REDACTED***",
+                            original_var_name
+                        );
+                    })
+                    .map_err(|_| {
+                        debug_cred!("Failed to resolve env variable: {}", original_var_name);
+                        anyhow!("Environment variable '{}' not found", original_var_name)
+                    });
             }
         }
 
@@ -138,7 +148,16 @@ impl CredentialManager {
             let original_var_name = &input[prefix_end_char..]; // Skip prefix, keep everything after
             debug_cred!("Resolving env variable: {}", original_var_name);
             return std::env::var(original_var_name)
-                .map_err(|_| anyhow!("Environment variable '{}' not found", original_var_name));
+                .inspect(|_v| {
+                    debug_cred!(
+                        "Resolved env variable {}: ***REDACTED***",
+                        original_var_name
+                    );
+                })
+                .map_err(|_| {
+                    debug_cred!("Failed to resolve env variable: {}", original_var_name);
+                    anyhow!("Environment variable '{}' not found", original_var_name)
+                });
         }
 
         Ok(input.to_string())

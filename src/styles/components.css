@@ -5,11 +5,11 @@
 /* --- Loading --- */
 .loading-container {
   display: flex;
+  flex: 1;
   flex-direction: column;
+  gap: 16px;
   align-items: center;
   justify-content: center;
-  flex: 1;
-  gap: 16px;
   color: var(--color-muted-foreground);
 }
 
@@ -25,8 +25,8 @@
 /* --- Tab Bar --- */
 .tab-bar {
   display: flex;
-  align-items: center;
   gap: 2px;
+  align-items: center;
   padding: 6px 10px;
   border-bottom: 1px solid var(--color-border);
 }
@@ -34,36 +34,36 @@
 .tab-button {
   display: flex;
   flex-direction: column;
+  gap: 3px;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding: 6px 10px;
   min-width: 58px;
-  border: none;
-  background: transparent;
-  color: var(--color-muted-foreground);
+  padding: 6px 10px;
   font-family: inherit;
   font-size: 11px;
   font-weight: 500;
-  border-radius: var(--radius-md);
+  color: var(--color-muted-foreground);
   cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
   transition: all 0.15s ease;
 }
 
 .tab-button:hover {
-  background: var(--color-accent);
   color: var(--color-foreground);
+  background: var(--color-accent);
 }
 
 .tab-button.active {
-  background: var(--color-primary);
   color: var(--color-primary-foreground);
+  background: var(--color-primary);
 }
 
 .tab-button svg {
+  flex-shrink: 0;
   width: 18px;
   height: 18px;
-  flex-shrink: 0;
 }
 
 /* --- Provider Header --- */
@@ -78,8 +78,8 @@
 
 .provider-header-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
 }
 
 .provider-name {
@@ -96,26 +96,26 @@
 
 .zai-header-badge {
   display: inline-flex;
-  align-items: center;
   gap: 4px;
+  align-items: center;
   padding: 3px 8px;
-  border-radius: 9999px;
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
   border: 1px solid transparent;
+  border-radius: 9999px;
+  transition: all 0.15s ease;
 }
 
 .zai-header-badge-connected {
-  background: hsl(var(--status-success) / 0.1);
   color: var(--color-status-success);
+  background: hsl(var(--status-success) / 0.1);
   border-color: hsl(var(--status-success) / 0.2);
 }
 
 .zai-header-badge-disconnected {
-  background: hsl(var(--status-warning) / 0.15);
   color: hsl(var(--status-warning));
+  background: hsl(var(--status-warning) / 0.15);
   border-color: hsl(var(--status-warning) / 0.3);
 }
 
@@ -137,26 +137,26 @@
 
 .amp-header-badge {
   display: inline-flex;
-  align-items: center;
   gap: 4px;
+  align-items: center;
   padding: 3px 8px;
-  border-radius: 9999px;
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
   border: 1px solid transparent;
+  border-radius: 9999px;
+  transition: all 0.15s ease;
 }
 
 .amp-header-badge-connected {
-  background: hsl(var(--status-success) / 0.1);
   color: var(--color-status-success);
+  background: hsl(var(--status-success) / 0.1);
   border-color: hsl(var(--status-success) / 0.2);
 }
 
 .amp-header-badge-disconnected {
-  background: hsl(var(--status-warning) / 0.15);
   color: hsl(var(--status-warning));
+  background: hsl(var(--status-warning) / 0.15);
   border-color: hsl(var(--status-warning) / 0.3);
 }
 
@@ -172,15 +172,15 @@
 
 .provider-meta {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   margin-top: 2px;
 }
 
 .provider-updated {
   font-size: 12px;
-  color: var(--color-muted-foreground);
   font-weight: 400;
+  color: var(--color-muted-foreground);
 }
 
 .provider-tier {
@@ -200,10 +200,10 @@
   flex-direction: column;
   gap: 6px;
   padding: 12px 16px;
-  transition: background-color 0.15s ease;
   cursor: default;
-  animation: fade-up 0.3s ease-out both;
   border-bottom: 1px solid var(--color-border);
+  transition: background-color 0.15s ease;
+  animation: fade-up 0.3s ease-out both;
 }
 
 .gauge:last-child {
@@ -220,16 +220,17 @@
 /* --- Progress Bar --- */
 .progress-track {
   height: 5px;
+  overflow: hidden;
   background: var(--color-muted);
   border-radius: 9999px;
-  overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
   border-radius: 9999px;
-  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              background-color 0.3s ease;
+  transition:
+    width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.3s ease;
 }
 
 .progress-fill.status-success {
@@ -247,24 +248,24 @@
 /* --- Gauge Stats Row --- */
 .gauge-stats {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   font-size: 12px;
-  color: var(--color-muted-foreground);
   font-weight: 500;
+  color: var(--color-muted-foreground);
 }
 
 .gauge-stats-used {
   display: flex;
-  align-items: center;
   gap: 6px;
+  align-items: center;
 }
 
 .gauge-dot {
+  flex-shrink: 0;
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  flex-shrink: 0;
 }
 
 .gauge-dot.status-success {
@@ -299,28 +300,28 @@
 
 .info-section-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
 }
 
 .info-section-title {
+  margin-bottom: 6px;
   font-size: 14px;
   font-weight: 600;
   color: var(--color-foreground);
   letter-spacing: -0.01em;
-  margin-bottom: 6px;
 }
 
 .info-section-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
 }
 
 .info-label {
   font-size: 12px;
-  color: var(--color-muted-foreground);
   font-weight: 500;
+  color: var(--color-muted-foreground);
 }
 
 .info-value {
@@ -334,21 +335,21 @@
 
 .info-row {
   font-size: 12px;
-  color: var(--color-muted-foreground);
   font-weight: 500;
   line-height: 1.6;
+  color: var(--color-muted-foreground);
 }
 
 .chevron-icon {
-  color: var(--color-muted-foreground);
   flex-shrink: 0;
+  color: var(--color-muted-foreground);
 }
 
 /* --- Error Container --- */
 .error-container {
   display: flex;
-  align-items: flex-start;
   gap: 10px;
+  align-items: flex-start;
   padding: 12px 16px;
   margin: 8px 12px;
   background: hsl(var(--destructive) / 0.1);
@@ -357,9 +358,9 @@
 }
 
 .error-icon {
+  flex-shrink: 0;
   width: 16px;
   height: 16px;
-  flex-shrink: 0;
   color: var(--color-destructive);
 }
 
@@ -369,23 +370,23 @@
 }
 
 .error-content h3 {
-  font-size: 13px;
-  color: var(--color-destructive);
   margin-bottom: 2px;
+  font-size: 13px;
   font-weight: 600;
+  color: var(--color-destructive);
 }
 
 .error-content p {
   font-size: 12px;
-  color: hsl(var(--destructive) / 0.8);
   line-height: 1.5;
+  color: hsl(var(--destructive) / 0.8);
 }
 
 /* --- Divider --- */
 .divider {
   height: 1px;
-  background: var(--color-border);
   margin: 0;
+  background: var(--color-border);
 }
 
 /* --- Menu Section --- */
@@ -399,24 +400,24 @@
 /* --- Menu Button --- */
 .menu-button {
   display: flex;
-  align-items: center;
   gap: 12px;
+  align-items: center;
   width: 100%;
   padding: 8px 16px;
-  border: none;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
   color: var(--color-muted-foreground);
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border: none;
   transition: all 0.15s ease;
 }
 
 .menu-button:hover {
-  background-color: var(--color-accent);
   color: var(--color-foreground);
+  background-color: var(--color-accent);
 }
 
 .menu-button:focus-visible {
@@ -425,15 +426,15 @@
 }
 
 .menu-button:disabled {
-  opacity: 0.5;
   cursor: not-allowed;
+  opacity: 0.5;
 }
 
 /* --- Icons --- */
 .icon {
+  flex-shrink: 0;
   width: 16px;
   height: 16px;
-  flex-shrink: 0;
   color: currentColor;
 }
 
@@ -450,47 +451,47 @@
 /* Connected state */
 .zai-connected {
   display: flex;
-  align-items: center;
   gap: 10px;
+  align-items: center;
   padding: 10px 16px;
+  margin: 4px 12px;
   background: hsl(var(--status-success) / 0.08);
   border: 1px solid hsl(var(--status-success) / 0.15);
   border-radius: var(--radius-md);
-  margin: 4px 12px;
 }
 
 .zai-connected-icon {
-  color: var(--color-status-success);
-  font-weight: 700;
   font-size: 14px;
+  font-weight: 700;
+  color: var(--color-status-success);
 }
 
 .zai-connected-label {
+  flex: 1;
   font-size: 13px;
   font-weight: 500;
   color: var(--color-status-success);
-  flex: 1;
 }
 
 .zai-delete-btn {
-  width: 24px;
-  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  background: hsl(var(--status-success) / 0.12);
-  color: var(--color-muted-foreground);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
+  width: 24px;
+  height: 24px;
   font-size: 16px;
   line-height: 1;
+  color: var(--color-muted-foreground);
+  cursor: pointer;
+  background: hsl(var(--status-success) / 0.12);
+  border: none;
+  border-radius: var(--radius-sm);
   transition: all 0.15s ease;
 }
 
 .zai-delete-btn:hover {
-  background: hsl(var(--destructive) / 0.15);
   color: var(--color-destructive);
+  background: hsl(var(--destructive) / 0.15);
 }
 
 /* Input state */
@@ -499,10 +500,10 @@
   flex-direction: column;
   gap: 8px;
   padding: 12px;
+  margin: 4px 12px;
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  margin: 4px 12px;
 }
 
 .zai-input-label {
@@ -519,13 +520,13 @@
 .zai-input {
   flex: 1;
   padding: 7px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--color-foreground);
+  outline: none;
   background: var(--color-background);
   border: 1px solid var(--color-input);
   border-radius: var(--radius-sm);
-  color: var(--color-foreground);
-  font-size: 13px;
-  font-family: inherit;
-  outline: none;
   transition: border-color 0.15s ease;
 }
 
@@ -540,12 +541,12 @@
 /* Buttons */
 .btn {
   padding: 7px 14px;
-  border: none;
-  border-radius: var(--radius-sm);
+  font-family: inherit;
   font-size: 13px;
   font-weight: 500;
-  font-family: inherit;
   cursor: pointer;
+  border: none;
+  border-radius: var(--radius-sm);
   transition: all 0.15s ease;
 }
 
@@ -555,8 +556,8 @@
 }
 
 .btn-primary {
-  background: var(--color-primary);
   color: var(--color-primary-foreground);
+  background: var(--color-primary);
 }
 
 .btn-primary:hover {
@@ -564,19 +565,19 @@
 }
 
 .btn-ghost {
-  background: transparent;
   color: var(--color-muted-foreground);
+  background: transparent;
   border: 1px solid var(--color-border);
 }
 
 .btn-ghost:hover {
-  background: var(--color-accent);
   color: var(--color-foreground);
+  background: var(--color-accent);
 }
 
 .btn-destructive {
-  background: hsl(var(--destructive) / 0.1);
   color: var(--color-destructive);
+  background: hsl(var(--destructive) / 0.1);
   border: 1px solid hsl(var(--destructive) / 0.2);
 }
 
@@ -587,8 +588,8 @@
 /* --- Content --- */
 .content {
   display: flex;
-  flex-direction: column;
   flex: 1;
+  flex-direction: column;
 }
 
 /* --- Animations --- */
@@ -622,24 +623,32 @@
 }
 
 /* --- Staggered animation delays for gauges --- */
-.gauge:nth-child(1) { animation-delay: 0ms; }
-.gauge:nth-child(2) { animation-delay: 60ms; }
-.gauge:nth-child(3) { animation-delay: 120ms; }
-.gauge:nth-child(4) { animation-delay: 180ms; }
+.gauge:nth-child(1) {
+  animation-delay: 0ms;
+}
+.gauge:nth-child(2) {
+  animation-delay: 60ms;
+}
+.gauge:nth-child(3) {
+  animation-delay: 120ms;
+}
+.gauge:nth-child(4) {
+  animation-delay: 180ms;
+}
 
 /* --- Modal Backdrop --- */
 .modal-backdrop {
   position: fixed;
   top: 0;
-  left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(4px);
+  left: 0;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
   animation: fade-in 0.15s ease-out;
 }
 
@@ -655,16 +664,18 @@
 
 /* --- Modal Container --- */
 .zai-modal {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
   width: 90%;
   max-width: 400px;
   max-height: 85vh;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.5),
+    0 8px 10px -6px rgba(0, 0, 0, 0.5);
   animation: modal-slide-in 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -685,35 +696,35 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--color-border);
   background: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .zai-modal-title {
+  margin: 0;
   font-size: 16px;
   font-weight: 600;
   color: var(--color-foreground);
-  margin: 0;
   letter-spacing: -0.01em;
 }
 
 .zai-modal-close {
-  width: 32px;
-  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  background: transparent;
+  width: 32px;
+  height: 32px;
   color: var(--color-muted-foreground);
-  border-radius: var(--radius-sm);
   cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
   transition: all 0.15s ease;
 }
 
 .zai-modal-close:hover {
-  background: var(--color-accent);
   color: var(--color-foreground);
+  background: var(--color-accent);
 }
 
 /* --- Modal Content --- */
@@ -725,21 +736,21 @@
 /* --- Modal Info Section --- */
 .zai-modal-info {
   display: flex;
-  align-items: flex-start;
   gap: 12px;
+  align-items: flex-start;
   margin-bottom: 20px;
 }
 
 .zai-modal-info-icon {
-  width: 40px;
-  height: 40px;
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: var(--color-foreground);
   background: var(--color-accent);
   border-radius: var(--radius-md);
-  color: var(--color-foreground);
-  flex-shrink: 0;
 }
 
 .zai-modal-info-text {
@@ -747,22 +758,22 @@
 }
 
 .zai-modal-info-title {
+  margin-bottom: 4px;
   font-size: 14px;
   font-weight: 600;
   color: var(--color-foreground);
-  margin-bottom: 4px;
 }
 
 .zai-modal-info-desc {
   font-size: 13px;
-  color: var(--color-muted-foreground);
   line-height: 1.5;
+  color: var(--color-muted-foreground);
 }
 
 .zai-link {
+  font-weight: 500;
   color: var(--color-primary);
   text-decoration: none;
-  font-weight: 500;
 }
 
 .zai-link:hover {
@@ -777,19 +788,19 @@
 .zai-modal-input-field {
   width: 100%;
   padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--color-foreground);
+  outline: none;
   background: var(--color-background);
   border: 1px solid var(--color-input);
   border-radius: var(--radius-md);
-  color: var(--color-foreground);
-  font-size: 14px;
-  font-family: var(--font-mono);
-  outline: none;
   transition: border-color 0.15s ease;
 }
 
 .zai-modal-input-field::placeholder {
-  color: var(--color-muted-foreground);
   font-size: 12px;
+  color: var(--color-muted-foreground);
 }
 
 .zai-modal-input-field:focus {
@@ -797,20 +808,21 @@
 }
 
 .zai-modal-error {
-  margin-top: 8px;
   padding: 8px 12px;
-  background: color-mix(in srgb, var(--color-destructive) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-destructive) 30%, transparent);
-  border-radius: var(--radius-md);
-  color: var(--color-destructive);
+  margin-top: 8px;
   font-size: 13px;
+  color: var(--color-destructive);
+  background: color-mix(in srgb, var(--color-destructive) 10%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--color-destructive) 30%, transparent);
+  border-radius: var(--radius-md);
 }
 
 .settings-input-helper {
+  padding-left: 2px;
+  margin-bottom: 4px;
   font-size: 10px;
   color: var(--color-muted-foreground);
-  margin-bottom: 4px;
-  padding-left: 2px;
 }
 
 /* --- Modal Actions --- */
@@ -821,10 +833,10 @@
 }
 
 .zai-modal-actions .btn {
-  padding: 9px 16px;
-  font-size: 13px;
   justify-self: stretch;
   min-width: 0;
+  padding: 9px 16px;
+  font-size: 13px;
 }
 
 /* Single column layout for small screens or when buttons are too wide */
@@ -842,13 +854,13 @@
 .settings-view {
   position: fixed;
   top: 0;
-  left: 0;
   right: 0;
   bottom: 0;
-  background: var(--color-background);
+  left: 0;
   z-index: 100;
   display: flex;
   flex-direction: column;
+  background: var(--color-background);
   animation: settings-slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -872,11 +884,11 @@
 
 .settings-header {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
   border-bottom: 1px solid var(--color-border);
-  flex-shrink: 0;
 }
 
 .settings-title {
@@ -887,22 +899,22 @@
 }
 
 .settings-close {
-  width: 28px;
-  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  background: transparent;
+  width: 28px;
+  height: 28px;
   color: var(--color-muted-foreground);
-  border-radius: var(--radius-sm);
   cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
   transition: all 0.15s ease;
 }
 
 .settings-close:hover {
-  background: var(--color-accent);
   color: var(--color-foreground);
+  background: var(--color-accent);
 }
 
 .settings-content {
@@ -915,31 +927,31 @@
 }
 
 .settings-view > .settings-section {
-  margin-top: auto;
   padding: 12px 16px;
+  margin-top: auto;
 }
 
 .settings-section-title {
+  margin-bottom: 12px;
   font-size: 12px;
   font-weight: 600;
   color: var(--color-muted-foreground);
-  letter-spacing: 0.05em;
   text-transform: uppercase;
-  margin-bottom: 12px;
+  letter-spacing: 0.05em;
 }
 
 .settings-row {
   display: flex;
+  gap: 8px;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
 }
 
 .settings-row-left {
   display: flex;
-  align-items: center;
-  gap: 8px;
   flex: 1;
+  gap: 8px;
+  align-items: center;
   min-width: 0;
 }
 
@@ -951,9 +963,9 @@
 
 .settings-row-actions {
   display: flex;
-  align-items: center;
-  gap: 6px;
   flex-shrink: 0;
+  gap: 6px;
+  align-items: center;
 }
 
 .settings-row-actions .btn {
@@ -969,8 +981,8 @@
 
 .settings-input-desc {
   font-size: 12px;
-  color: var(--color-muted-foreground);
   line-height: 1.5;
+  color: var(--color-muted-foreground);
 }
 
 .settings-input-desc a {
@@ -998,8 +1010,8 @@
 
 .settings-about-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   padding: 4px 0;
 }
 
@@ -1016,8 +1028,8 @@
 
 .settings-divider {
   height: 1px;
-  background: var(--color-border);
   margin: 0;
+  background: var(--color-border);
 }
 
 /* Credential settings within settings view (Z.ai, Amp, etc.) */
@@ -1030,15 +1042,15 @@
 
 .settings-credential-row {
   display: flex;
+  gap: 8px;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
 }
 
 .settings-credential-status {
   display: flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
   font-size: 13px;
   font-weight: 500;
   color: var(--color-foreground);
@@ -1046,8 +1058,8 @@
 
 .settings-credential-actions {
   display: flex;
-  align-items: center;
   gap: 6px;
+  align-items: center;
 }
 
 .settings-credential-actions .btn {
@@ -1057,8 +1069,8 @@
 
 .settings-credential-desc {
   font-size: 13px;
-  color: var(--color-muted-foreground);
   line-height: 1.5;
+  color: var(--color-muted-foreground);
 }
 
 .settings-credential-input-row {
@@ -1070,31 +1082,31 @@
 .settings-input-wrapper {
   position: relative;
   display: flex;
-  align-items: center;
   flex: 1;
+  align-items: center;
 }
 
 .settings-input-wrapper .zai-modal-input-field {
-  padding-right: 40px;
   flex: 1;
+  padding-right: 40px;
 }
 
 /* Toggle visibility button inside input */
 .settings-toggle-visibility {
   position: absolute;
   right: 8px;
-  width: 24px;
-  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  background: transparent;
-  color: var(--color-muted-foreground);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: color 0.15s ease;
+  width: 24px;
+  height: 24px;
   padding: 0;
+  color: var(--color-muted-foreground);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s ease;
 }
 
 .settings-toggle-visibility:hover {
@@ -1116,10 +1128,10 @@
 }
 
 .settings-about-name {
+  margin-bottom: 2px;
   font-size: 14px;
   font-weight: 600;
   color: var(--color-foreground);
-  margin-bottom: 2px;
 }
 
 .settings-about-version {

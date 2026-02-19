@@ -151,8 +151,13 @@ pub struct ClaudeTierData {
 pub struct AmpUsageData {
     pub quota: f64,
     pub used: f64,
+    /// Clamped to [0.0, 100.0]. If quota is 0, division yields infinity → clamped to 100.0.
     pub used_percent: f64,
     pub hourly_replenishment: f64,
+    /// Duration of the usage window in hours. Stored as f64 because the Amp JS object
+    /// may theoretically use fractional hours; use `as u32` when integer precision suffices.
     pub window_hours: Option<f64>,
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_expires_at")]
     pub resets_at: Option<i64>,
 }

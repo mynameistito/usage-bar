@@ -1,0 +1,15 @@
+pre-commit:
+  jobs:
+    - run: bunx ultracite fix
+      glob:
+        - "**/*.js"
+        - "**/*.jsx"
+        - "**/*.ts"
+        - "**/*.tsx"
+        - "**/*.json"
+        - "**/*.jsonc"
+        - "**/*.css"
+      stage_fixed: true
+    - run: bun typecheck
+    - run: bun cargo:precheck
+

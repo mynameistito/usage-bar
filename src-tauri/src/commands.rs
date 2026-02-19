@@ -11,11 +11,15 @@ use tauri::State;
 
 use crate::{debug_amp, debug_cache, debug_claude, debug_cred, debug_zai};
 
-type RefreshAllResult = (
-    Option<crate::models::UsageData>,
-    Option<crate::models::ZaiUsageData>,
-    Option<crate::models::AmpUsageData>,
-);
+#[derive(Debug, serde::Serialize)]
+pub struct RefreshAllResult {
+    pub claude: Option<crate::models::UsageData>,
+    pub zai: Option<crate::models::ZaiUsageData>,
+    pub amp: Option<crate::models::AmpUsageData>,
+    pub claude_error: Option<String>,
+    pub zai_error: Option<String>,
+    pub amp_error: Option<String>,
+}
 
 #[cfg(target_os = "windows")]
 const RPC_E_CHANGED_MODE: i32 = -2147417850; // 0x80010106
@@ -186,7 +190,7 @@ pub async fn zai_refresh_all(
 ) -> Result<(crate::models::ZaiUsageData, crate::models::ZaiTierData), String> {
     debug_zai!("zai_refresh_all called (force refresh)");
 
-    // Clear caches to force a fresh fetch
+    // Clear cache before force-refresh to ensure fresh data
     usage_cache.0.clear();
     tier_cache.0.clear();
 
@@ -267,7 +271,7 @@ pub async fn zai_refresh_usage(
 ) -> Result<crate::models::ZaiUsageData, String> {
     debug_zai!("zai_refresh_usage called (force refresh)");
 
-    // Clear caches to force a fresh fetch
+    // Clear cache before force-refresh to ensure fresh data
     usage_cache.0.clear();
     tier_cache.0.clear();
 
@@ -378,6 +382,7 @@ pub async fn amp_refresh_usage(
     usage_cache: State<'_, AmpUsageCache>,
 ) -> Result<crate::models::AmpUsageData, String> {
     debug_amp!("amp_refresh_usage called (force refresh)");
+    // Clear cache before force-refresh to ensure fresh data
     usage_cache.0.clear();
 
     let client = Arc::clone(&amp_client.0);
@@ -469,9 +474,10 @@ pub fn open_url(url: String) -> Result<(), String> {
     use windows::Win32::UI::Shell::ShellExecuteW;
     use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
 
-    // Validate that the URL starts with http:// or https://
-    if !url.starts_with("http://") && !url.starts_with("https://") {
-        return Err("URL must start with http:// or https://".to_string());
+    // Validate URL scheme using the URL parser — rejects javascript:, data:, file:, malformed URLs.
+    let parsed = reqwest::Url::parse(&url).map_err(|_| "Invalid URL format".to_string())?;
+    if parsed.scheme() != "http" && parsed.scheme() != "https" {
+        return Err("URL must use http or https scheme".to_string());
     }
 
     unsafe {
@@ -511,8 +517,10 @@ pub fn open_url(url: String) -> Result<(), String> {
 #[cfg(not(target_os = "windows"))]
 #[tauri::command]
 pub fn open_url(url: String) -> Result<(), String> {
-    if !url.starts_with("http://") && !url.starts_with("https://") {
-        return Err("URL must start with http:// or https://".to_string());
+    // Validate URL scheme using the URL parser — rejects javascript:, data:, file:, malformed URLs.
+    let parsed = reqwest::Url::parse(&url).map_err(|_| "Invalid URL format".to_string())?;
+    if parsed.scheme() != "http" && parsed.scheme() != "https" {
+        return Err("URL must use http or https scheme".to_string());
     }
 
     std::process::Command::new("open")
@@ -540,7 +548,7 @@ pub async fn refresh_all(
 ) -> Result<RefreshAllResult, String> {
     let client = Arc::clone(&client.0);
 
-    // Clear all caches to force fresh fetches
+    // Clear cache before force-refresh to ensure fresh data
     claude_usage_cache.0.clear();
     claude_tier_cache.0.clear();
     zai_usage_cache.0.clear();
@@ -596,18 +604,34 @@ pub async fn refresh_all(
         }
     );
 
-    Ok((
-        claude_result.unwrap_or_else(|e| {
+    let (claude, claude_error) = match claude_result {
+        Ok(data) => (data, None),
+        Err(e) => {
             debug_claude!("refresh_all: Claude failed: {}", e);
-            None
-        }),
-        zai_result.unwrap_or_else(|e| {
+            (None, Some(e))
+        }
+    };
+    let (zai, zai_error) = match zai_result {
+        Ok(data) => (data, None),
+        Err(e) => {
             debug_zai!("refresh_all: Z.ai failed: {}", e);
-            None
-        }),
-        amp_result.unwrap_or_else(|e| {
+            (None, Some(e))
+        }
+    };
+    let (amp, amp_error) = match amp_result {
+        Ok(data) => (data, None),
+        Err(e) => {
             debug_amp!("refresh_all: Amp failed: {}", e);
-            None
-        }),
-    ))
+            (None, Some(e))
+        }
+    };
+
+    Ok(RefreshAllResult {
+        claude,
+        zai,
+        amp,
+        claude_error,
+        zai_error,
+        amp_error,
+    })
 }

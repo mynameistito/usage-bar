@@ -9,9 +9,17 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{debug_claude, debug_error, debug_net};
 
+/// Claude Code's OAuth client ID registered with Anthropic.
+/// Used in token refresh requests to console.anthropic.com/v1/oauth/token.
+/// Claude Code's OAuth client ID registered with Anthropic.
+/// Used in token refresh requests to console.anthropic.com/v1/oauth/token.
 const OAUTH_CLIENT_ID: &str = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
 const USAGE_API_URL: &str = "https://api.anthropic.com/api/oauth/usage";
 const TOKEN_REFRESH_URL: &str = "https://console.anthropic.com/v1/oauth/token";
+
+/// Treat tokens as expired this many milliseconds before actual expiry,
+/// to prevent using a token that expires mid-request.
+const TOKEN_EXPIRY_BUFFER_MS: i64 = 60 * 1_000;
 
 pub struct ClaudeService;
 
@@ -60,12 +68,17 @@ impl ClaudeService {
         };
 
         // Extract tier info from credentials, falling back to API response for older credential files
-        let subscription_type = credentials
+        // Tier inference precedence:
+        // 1. subscription_type from credential file (most reliable, modern accounts)
+        // 2. rate_limit_tier + billing_type from API response (fallback for legacy credentials)
+        // Within each path, infer_plan_name_from_subscription or infer_plan_name_from_usage_response
+        // handles the mapping.
+        let sub_type = credentials
             .claude_ai_oauth
             .subscription_type
             .clone()
             .unwrap_or_default();
-        let plan_name = if subscription_type.is_empty() {
+        let plan_name = if sub_type.is_empty() {
             // For legacy credential files, infer plan from rate_limit_tier patterns
             // NOTE: These tier mappings are speculative based on observed patterns:
             // - "tier_2"/"tier_3" → "Pro" (assumed)
@@ -74,7 +87,7 @@ impl ClaudeService {
             // Fallback to billing type detection for reliability
             Self::infer_plan_name_from_usage_response(&usage_response)
         } else {
-            Self::infer_plan_name_from_subscription(&subscription_type)
+            Self::infer_plan_name_from_subscription(&sub_type)
         };
         let raw_tier = credentials
             .claude_ai_oauth
@@ -229,7 +242,7 @@ impl ClaudeService {
                 if let Some(expires_at) = credentials.claude_ai_oauth.expires_at {
                     match Self::now_millis() {
                         Ok(now) => {
-                            let buffer: i64 = 60 * 1000; // 60 second buffer
+                            let buffer: i64 = TOKEN_EXPIRY_BUFFER_MS;
                             let expired = now + buffer >= expires_at;
                             debug_claude!(
                                 "Token expiry check: now={}, expires_at={}, expired={}",
@@ -278,19 +291,22 @@ impl ClaudeService {
             .map(|b| b.to_lowercase())
             .unwrap_or_default();
 
-        if tier.contains("max") || tier.contains("tier_2_5x") || tier.contains("tier_3_5x") {
+        if tier.contains("max") || tier == "tier_2_5x" || tier == "tier_3_5x" {
             "Max".into()
-        } else if tier.contains("team") || tier.contains("tier_4") || tier.contains("tier_5") {
+        } else if tier.contains("team") || tier == "tier_4" || tier == "tier_5" {
             // tier_4/tier_5 assumed to map to Team; revisit if Anthropic introduces new tier names
             "Team".into()
-        } else if (tier.contains("tier_2") && !tier.contains("_1") && !tier.contains("_3"))
-            || tier.contains("tier_3")
-        {
+        } else if tier == "tier_2" || tier == "tier_3" {
             "Pro".into()
         } else if billing.contains("stripe") {
             // Stripe-billed user with unrecognized tier: assume at least Pro
             "Pro".into()
         } else {
+            debug_claude!(
+                "Unknown rate_limit_tier {:?} with billing {:?}; defaulting to Free",
+                tier,
+                billing
+            );
             "Free".into()
         }
     }
@@ -307,6 +323,10 @@ impl ClaudeService {
         } else if subtype_lower.contains("enterprise") {
             "Enterprise".into()
         } else {
+            debug_claude!(
+                "Unknown subscription type encountered: {:?}; defaulting to Free",
+                subscription_type
+            );
             "Free".into()
         }
     }
