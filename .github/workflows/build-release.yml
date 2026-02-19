@@ -48,6 +48,12 @@ jobs:
       - name: Upload installers to release
         shell: bash
         run: |
+          for pattern in "src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe" "src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi"; do
+            if ! ls $pattern 1> /dev/null 2>&1; then
+              echo "Error: No files found matching pattern: $pattern"
+              exit 1
+            fi
+          done
           gh release upload ${{ github.event.release.tag_name }} \
             src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe \
             src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi
