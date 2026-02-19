@@ -4,63 +4,73 @@
 **Framework:** Vanilla TypeScript + Tauri API bindings
 
 ## OVERVIEW
-Frontend for usage monitoring popup. No framework — uses DOM manipulation and Tauri invoke API.
+Frontend for usage monitoring popup. Three-tab UI (Claude / Z.ai / Amp). No framework — DOM manipulation and `@tauri-apps/api` invoke. Settings panel slides in over main content.
 
 ## STRUCTURE
 ```
 src/
-├── main.ts                # Entry point, orchestration, state management
-├── index.html             # Popup window template
+├── main.ts                # Entry, orchestration, state, tab logic, settings modal
+├── index.html             # Popup window template (320×560)
 ├── components/            # Reusable UI components
-└── styles/                # CSS architecture (Tailwind + custom)
+└── styles/                # CSS (theme.css, base.css, components.css)
 ```
 
 ## WHERE TO LOOK
 | Task | Location | Notes |
 |------|----------|-------|
-| App initialization | `main.ts` - `loadContent()` | Sets up polling, tabs, initial data fetch |
-| API calls to Rust | `main.ts` - `invoke()` calls | All backend communication via `@tauri-apps/api/core` |
-| UI updates | `main.ts` - `fetch*Usage()` functions | DOM manipulation after data fetch |
-| Gauge rendering | `components/UsageGauge.ts` | Circular progress indicators |
-| Settings UI | `components/ZaiSettings.ts` | API key management for Z.ai |
-| Theming | `styles/theme.css` | Color palette, dark mode support |
-| Component styles | `styles/components.css` | Gauge-specific styles |
+| App initialization | `main.ts` - `loadContent()` | Fetches all providers, shows window after load |
+| Tab switching | `main.ts` - `switchTab()` | CSS display toggle; tab saved to `localStorage` |
+| Settings modal | `main.ts` - `openSettings()` / `closeSettings()` | Slides over content; animated close |
+| Connection badges | `main.ts` - `createOrUpdateConnectionBadge()` | Shared badge logic for Z.ai + Amp headers |
+| Claude data fetch | `main.ts` - `fetchClaudeData()` | Calls `claude_get_all`, renders 2 gauges + extra usage |
+| Z.ai data fetch | `main.ts` - `fetchZaiData()` | Calls `zai_get_all` / `zai_refresh_all` |
+| Amp data fetch | `main.ts` - `fetchAmpData()` | Calls `amp_get_usage` / `amp_refresh_usage` |
+| Gauge rendering | `components/UsageGauge.ts` | SVG circular progress |
+| MCP gauge | `components/McpUsageGauge.ts` | Linear used/total bar |
+| Settings UI | `components/SettingsView.ts` | Z.ai API key + Amp session cookie management |
+| Theming | `styles/theme.css` | Color palette, dark mode |
+| Component styles | `styles/components.css` | Gauge-specific CSS |
 
 ## CONVENTIONS
-- **Component pattern:** Factory functions return `HTMLElement`, not classes
-- **State management:** Module-level variables (`activeTab`, `*LastRefresh`)
-- **Error handling:** `try/catch` with user-friendly error messages
-- **Timing:** `setInterval` for polling (5min) and timestamp updates (30s)
-- **Tauri invoke:** Type-safe via generics: `invoke<ReturnType>('command_name')`
+- **Component pattern:** Factory functions return `HTMLElement` — not classes
+- **State:** Module-level variables (`activeTab`, `*LastRefresh`, `hasAmpSession`)
+- **Error handling:** `try/catch` → DOM error containers, never `alert()`
+- **Polling:** `POLL_INTERVAL = 300000` (5min); timestamp updates every 30s
+- **Tauri invoke:** Typed generics: `invoke<ReturnType>('command_name')`
+- **Z.ai API key cache:** 5s client-side TTL via `cachedZaiApiKeyCheck` (avoids log spam)
+- **Settings guard:** `settingsOpening` flag prevents duplicate panel creation
 
 ## ANTI-PATTERNS (THIS FRONTEND)
 - **NEVER** use `alert()` — errors go to DOM error containers
-- **DO NOT** create global variables other than state/timer handles
+- **DO NOT** create global variables beyond state/timer handles
 - **NEVER** call Tauri commands synchronously — always `await`
-- **DO NOT** bypass cache — all data fetches check Rust-side cache first
-- **NEVER** hardcode polling intervals — use `POLL_INTERVAL` constant
+- **DO NOT** bypass cache — all data fetches go through Rust-side cache
+- **NEVER** hardcode polling interval — use `POLL_INTERVAL` constant
+- **DO NOT** import Tauri window API at module top — lazy import in `loadContent()`
 
 ## UNIQUE STYLES
-- **Tab-based architecture:** Claude/Z.ai views toggled via CSS display
-- **Fire-and-forget initialization:** `fetchClaudeTier()` called without await
-- **Relative timestamps:** "Updated Xm ago" updated every 30s independently
-- **Error suppression:** Z.ai "not configured" errors hide UI silently
-- **Dynamic component replacement:** Settings element replaced after async load
+- **Tab persistence:** `localStorage.getItem("activeTab")` restores last-used tab
+- **Settings as overlay:** `content` hidden via `display:none` while settings open; restored on close with slide-out animation
+- **Amp conditional init:** `fetchAmpData()` only called on startup if session cookie exists
+- **`Promise.allSettled`:** Used for all multi-provider fetches (never `Promise.all`) so one failure doesn't block others
+- **Z.ai "not configured" suppression:** Error silently hides UI instead of showing error state
+- **`refresh_all` command:** Single Rust command fetches all three providers in parallel via `tokio::join!`
 
-## DATA FLOW
+## DATA FLOW (STARTUP)
 1. `DOMContentLoaded` → `loadContent()`
-2. Fetch Claude tier (fire-and-forget)
-3. Fetch Claude usage (await)
-4. Fetch Z.ai usage (await)
-5. Create/replace settings component
-6. Show content, hide loading spinner
-7. Start polling interval (5min)
-8. Start timestamp updater (30s)
+2. Check Z.ai API key + Amp cookie (parallel)
+3. Update connection badges
+4. `Promise.allSettled([fetchClaudeData, fetchZaiData, fetchAmpData?])`
+5. Hide spinner, show content
+6. Setup tabs, restore saved tab
+7. `window.show()` (Tauri)
+8. Start polling (5min) + timestamp updater (30s)
 
 ## INTEGRATION POINTS
-- **Tauri commands:** `claude_get_usage`, `claude_get_tier`, `zai_get_usage`, `zai_save_api_key`
-- **DOM IDs:** `loading`, `content`, `claude-view`, `zai-view`, tab buttons
-- **Error containers:** `claude-error`, `zai-error` with message spans
+- **Tauri commands:** See root AGENTS.md command surface table
+- **DOM IDs:** `loading`, `content`, `app`, `claude-view`, `zai-view`, `amp-view`, tab buttons, `settings-view`
+- **Error containers:** `claude-error`, `zai-error`, `amp-error` with message spans
+- **Connection status:** `zai-connected-status`, `amp-connected-status`
 
-# NPM
-Never use NPM, use Bun
+## PACKAGE MANAGER
+Never use NPM — use Bun

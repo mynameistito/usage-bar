@@ -600,7 +600,9 @@ async function fetchAmpData(forceRefresh = false, skipCookieCheck = false) {
 }
 
 async function refreshAmpUI(): Promise<void> {
-  await fetchAmpData(true);
+  hasAmpSession = await invoke<boolean>("amp_check_session_cookie");
+  updateAmpConnectionBadge(hasAmpSession);
+  await fetchAmpData(true, true);
 }
 
 function updateTimestamp(provider: "claude" | "zai" | "amp") {
@@ -638,14 +640,14 @@ function startTimestampUpdater() {
 }
 
 async function handleRefresh() {
-  await Promise.allSettled([fetchClaudeData(), fetchZaiData(), ...(hasAmpSession ? [fetchAmpData()] : [])]);
+  await Promise.allSettled([fetchClaudeData(), fetchZaiData(), ...(hasAmpSession ? [fetchAmpData(false, true)] : [])]);
 }
 
 function startPolling() {
   if (pollingTimer !== null) return;
 
   pollingTimer = window.setInterval(async () => {
-    await Promise.allSettled([fetchClaudeData(), fetchZaiData(), ...(hasAmpSession ? [fetchAmpData()] : [])]);
+    await Promise.allSettled([fetchClaudeData(), fetchZaiData(), ...(hasAmpSession ? [fetchAmpData(false, true)] : [])]);
   }, POLL_INTERVAL);
 }
 
