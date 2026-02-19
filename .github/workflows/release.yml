@@ -64,7 +64,10 @@ jobs:
             echo "released=false" >> "$GITHUB_OUTPUT"
             echo "tag=${tag}" >> "$GITHUB_OUTPUT"
           else
-            bun run release
+            if ! bun run release; then
+              echo "Error: Failed to create release"
+              exit 1
+            fi
             echo "released=true" >> "$GITHUB_OUTPUT"
             echo "tag=${tag}" >> "$GITHUB_OUTPUT"
           fi

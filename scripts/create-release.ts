@@ -30,7 +30,7 @@ const tag = `v${version}`;
 try {
   execSync(`git rev-parse --verify refs/tags/${tag}`, { stdio: "pipe" });
   console.log(`Tag ${tag} already exists — nothing to release.`);
-  process.exit(1);
+  process.exit(0);
 } catch {
   // Tag does not exist yet — proceed with the release.
 }
