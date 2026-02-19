@@ -16,6 +16,9 @@ jobs:
       pull-requests: write  # create / update the version PR
     env:
       LEFTHOOK: 0           # disable git hooks in CI (pre-commit runs cargo:precheck which needs Linux GTK libs)
+    outputs:
+      released: ${{ steps.tag-release.outputs.released }}
+      tag: ${{ steps.tag-release.outputs.tag }}
 
     steps:
       - uses: actions/checkout@v4
@@ -46,9 +49,81 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Runs only after the version PR is merged (no more pending changesets).
-      # The script is idempotent — it exits cleanly if the tag already exists.
+      # Checks if the tag already exists before creating to remain idempotent.
       - name: Tag and create GitHub release
+        id: tag-release
         if: steps.changesets.outputs.hasChangesets == 'false'
-        run: bun run release
+        shell: bash
+        run: |
+          version=$(jq -r '.version' package.json)
+          tag="v${version}"
+
+          if git ls-remote --tags origin "refs/tags/${tag}" | grep -q "${tag}"; then
+            echo "Tag ${tag} already exists — skipping release."
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          else
+            bun run release
+            echo "released=true" >> "$GITHUB_OUTPUT"
+            echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    name: Build (${{ matrix.arch }})
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            target: x86_64-pc-windows-msvc
+          - arch: arm64
+            target: aarch64-pc-windows-msvc
+
+    env:
+      LEFTHOOK: 0
+      CARGO_INCREMENTAL: "0"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: ${{ matrix.target }}
+          save-always: true
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build Tauri app
+        run: bun run tauri build --target ${{ matrix.target }}
+
+      - name: Upload installers to release
+        shell: bash
+        run: |
+          for pattern in "src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe" "src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi"; do
+            if ! ls $pattern 1> /dev/null 2>&1; then
+              echo "Error: No files found matching pattern: $pattern"
+              exit 1
+            fi
+          done
+          gh release upload ${{ needs.release.outputs.tag }} \
+            src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe \
+            src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
