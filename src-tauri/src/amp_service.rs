@@ -201,7 +201,7 @@ impl AmpService {
         let quota_raw = Self::extract_number(obj_str, &RE_QUOTA, "quota")?;
         let used_raw = Self::extract_number(obj_str, &RE_USED, "used")?;
         let hourly_raw = Self::extract_number(obj_str, &RE_HOURLY, "hourlyReplenishment")?;
-        let window_hours = Self::extract_number_optional(obj_str, &RE_WINDOW_HOURS, "windowHours");
+        let window_hours = Self::extract_number_optional(obj_str, &RE_WINDOW_HOURS);
 
         debug_amp!(
             "Parsed raw: quota={}, used={}, hourlyReplenishment={}, windowHours={:?}",
@@ -267,15 +267,9 @@ impl AmpService {
             .map_err(|e| anyhow!("Failed to parse '{}' value: {}", field_name, e))
     }
 
-    fn extract_number_optional(obj: &str, re: &Regex, field_name: &str) -> Option<f64> {
+    fn extract_number_optional(obj: &str, re: &Regex) -> Option<f64> {
         match re.captures(obj) {
-            None => {
-                debug_amp!(
-                    "Optional field '{}' not found or malformed in object; defaulting to None",
-                    field_name
-                );
-                None
-            }
+            None => None,
             Some(caps) => caps[1].parse::<f64>().ok(),
         }
     }
