@@ -1,0 +1,1110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usage Bar — Logo</title>
+    <link
+      href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap"
+      rel="stylesheet"
+    >
+    <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+    }
+
+    :root {
+      --bg: hsl(0 0% 3.9%);
+      --surface: hsl(0 0% 7%);
+      --border: hsl(0 0% 14.9%);
+      --fg: hsl(0 0% 98%);
+      --muted: hsl(0 0% 45%);
+      --green: hsl(142 47% 40%);
+      --amber: hsl(38 75% 50%);
+      --red: hsl(0 55% 50%);
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      gap: 80px;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 80px 40px;
+      font-family: "Satoshi", system-ui, sans-serif;
+      color: var(--fg);
+      background: var(--bg);
+    }
+
+    /* ── HERO ── */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      align-items: center;
+    }
+
+    .logo-hero svg {
+      display: block;
+      filter: drop-shadow(0 0 40px hsla(142 47% 40% / 0.18))
+        drop-shadow(0 0 80px hsla(38 75% 50% / 0.1));
+    }
+
+    .wordmark {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .wordmark-text {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--fg);
+      letter-spacing: -0.04em;
+    }
+
+    .wordmark-text span {
+      font-weight: 400;
+      color: var(--muted);
+    }
+
+    .tagline {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── SIZES ── */
+    .section-label {
+      margin-bottom: 24px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .sizes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .size-item {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .size-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    /* ── PALETTE ── */
+    .palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+    }
+
+    .swatch {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .swatch-dot {
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+    }
+
+    .swatch-name {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── LOCKUP ── */
+    .lockups {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 40px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .lockup-card {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      padding: 28px 36px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+    }
+
+    .lockup-card .lockup-label {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+    }
+
+    .lockup-card .lockup-sub {
+      margin-top: 2px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    hr.divider {
+      width: 100%;
+      max-width: 640px;
+      border: none;
+      border-top: 1px solid var(--border);
+    }
+    </style>
+  </head>
+  <body>
+    <!-- ── HERO LOGO ── -->
+    <div class="hero">
+      <div class="logo-hero">
+        <!--
+          Usage Bar logomark.
+          Concept: three pill-shaped progress bars — one per AI provider —
+          living inside a dark squircle. Each bar is partially filled, using
+          the app's own green→amber→red usage-threshold palette.
+          A tiny live-pulse dot sits top-right to hint at real-time polling.
+        -->
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 240 240"
+          width="240"
+          height="240"
+          role="img"
+          aria-label="Usage Bar logo"
+        >
+          <defs>
+            <!-- Claude bar: healthy green -->
+            <linearGradient id="g-claude" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="hsl(142 47% 32%)" />
+              <stop offset="100%" stop-color="hsl(142 47% 48%)" />
+            </linearGradient>
+
+            <!-- Z.ai bar: nudging into amber -->
+            <linearGradient id="g-zai" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="hsl(142 47% 36%)" />
+              <stop offset="62%" stop-color="hsl(80  60% 44%)" />
+              <stop offset="100%" stop-color="hsl(38  75% 52%)" />
+            </linearGradient>
+
+            <!-- Amp bar: deep into red territory -->
+            <linearGradient id="g-amp" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="hsl(142 47% 36%)" />
+              <stop offset="55%" stop-color="hsl(38  75% 50%)" />
+              <stop offset="100%" stop-color="hsl(0   55% 52%)" />
+            </linearGradient>
+
+            <!-- Glow filter for filled bars -->
+            <filter id="bar-glow" x="-10%" y="-80%" width="120%" height="360%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+
+            <!-- Clip paths so fills don't bleed outside their track shape -->
+            <clipPath id="clip-claude">
+              <rect x="44" y="82" width="152" height="20" rx="10" />
+            </clipPath>
+            <clipPath id="clip-zai">
+              <rect x="44" y="110" width="152" height="20" rx="10" />
+            </clipPath>
+            <clipPath id="clip-amp">
+              <rect x="44" y="138" width="152" height="20" rx="10" />
+            </clipPath>
+          </defs>
+
+          <!-- ── Background squircle ── -->
+          <rect width="240" height="240" rx="52" fill="hsl(0 0% 5%)" />
+          <!-- subtle inner stroke -->
+          <rect
+            width="240"
+            height="240"
+            rx="52"
+            fill="none"
+            stroke="hsl(0 0% 12%)"
+            stroke-width="1.5"
+          />
+
+          <!-- ── Service dots (left margin) ── -->
+          <!-- Claude dot -->
+          <circle cx="30" cy="92" r="4" fill="hsl(142 47% 42%)" opacity="0.9" />
+          <!-- Z.ai dot -->
+          <circle cx="30" cy="120" r="4" fill="hsl(38 75% 52%)" opacity="0.9" />
+          <!-- Amp dot -->
+          <circle cx="30" cy="148" r="4" fill="hsl(0 55% 52%)" opacity="0.9" />
+
+          <!-- ── Bar tracks ── -->
+          <rect
+            x="44"
+            y="82"
+            width="152"
+            height="20"
+            rx="10"
+            fill="hsl(0 0% 10%)"
+          />
+          <rect
+            x="44"
+            y="110"
+            width="152"
+            height="20"
+            rx="10"
+            fill="hsl(0 0% 10%)"
+          />
+          <rect
+            x="44"
+            y="138"
+            width="152"
+            height="20"
+            rx="10"
+            fill="hsl(0 0% 10%)"
+          />
+
+          <!-- ── Bar fills ── -->
+          <!-- Claude: 62% -->
+          <rect
+            x="44"
+            y="82"
+            width="94"
+            height="20"
+            rx="10"
+            fill="url(#g-claude)"
+            clip-path="url(#clip-claude)"
+            filter="url(#bar-glow)"
+          />
+          <!-- Z.ai: 83% -->
+          <rect
+            x="44"
+            y="110"
+            width="126"
+            height="20"
+            rx="10"
+            fill="url(#g-zai)"
+            clip-path="url(#clip-zai)"
+            filter="url(#bar-glow)"
+          />
+          <!-- Amp: 91% -->
+          <rect
+            x="44"
+            y="138"
+            width="138"
+            height="20"
+            rx="10"
+            fill="url(#g-amp)"
+            clip-path="url(#clip-amp)"
+            filter="url(#bar-glow)"
+          />
+
+          <!-- ── Live pulse dot (top-right) ── -->
+          <circle
+            cx="200"
+            cy="48"
+            r="6"
+            fill="hsl(142 47% 42%)"
+            opacity="0.25"
+          />
+          <circle cx="200" cy="48" r="3.5" fill="hsl(142 47% 48%)">
+            <animate
+              attributeName="opacity"
+              values="1;0.3;1"
+              dur="2.4s"
+              repeatCount="indefinite"
+            />
+          </circle>
+
+          <!-- ── "UB" monogram (bottom-right) ── -->
+          <text
+            x="198"
+            y="196"
+            font-family="'Satoshi', system-ui, sans-serif"
+            font-size="13"
+            font-weight="700"
+            fill="hsl(0 0% 28%)"
+            text-anchor="middle"
+            letter-spacing="-0.02em"
+          >
+            UB
+          </text>
+        </svg>
+      </div>
+
+      <!-- Wordmark -->
+      <div class="wordmark">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 36 36"
+          width="36"
+          height="36"
+        >
+          <rect width="36" height="36" rx="8" fill="hsl(0 0% 5%)" />
+          <rect
+            width="36"
+            height="36"
+            rx="8"
+            fill="none"
+            stroke="hsl(0 0% 14%)"
+            stroke-width="1"
+          />
+          <clipPath id="mc1">
+            <rect x="6" y="11.5" width="24" height="4" rx="2" />
+          </clipPath>
+          <clipPath id="mc2">
+            <rect x="6" y="16" width="24" height="4" rx="2" />
+          </clipPath>
+          <clipPath id="mc3">
+            <rect x="6" y="20.5" width="24" height="4" rx="2" />
+          </clipPath>
+          <rect
+            x="6"
+            y="11.5"
+            width="24"
+            height="4"
+            rx="2"
+            fill="hsl(0 0% 12%)"
+          />
+          <rect
+            x="6"
+            y="16"
+            width="24"
+            height="4"
+            rx="2"
+            fill="hsl(0 0% 12%)"
+          />
+          <rect
+            x="6"
+            y="20.5"
+            width="24"
+            height="4"
+            rx="2"
+            fill="hsl(0 0% 12%)"
+          />
+          <rect
+            x="6"
+            y="11.5"
+            width="14.5"
+            height="4"
+            rx="2"
+            fill="hsl(142 47% 42%)"
+            clip-path="url(#mc1)"
+          />
+          <rect
+            x="6"
+            y="16"
+            width="19.5"
+            height="4"
+            rx="2"
+            fill="hsl(38 75% 50%)"
+            clip-path="url(#mc2)"
+          />
+          <rect
+            x="6"
+            y="20.5"
+            width="21.5"
+            height="4"
+            rx="2"
+            fill="hsl(0 55% 52%)"
+            clip-path="url(#mc3)"
+          />
+        </svg>
+        <div>
+          <div class="wordmark-text">usage<span> bar</span></div>
+        </div>
+      </div>
+
+      <p class="tagline">Real-time AI usage — in your system tray</p>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ── SIZE VARIANTS ── -->
+    <div>
+      <p class="section-label">Size variants</p>
+      <div class="sizes">
+        <!-- 128px -->
+        <div class="size-item">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 240 240"
+            width="128"
+            height="128"
+          >
+            <defs>
+              <linearGradient id="s128-g1" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="hsl(142 47% 32%)" />
+                <stop offset="100%" stop-color="hsl(142 47% 48%)" />
+              </linearGradient>
+              <linearGradient id="s128-g2" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="hsl(142 47% 36%)" />
+                <stop offset="62%" stop-color="hsl(80 60% 44%)" />
+                <stop offset="100%" stop-color="hsl(38 75% 52%)" />
+              </linearGradient>
+              <linearGradient id="s128-g3" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="hsl(142 47% 36%)" />
+                <stop offset="55%" stop-color="hsl(38 75% 50%)" />
+                <stop offset="100%" stop-color="hsl(0 55% 52%)" />
+              </linearGradient>
+              <clipPath id="s128-c1">
+                <rect x="44" y="82" width="152" height="20" rx="10" />
+              </clipPath>
+              <clipPath id="s128-c2">
+                <rect x="44" y="110" width="152" height="20" rx="10" />
+              </clipPath>
+              <clipPath id="s128-c3">
+                <rect x="44" y="138" width="152" height="20" rx="10" />
+              </clipPath>
+            </defs>
+            <rect width="240" height="240" rx="52" fill="hsl(0 0% 5%)" />
+            <rect
+              width="240"
+              height="240"
+              rx="52"
+              fill="none"
+              stroke="hsl(0 0% 12%)"
+              stroke-width="1.5"
+            />
+            <circle
+              cx="30"
+              cy="92"
+              r="4"
+              fill="hsl(142 47% 42%)"
+              opacity="0.9"
+            />
+            <circle
+              cx="30"
+              cy="120"
+              r="4"
+              fill="hsl(38 75% 52%)"
+              opacity="0.9"
+            />
+            <circle
+              cx="30"
+              cy="148"
+              r="4"
+              fill="hsl(0 55% 52%)"
+              opacity="0.9"
+            />
+            <rect
+              x="44"
+              y="82"
+              width="152"
+              height="20"
+              rx="10"
+              fill="hsl(0 0% 10%)"
+            />
+            <rect
+              x="44"
+              y="110"
+              width="152"
+              height="20"
+              rx="10"
+              fill="hsl(0 0% 10%)"
+            />
+            <rect
+              x="44"
+              y="138"
+              width="152"
+              height="20"
+              rx="10"
+              fill="hsl(0 0% 10%)"
+            />
+            <rect
+              x="44"
+              y="82"
+              width="94"
+              height="20"
+              rx="10"
+              fill="url(#s128-g1)"
+              clip-path="url(#s128-c1)"
+            />
+            <rect
+              x="44"
+              y="110"
+              width="126"
+              height="20"
+              rx="10"
+              fill="url(#s128-g2)"
+              clip-path="url(#s128-c2)"
+            />
+            <rect
+              x="44"
+              y="138"
+              width="138"
+              height="20"
+              rx="10"
+              fill="url(#s128-g3)"
+              clip-path="url(#s128-c3)"
+            />
+            <circle cx="200" cy="48" r="3.5" fill="hsl(142 47% 48%)" />
+          </svg>
+          <span class="size-label">128px</span>
+        </div>
+
+        <!-- 64px -->
+        <div class="size-item">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 240 240"
+            width="64"
+            height="64"
+          >
+            <defs>
+              <linearGradient id="s64-g1" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="hsl(142 47% 32%)" />
+                <stop offset="100%" stop-color="hsl(142 47% 48%)" />
+              </linearGradient>
+              <linearGradient id="s64-g2" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="hsl(142 47% 36%)" />
+                <stop offset="62%" stop-color="hsl(80 60% 44%)" />
+                <stop offset="100%" stop-color="hsl(38 75% 52%)" />
+              </linearGradient>
+              <linearGradient id="s64-g3" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="hsl(142 47% 36%)" />
+                <stop offset="55%" stop-color="hsl(38 75% 50%)" />
+                <stop offset="100%" stop-color="hsl(0 55% 52%)" />
+              </linearGradient>
+              <clipPath id="s64-c1">
+                <rect x="44" y="82" width="152" height="20" rx="10" />
+              </clipPath>
+              <clipPath id="s64-c2">
+                <rect x="44" y="110" width="152" height="20" rx="10" />
+              </clipPath>
+              <clipPath id="s64-c3">
+                <rect x="44" y="138" width="152" height="20" rx="10" />
+              </clipPath>
+            </defs>
+            <rect width="240" height="240" rx="52" fill="hsl(0 0% 5%)" />
+            <rect
+              width="240"
+              height="240"
+              rx="52"
+              fill="none"
+              stroke="hsl(0 0% 12%)"
+              stroke-width="1.5"
+            />
+            <circle
+              cx="30"
+              cy="92"
+              r="4"
+              fill="hsl(142 47% 42%)"
+              opacity="0.9"
+            />
+            <circle
+              cx="30"
+              cy="120"
+              r="4"
+              fill="hsl(38 75% 52%)"
+              opacity="0.9"
+            />
+            <circle
+              cx="30"
+              cy="148"
+              r="4"
+              fill="hsl(0 55% 52%)"
+              opacity="0.9"
+            />
+            <rect
+              x="44"
+              y="82"
+              width="152"
+              height="20"
+              rx="10"
+              fill="hsl(0 0% 10%)"
+            />
+            <rect
+              x="44"
+              y="110"
+              width="152"
+              height="20"
+              rx="10"
+              fill="hsl(0 0% 10%)"
+            />
+            <rect
+              x="44"
+              y="138"
+              width="152"
+              height="20"
+              rx="10"
+              fill="hsl(0 0% 10%)"
+            />
+            <rect
+              x="44"
+              y="82"
+              width="94"
+              height="20"
+              rx="10"
+              fill="url(#s64-g1)"
+              clip-path="url(#s64-c1)"
+            />
+            <rect
+              x="44"
+              y="110"
+              width="126"
+              height="20"
+              rx="10"
+              fill="url(#s64-g2)"
+              clip-path="url(#s64-c2)"
+            />
+            <rect
+              x="44"
+              y="138"
+              width="138"
+              height="20"
+              rx="10"
+              fill="url(#s64-g3)"
+              clip-path="url(#s64-c3)"
+            />
+            <circle cx="200" cy="48" r="3.5" fill="hsl(142 47% 48%)" />
+          </svg>
+          <span class="size-label">64px</span>
+        </div>
+
+        <!-- 32px -->
+        <div class="size-item">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 240 240"
+            width="32"
+            height="32"
+          >
+            <defs>
+              <linearGradient id="s32-g1" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="hsl(142 47% 32%)" />
+                <stop offset="100%" stop-color="hsl(142 47% 48%)" />
+              </linearGradient>
+              <linearGradient id="s32-g2" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="hsl(142 47% 36%)" />
+                <stop offset="62%" stop-color="hsl(80 60% 44%)" />
+                <stop offset="100%" stop-color="hsl(38 75% 52%)" />
+              </linearGradient>
+              <linearGradient id="s32-g3" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="hsl(142 47% 36%)" />
+                <stop offset="55%" stop-color="hsl(38 75% 50%)" />
+                <stop offset="100%" stop-color="hsl(0 55% 52%)" />
+              </linearGradient>
+              <clipPath id="s32-c1">
+                <rect x="44" y="82" width="152" height="20" rx="10" />
+              </clipPath>
+              <clipPath id="s32-c2">
+                <rect x="44" y="110" width="152" height="20" rx="10" />
+              </clipPath>
+              <clipPath id="s32-c3">
+                <rect x="44" y="138" width="152" height="20" rx="10" />
+              </clipPath>
+            </defs>
+            <rect width="240" height="240" rx="52" fill="hsl(0 0% 5%)" />
+            <rect
+              width="240"
+              height="240"
+              rx="52"
+              fill="none"
+              stroke="hsl(0 0% 12%)"
+              stroke-width="1.5"
+            />
+            <circle
+              cx="30"
+              cy="92"
+              r="4"
+              fill="hsl(142 47% 42%)"
+              opacity="0.9"
+            />
+            <circle
+              cx="30"
+              cy="120"
+              r="4"
+              fill="hsl(38 75% 52%)"
+              opacity="0.9"
+            />
+            <circle
+              cx="30"
+              cy="148"
+              r="4"
+              fill="hsl(0 55% 52%)"
+              opacity="0.9"
+            />
+            <rect
+              x="44"
+              y="82"
+              width="152"
+              height="20"
+              rx="10"
+              fill="hsl(0 0% 10%)"
+            />
+            <rect
+              x="44"
+              y="110"
+              width="152"
+              height="20"
+              rx="10"
+              fill="hsl(0 0% 10%)"
+            />
+            <rect
+              x="44"
+              y="138"
+              width="152"
+              height="20"
+              rx="10"
+              fill="hsl(0 0% 10%)"
+            />
+            <rect
+              x="44"
+              y="82"
+              width="94"
+              height="20"
+              rx="10"
+              fill="url(#s32-g1)"
+              clip-path="url(#s32-c1)"
+            />
+            <rect
+              x="44"
+              y="110"
+              width="126"
+              height="20"
+              rx="10"
+              fill="url(#s32-g2)"
+              clip-path="url(#s32-c2)"
+            />
+            <rect
+              x="44"
+              y="138"
+              width="138"
+              height="20"
+              rx="10"
+              fill="url(#s32-g3)"
+              clip-path="url(#s32-c3)"
+            />
+            <circle cx="200" cy="48" r="3.5" fill="hsl(142 47% 48%)" />
+          </svg>
+          <span class="size-label">32px</span>
+        </div>
+
+        <!-- 16px -->
+        <div class="size-item">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 240 240"
+            width="16"
+            height="16"
+          >
+            <rect width="240" height="240" rx="52" fill="hsl(0 0% 5%)" />
+            <rect
+              x="44"
+              y="82"
+              width="152"
+              height="20"
+              rx="10"
+              fill="hsl(0 0% 10%)"
+            />
+            <rect
+              x="44"
+              y="110"
+              width="152"
+              height="20"
+              rx="10"
+              fill="hsl(0 0% 10%)"
+            />
+            <rect
+              x="44"
+              y="138"
+              width="152"
+              height="20"
+              rx="10"
+              fill="hsl(0 0% 10%)"
+            />
+            <rect
+              x="44"
+              y="82"
+              width="94"
+              height="20"
+              rx="10"
+              fill="hsl(142 47% 42%)"
+            />
+            <rect
+              x="44"
+              y="110"
+              width="126"
+              height="20"
+              rx="10"
+              fill="hsl(38 75% 50%)"
+            />
+            <rect
+              x="44"
+              y="138"
+              width="138"
+              height="20"
+              rx="10"
+              fill="hsl(0 55% 52%)"
+            />
+          </svg>
+          <span class="size-label">16px</span>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ── LOCKUPS ── -->
+    <div>
+      <p class="section-label">Lockup variants</p>
+      <div class="lockups">
+        <!-- Horizontal lockup -->
+        <div class="lockup-card">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 240 240"
+            width="40"
+            height="40"
+          >
+            <defs>
+              <clipPath id="lk-c1">
+                <rect x="44" y="82" width="152" height="20" rx="10" />
+              </clipPath>
+              <clipPath id="lk-c2">
+                <rect x="44" y="110" width="152" height="20" rx="10" />
+              </clipPath>
+              <clipPath id="lk-c3">
+                <rect x="44" y="138" width="152" height="20" rx="10" />
+              </clipPath>
+            </defs>
+            <rect width="240" height="240" rx="52" fill="hsl(0 0% 8%)" />
+            <circle cx="30" cy="92" r="4" fill="hsl(142 47% 42%)" />
+            <circle cx="30" cy="120" r="4" fill="hsl(38 75% 52%)" />
+            <circle cx="30" cy="148" r="4" fill="hsl(0 55% 52%)" />
+            <rect
+              x="44"
+              y="82"
+              width="152"
+              height="20"
+              rx="10"
+              fill="hsl(0 0% 13%)"
+            />
+            <rect
+              x="44"
+              y="110"
+              width="152"
+              height="20"
+              rx="10"
+              fill="hsl(0 0% 13%)"
+            />
+            <rect
+              x="44"
+              y="138"
+              width="152"
+              height="20"
+              rx="10"
+              fill="hsl(0 0% 13%)"
+            />
+            <rect
+              x="44"
+              y="82"
+              width="94"
+              height="20"
+              rx="10"
+              fill="hsl(142 47% 42%)"
+              clip-path="url(#lk-c1)"
+            />
+            <rect
+              x="44"
+              y="110"
+              width="126"
+              height="20"
+              rx="10"
+              fill="hsl(38 75% 50%)"
+              clip-path="url(#lk-c2)"
+            />
+            <rect
+              x="44"
+              y="138"
+              width="138"
+              height="20"
+              rx="10"
+              fill="hsl(0 55% 52%)"
+              clip-path="url(#lk-c3)"
+            />
+          </svg>
+          <div>
+            <div class="lockup-label">Usage Bar</div>
+            <div class="lockup-sub">Claude · Z.ai · Amp</div>
+          </div>
+        </div>
+
+        <!-- Dark card lockup -->
+        <div
+          class="lockup-card"
+          style="background: hsl(0 0% 3.9%); flex-direction: column; gap: 12px; padding: 24px 28px;"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 240 240"
+            width="56"
+            height="56"
+          >
+            <defs>
+              <linearGradient id="lk2-g1" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="hsl(142 47% 32%)" />
+                <stop offset="100%" stop-color="hsl(142 47% 52%)" />
+              </linearGradient>
+              <linearGradient id="lk2-g2" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="hsl(142 47% 36%)" />
+                <stop offset="100%" stop-color="hsl(38 75% 54%)" />
+              </linearGradient>
+              <linearGradient id="lk2-g3" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="hsl(38 75% 44%)" />
+                <stop offset="100%" stop-color="hsl(0 55% 56%)" />
+              </linearGradient>
+              <clipPath id="lk2-c1">
+                <rect x="44" y="82" width="152" height="20" rx="10" />
+              </clipPath>
+              <clipPath id="lk2-c2">
+                <rect x="44" y="110" width="152" height="20" rx="10" />
+              </clipPath>
+              <clipPath id="lk2-c3">
+                <rect x="44" y="138" width="152" height="20" rx="10" />
+              </clipPath>
+            </defs>
+            <rect width="240" height="240" rx="52" fill="hsl(0 0% 7%)" />
+            <rect
+              width="240"
+              height="240"
+              rx="52"
+              fill="none"
+              stroke="hsl(0 0% 14%)"
+              stroke-width="1.5"
+            />
+            <circle cx="30" cy="92" r="4" fill="hsl(142 47% 42%)" />
+            <circle cx="30" cy="120" r="4" fill="hsl(38 75% 52%)" />
+            <circle cx="30" cy="148" r="4" fill="hsl(0 55% 52%)" />
+            <rect
+              x="44"
+              y="82"
+              width="152"
+              height="20"
+              rx="10"
+              fill="hsl(0 0% 10%)"
+            />
+            <rect
+              x="44"
+              y="110"
+              width="152"
+              height="20"
+              rx="10"
+              fill="hsl(0 0% 10%)"
+            />
+            <rect
+              x="44"
+              y="138"
+              width="152"
+              height="20"
+              rx="10"
+              fill="hsl(0 0% 10%)"
+            />
+            <rect
+              x="44"
+              y="82"
+              width="94"
+              height="20"
+              rx="10"
+              fill="url(#lk2-g1)"
+              clip-path="url(#lk2-c1)"
+            />
+            <rect
+              x="44"
+              y="110"
+              width="126"
+              height="20"
+              rx="10"
+              fill="url(#lk2-g2)"
+              clip-path="url(#lk2-c2)"
+            />
+            <rect
+              x="44"
+              y="138"
+              width="138"
+              height="20"
+              rx="10"
+              fill="url(#lk2-g3)"
+              clip-path="url(#lk2-c3)"
+            />
+            <circle cx="200" cy="48" r="3.5" fill="hsl(142 47% 48%)">
+              <animate
+                attributeName="opacity"
+                values="1;0.2;1"
+                dur="2.4s"
+                repeatCount="indefinite"
+              />
+            </circle>
+          </svg>
+          <div style="text-align:center">
+            <div class="lockup-label" style="font-size:15px">usage bar</div>
+            <div class="lockup-sub">for your tray</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ── COLOR PALETTE ── -->
+    <div>
+      <p class="section-label">Brand palette</p>
+      <div class="palette">
+        <div class="swatch">
+          <div class="swatch-dot" style="background: hsl(0 0% 3.9%)"></div>
+          <span class="swatch-name">Background</span>
+        </div>
+        <div class="swatch">
+          <div class="swatch-dot" style="background: hsl(0 0% 7%)"></div>
+          <span class="swatch-name">Surface</span>
+        </div>
+        <div class="swatch">
+          <div class="swatch-dot" style="background: hsl(0 0% 14.9%)"></div>
+          <span class="swatch-name">Border</span>
+        </div>
+        <div class="swatch">
+          <div class="swatch-dot" style="background: hsl(0 0% 98%)"></div>
+          <span class="swatch-name">Foreground</span>
+        </div>
+        <div class="swatch">
+          <div class="swatch-dot" style="background: hsl(142 47% 40%)"></div>
+          <span class="swatch-name">Green</span>
+        </div>
+        <div class="swatch">
+          <div class="swatch-dot" style="background: hsl(38 75% 50%)"></div>
+          <span class="swatch-name">Amber</span>
+        </div>
+        <div class="swatch">
+          <div class="swatch-dot" style="background: hsl(0 55% 50%)"></div>
+          <span class="swatch-name">Red</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
