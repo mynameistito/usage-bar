@@ -15,7 +15,6 @@ import { execSync } from "node:child_process";
 import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-// Script is always invoked from the project root via `bun run release`.
 const root = process.cwd();
 
 const { version } = JSON.parse(

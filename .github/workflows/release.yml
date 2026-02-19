@@ -64,8 +64,11 @@ jobs:
             echo "released=false" >> "$GITHUB_OUTPUT"
             echo "tag=${tag}" >> "$GITHUB_OUTPUT"
           else
-            bun run release
-            echo "released=true" >> "$GITHUB_OUTPUT"
+            if bun run release; then
+              echo "released=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "released=false" >> "$GITHUB_OUTPUT"
+            fi
             echo "tag=${tag}" >> "$GITHUB_OUTPUT"
           fi
         env:
