@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2
+
+### Patch Changes
+
+- 814dfc1: Add CI workflow that runs TypeScript type checking (via tsgo), linting, and Rust checks (cargo check, clippy, fmt, tests) on pull requests
+
 ## 1.0.1
 
 ### Patch Changes
