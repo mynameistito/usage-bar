@@ -1,5 +1,5 @@
 # Icons
 
-The app icon is sourced directly from `../../assets/logo.svg` and configured in `tauri.conf.json`.
+The app icon files (`icon.png`, `icon.ico`) are referenced in `tauri.conf.json` under `bundle.icon`.
 
-No icon files are needed in this directory - Tauri 2 handles SVG rendering natively for both the window and system tray icon.
+These files are derived from `../../assets/logo.svg` but must be PNG/ICO format as required by Tauri's bundler.
