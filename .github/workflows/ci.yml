@@ -43,6 +43,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          save-always: true
       - name: Format check
         run: cargo fmt --check
       - name: Clippy
