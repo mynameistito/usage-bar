@@ -2,6 +2,8 @@
 
 A Windows system tray application that displays real-time API usage for that currently has; [Claude](https://claude.ai),  [z.ai](https://z.ai), and [AmpCode](https://ampcode.com).
 
+This app is still WIP with more providers to come and we are open for contributions.
+
 ## Prerequisites
 
 - Windows 10 v1809+ or Windows 11
