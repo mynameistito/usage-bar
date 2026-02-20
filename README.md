@@ -1,12 +1,11 @@
 # Usage Bar for Windows
 
-A Windows system tray application that displays real-time API usage for Claude (Anthropic), Z.ai, and Amp (ampcode.com).
+A Windows system tray application that displays real-time API usage for that currently has; [Claude](https://claude.ai),  [z.ai](https://z.ai), and [AmpCode](https://ampcode.com).
 
 ## Prerequisites
 
 - Windows 10 v1809+ or Windows 11
-- [Rust](https://www.rust-lang.org/) (latest stable)
-- [Bun](https://bun.sh/)
+
 
 ## Development
 
@@ -40,11 +39,11 @@ Built installers are placed in `src-tauri/target/release/bundle/`.
 
 ### Configuring Z.ai
 
-Open Settings, enter your Z.ai API key, and save. You can also pass the key as an environment variable using `{env:VAR_NAME}` or `$env:VAR_NAME` syntax.
+Open Settings, enter your Z.ai Coding Plan API key, and save. You can also pass the key as an environment variable using `{env:VAR_NAME}` or `$env:VAR_NAME` syntax.
 
 ### Configuring Amp
 
-Open Settings, enter your Amp session cookie, and save.
+Open Settings, Log into your Amp Account, goto Browser Dev Tools, and enter in your Cookie Session Token.
 
 ## Credential Storage
 
@@ -55,6 +54,8 @@ Open Settings, enter your Amp session cookie, and save.
 | Amp | Windows Credential Manager | `usage-bar-amp-credentials` |
 
 Claude credentials are read automatically — no configuration needed if Claude Code is installed and authenticated.
+
+**All data is stored locally, and only used to check usages.
 
 ## Troubleshooting
 
@@ -84,3 +85,6 @@ bun run version
 ```
 
 The `version` command automatically syncs the version from `package.json` into `src-tauri/Cargo.toml`.
+
+### Liscence
+MIT
