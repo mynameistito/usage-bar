@@ -6,7 +6,7 @@ rustflags = ["-C", "codegen-units=16"]
 
 # Target-specific optimizations
 [target.x86_64-pc-windows-msvc]
-rustflags = ["-C", "target-cpu=native", "-C", "codegen-units=16"]
+rustflags = ["-C", "codegen-units=16"]
 
 [target.aarch64-pc-windows-msvc]
 rustflags = ["-C", "codegen-units=16"]

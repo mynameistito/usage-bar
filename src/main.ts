@@ -345,6 +345,8 @@ async function loadContent() {
   } catch (error) {
     console.error("Failed to load content:", error);
     loading.innerHTML = "<span>Failed to load</span>";
+    const { getCurrentWindow } = await import("@tauri-apps/api/window");
+    await getCurrentWindow().show();
   }
 
   quitButton.addEventListener("click", async () => {
