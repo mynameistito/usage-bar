@@ -372,9 +372,11 @@ function createZaiInputState(
       if (!isEnvVar) {
         await callbacks.validateZaiApiKey(apiKey);
       }
+      saveButton.textContent = "Saving...";
       await callbacks.saveZaiApiKey(apiKey);
       await callbacks.onZaiKeyChanged();
-      rebuildZaiSection(section, callbacks, true);
+      const hasKeyNow = await callbacks.checkZaiApiKey();
+      rebuildZaiSection(section, callbacks, hasKeyNow);
     } catch (error) {
       setValidationState(false, String(error));
     }
@@ -582,7 +584,8 @@ function createAmpInputState(
       saveButton.textContent = "Saving...";
       await callbacks.saveAmpSessionCookie(cookie);
       await callbacks.onAmpCookieChanged();
-      rebuildAmpSection(section, callbacks, true);
+      const hasCookieNow = await callbacks.checkAmpSessionCookie();
+      rebuildAmpSection(section, callbacks, hasCookieNow);
     } catch (error) {
       errorElement.textContent = String(error);
       errorElement.style.display = "block";

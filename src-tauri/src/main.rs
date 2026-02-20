@@ -77,8 +77,9 @@ async fn main() -> anyhow::Result<()> {
                 // Handle window close event for graceful shutdown
                 let window_clone = window.clone();
                 window.on_window_event(move |event| {
-                    if let tauri::WindowEvent::CloseRequested { .. } = event {
-                        debug_app!("Window close requested, exiting gracefully");
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        debug_app!("Window close requested, hiding to tray");
+                        api.prevent_close();
                         if window_clone.hide().is_err() {
                             debug_error!("Failed to hide window");
                         }

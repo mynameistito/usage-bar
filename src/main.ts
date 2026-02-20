@@ -333,6 +333,8 @@ async function loadContent() {
     const savedTab = localStorage.getItem("activeTab");
     if (savedTab === "zai" || savedTab === "amp") {
       switchTab(savedTab as "zai" | "amp");
+    } else {
+      switchTab("claude");
     }
 
     startPolling();
@@ -345,6 +347,8 @@ async function loadContent() {
   } catch (error) {
     console.error("Failed to load content:", error);
     loading.innerHTML = "<span>Failed to load</span>";
+    const { getCurrentWindow } = await import("@tauri-apps/api/window");
+    await getCurrentWindow().show();
   }
 
   quitButton.addEventListener("click", async () => {
