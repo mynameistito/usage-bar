@@ -333,6 +333,8 @@ async function loadContent() {
     const savedTab = localStorage.getItem("activeTab");
     if (savedTab === "zai" || savedTab === "amp") {
       switchTab(savedTab as "zai" | "amp");
+    } else {
+      switchTab("claude");
     }
 
     startPolling();
