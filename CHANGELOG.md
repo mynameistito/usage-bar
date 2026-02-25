@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.8
+
+### Patch Changes
+
+- 21f2cf6: dep update
+
 ## 1.0.7
 
 ### Patch Changes
