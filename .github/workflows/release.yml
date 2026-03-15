@@ -21,7 +21,7 @@ jobs:
       tag: ${{ steps.tag-release.outputs.tag }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           # Full history is required so changeset can diff against the base.
           fetch-depth: 0
@@ -96,7 +96,7 @@ jobs:
       CARGO_INCREMENTAL: "0"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ needs.release.outputs.tag }}
 
