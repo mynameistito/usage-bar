@@ -34,17 +34,17 @@
     "@tauri-apps/api": "^2.10.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.4",
-    "@changesets/cli": "^2.29.8",
-    "@tailwindcss/vite": "^4.2.1",
-    "@tauri-apps/cli": "^2.10.0",
-    "@typescript/native-preview": "^7.0.0-dev.20260225.1",
-    "lefthook": "^2.1.1",
-    "serve": "^14.2.5",
+    "@biomejs/biome": "2.4.8",
+    "@changesets/cli": "^2.30.0",
+    "@tailwindcss/vite": "^4.2.2",
+    "@tauri-apps/cli": "^2.10.1",
+    "@typescript/native-preview": "^7.0.0-dev.20260324.1",
+    "lefthook": "^2.1.4",
+    "serve": "^14.2.6",
     "sharp": "^0.34.5",
-    "tailwindcss": "^4.2.1",
-    "ultracite": "7.2.3",
-    "vite": "^7.3.1"
+    "tailwindcss": "^4.2.2",
+    "ultracite": "7.3.2",
+    "vite": "^8.0.2"
   },
   "overrides": {
     "ajv": "^8.18.0",
