@@ -31,19 +31,19 @@
     "regenerate-icon": "node scripts/svg-to-png.js"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.10.1"
+    "@tauri-apps/api": "^2.11.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.13",
     "@changesets/cli": "^2.31.0",
     "@tailwindcss/vite": "^4.2.4",
-    "@tauri-apps/cli": "^2.10.1",
-    "@typescript/native-preview": "^7.0.0-dev.20260425.1",
+    "@tauri-apps/cli": "^2.11.0",
+    "@typescript/native-preview": "^7.0.0-dev.20260430.1",
     "lefthook": "^2.1.6",
     "serve": "^14.2.6",
     "sharp": "^0.34.5",
     "tailwindcss": "^4.2.4",
-    "ultracite": "7.6.1",
+    "ultracite": "7.6.2",
     "vite": "^8.0.10"
   },
   "overrides": {
