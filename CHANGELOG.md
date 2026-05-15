@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.9
+
+### Patch Changes
+
+- 9d64e2f: Updated dependencies:
+  - @tauri-apps/api: ^2.10.1 → ^2.11.0
+
 ## 1.0.8
 
 ### Patch Changes
