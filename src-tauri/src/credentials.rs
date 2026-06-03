@@ -124,9 +124,7 @@ impl CredentialManager {
                 debug_cred!("Resolving env variable: {original_var_name}");
                 return std::env::var(original_var_name)
                     .inspect(|_v| {
-                        debug_cred!(
-                            "Resolved env variable {original_var_name}: ***REDACTED***"
-                        );
+                        debug_cred!("Resolved env variable {original_var_name}: ***REDACTED***");
                     })
                     .map_err(|_| {
                         debug_cred!("Failed to resolve env variable: {original_var_name}");
@@ -148,9 +146,7 @@ impl CredentialManager {
             debug_cred!("Resolving env variable: {original_var_name}");
             return std::env::var(original_var_name)
                 .inspect(|_v| {
-                    debug_cred!(
-                        "Resolved env variable {original_var_name}: ***REDACTED***"
-                    );
+                    debug_cred!("Resolved env variable {original_var_name}: ***REDACTED***");
                 })
                 .map_err(|_| {
                     debug_cred!("Failed to resolve env variable: {original_var_name}");
@@ -237,9 +233,8 @@ impl CredentialManager {
         let mut root: serde_json::Value = if path.exists() {
             let existing = fs::read_to_string(&path)
                 .map_err(|e| anyhow!("Failed to read credentials file: {e}"))?;
-            serde_json::from_str(&existing).map_err(|e| {
-                anyhow!("Failed to parse credentials file (may be corrupted): {e}")
-            })?
+            serde_json::from_str(&existing)
+                .map_err(|e| anyhow!("Failed to parse credentials file (may be corrupted): {e}"))?
         } else {
             serde_json::json!({})
         };
@@ -324,14 +319,13 @@ impl CredentialManager {
     pub fn amp_read_session_cookie() -> Result<String> {
         if let Some(cached) = with_cache(|c| c.amp_get()) {
             debug_cred!("Returning cached Amp session cookie");
-            return cached
-                .map_err(|e| anyhow!("Cached Amp session cookie resolution failed: {e}"));
+            return cached.map_err(|e| anyhow!("Cached Amp session cookie resolution failed: {e}"));
         }
 
         let blob = Self::read_credential(Self::AMP_TARGET)?;
 
-        let cookie_str = String::from_utf8(blob)
-            .map_err(|e| anyhow!("Failed to decode session cookie: {e}"))?;
+        let cookie_str =
+            String::from_utf8(blob).map_err(|e| anyhow!("Failed to decode session cookie: {e}"))?;
 
         with_cache(|c| c.amp_set(Ok(cookie_str.clone())));
 

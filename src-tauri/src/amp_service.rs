@@ -165,7 +165,9 @@ impl AmpService {
 
         let start = obj_start.ok_or_else(|| {
             let html_len = html.len();
-            anyhow!("Could not find freeTierUsage in {html_len}-byte response from {AMP_SETTINGS_URL}")
+            anyhow!(
+                "Could not find freeTierUsage in {html_len}-byte response from {AMP_SETTINGS_URL}"
+            )
         })?;
 
         // JavaScript object literal, not valid JSON (unquoted keys, trailing commas possible),
