@@ -25,7 +25,7 @@ jobs:
         run: bun run check
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
-          toolchain: 1.86.0
+          toolchain: 1.88.0
           components: rustfmt
       - name: Rust format check
         working-directory: src-tauri
@@ -48,7 +48,7 @@ jobs:
         run: bun install --frozen-lockfile
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
-          toolchain: 1.86.0
+          toolchain: 1.88.0
           components: clippy
       - uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc # v2.9.1
         with:
