@@ -41,7 +41,7 @@ async fn main() -> anyhow::Result<()> {
             let client = reqwest::Client::builder()
                 .timeout(Duration::from_secs(15))
                 .build()
-                .map_err(|e| anyhow::anyhow!("Failed to build HTTP client: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("Failed to build HTTP client: {e}"))?;
             app.manage(HttpClient(Arc::new(client)));
             debug_app!("HTTP client initialized (timeout: 15s, redirects enabled)");
 
@@ -55,7 +55,7 @@ async fn main() -> anyhow::Result<()> {
                 .redirect(reqwest::redirect::Policy::none())
                 .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36")
                 .build()
-                .map_err(|e| anyhow::anyhow!("Failed to build Amp HTTP client: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("Failed to build Amp HTTP client: {e}"))?;
             app.manage(AmpHttpClient(Arc::new(amp_client)));
             debug_app!("Amp HTTP client initialized (timeout: 15s, redirects disabled)");
 
@@ -152,7 +152,7 @@ async fn main() -> anyhow::Result<()> {
         ])
         .run(tauri::generate_context!())
         .map_err(|e| {
-            eprintln!("error while running tauri application: {}", e);
+            eprintln!("error while running tauri application: {e}");
             anyhow::anyhow!("Failed to run application")
         })?;
     Ok(())

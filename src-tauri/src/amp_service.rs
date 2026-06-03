@@ -42,22 +42,22 @@ impl AmpService {
                     ));
                 }
             }
-            return Err(anyhow!(
-                "Amp: Unexpected redirect (HTTP {})",
-                status.as_u16()
-            ));
+            let status_code = status.as_u16();
+            return Err(anyhow!("Amp: Unexpected redirect (HTTP {status_code})"));
         }
 
         if status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN {
-            debug_error!("Amp auth error (HTTP {})", status.as_u16());
+            let status_code = status.as_u16();
+            debug_error!("Amp auth error (HTTP {status_code})");
             return Err(anyhow!(
                 "Amp session invalid — please update your session cookie"
             ));
         }
 
         if !status.is_success() {
-            debug_error!("Amp request failed (HTTP {})", status.as_u16());
-            return Err(anyhow!("Amp: Failed to fetch settings (HTTP {})", status));
+            let status_code = status.as_u16();
+            debug_error!("Amp request failed (HTTP {status_code})");
+            return Err(anyhow!("Amp: Failed to fetch settings (HTTP {status})"));
         }
 
         Ok(())
@@ -65,14 +65,14 @@ impl AmpService {
 
     pub async fn amp_fetch_usage(client: &Arc<reqwest::Client>) -> Result<AmpUsageData> {
         debug_amp!("amp_fetch_usage: Starting request");
-        debug_net!("GET {}", AMP_SETTINGS_URL);
+        debug_net!("GET {AMP_SETTINGS_URL}");
 
         let session_cookie = CredentialManager::amp_read_session_cookie()?;
         debug_amp!("Using session cookie: ***REDACTED***");
 
         let response = client
             .get(AMP_SETTINGS_URL)
-            .header("Cookie", format!("session={}", session_cookie))
+            .header("Cookie", format!("session={session_cookie}"))
             .header(
                 "Accept",
                 "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -82,13 +82,16 @@ impl AmpService {
             .send()
             .await?;
 
-        debug_net!("Response status: {}", response.status());
+        let status = response.status();
+        debug_net!("Response status: {status}");
 
         Self::check_response_validity(&response)?;
 
         let body = response.text().await?;
-        debug_amp!("Response body length: {} bytes", body.len());
-        debug_amp!("Response preview: {:?}", &body[..body.len().min(100)]);
+        let body_len = body.len();
+        let body_preview = &body[..body_len.min(100)];
+        debug_amp!("Response body length: {body_len} bytes");
+        debug_amp!("Response preview: {body_preview:?}");
 
         // Check for login page content (more specific markers)
         let body_lower = body.to_lowercase();
@@ -151,7 +154,7 @@ impl AmpService {
                     let after_sep = after_sep.trim_start();
                     if after_sep.starts_with('{') {
                         let brace_offset = html.len() - after_sep.len();
-                        debug_amp!("Found '{}' at position {}", term, abs_pos);
+                        debug_amp!("Found '{term}' at position {abs_pos}");
                         obj_start = Some(brace_offset);
                         break 'outer;
                     }
@@ -161,11 +164,8 @@ impl AmpService {
         }
 
         let start = obj_start.ok_or_else(|| {
-            anyhow!(
-                "Could not find freeTierUsage in {}-byte response from {}",
-                html.len(),
-                AMP_SETTINGS_URL
-            )
+            let html_len = html.len();
+            anyhow!("Could not find freeTierUsage in {html_len}-byte response from {AMP_SETTINGS_URL}")
         })?;
 
         // JavaScript object literal, not valid JSON (unquoted keys, trailing commas possible),
@@ -195,7 +195,7 @@ impl AmpService {
         }
 
         let obj_str = &html[start..end];
-        debug_amp!("Extracted object: {}", obj_str);
+        debug_amp!("Extracted object: {obj_str}");
 
         // Extract numeric values using regex
         let quota_raw = Self::extract_number(obj_str, &RE_QUOTA, "quota")?;
@@ -204,11 +204,7 @@ impl AmpService {
         let window_hours = Self::extract_number_optional(obj_str, &RE_WINDOW_HOURS);
 
         debug_amp!(
-            "Parsed raw: quota={}, used={}, hourlyReplenishment={}, windowHours={:?}",
-            quota_raw,
-            used_raw,
-            hourly_raw,
-            window_hours
+            "Parsed raw: quota={quota_raw}, used={used_raw}, hourlyReplenishment={hourly_raw}, windowHours={window_hours:?}"
         );
 
         // Convert cents to dollars
@@ -218,9 +214,7 @@ impl AmpService {
 
         if quota > 10_000.0 {
             debug_amp!(
-                "Warning: unusually high quota value {} (raw {}); check cents assumption",
-                quota,
-                quota_raw
+                "Warning: unusually high quota value {quota} (raw {quota_raw}); check cents assumption"
             );
         }
 
@@ -261,10 +255,10 @@ impl AmpService {
     fn extract_number(obj: &str, re: &Regex, field_name: &str) -> Result<f64> {
         let caps = re
             .captures(obj)
-            .ok_or_else(|| anyhow!("Field '{}' not found in freeTierUsage object", field_name))?;
+            .ok_or_else(|| anyhow!("Field '{field_name}' not found in freeTierUsage object"))?;
         caps[1]
             .parse::<f64>()
-            .map_err(|e| anyhow!("Failed to parse '{}' value: {}", field_name, e))
+            .map_err(|e| anyhow!("Failed to parse '{field_name}' value: {e}"))
     }
 
     fn extract_number_optional(obj: &str, re: &Regex) -> Option<f64> {
@@ -280,7 +274,7 @@ impl AmpService {
     ) -> Result<()> {
         let response = client
             .get(AMP_SETTINGS_URL)
-            .header("Cookie", format!("session={}", cookie))
+            .header("Cookie", format!("session={cookie}"))
             .header(
                 "Accept",
                 "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -321,7 +315,7 @@ mod tests {
         let result = AmpService::parse_free_tier_usage(html);
         assert!(result.is_err());
         let msg = result.unwrap_err().to_string();
-        assert!(msg.contains("quota"), "Expected quota error, got: {}", msg);
+        assert!(msg.contains("quota"), "Expected quota error, got: {msg}");
     }
 
     #[test]
@@ -345,8 +339,7 @@ mod tests {
         let msg = result.unwrap_err().to_string();
         assert!(
             msg.contains("Malformed") || msg.contains("unmatched"),
-            "Expected brace error, got: {}",
-            msg
+            "Expected brace error, got: {msg}"
         );
     }
 

@@ -55,6 +55,6 @@ jobs:
           workspaces: src-tauri
           save-always: true
       - name: Clippy
-        run: cargo clippy --all-targets -- -D warnings -A clippy::uninlined_format_args
+        run: cargo clippy --all-targets -- -D warnings
       - name: Tests
         run: cargo test

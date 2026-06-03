@@ -121,17 +121,16 @@ impl CredentialManager {
                     .or_else(|| input.strip_prefix("{ENV:"))
                     .and_then(|s| s.strip_suffix('}'))
                     .unwrap_or("");
-                debug_cred!("Resolving env variable: {}", original_var_name);
+                debug_cred!("Resolving env variable: {original_var_name}");
                 return std::env::var(original_var_name)
                     .inspect(|_v| {
                         debug_cred!(
-                            "Resolved env variable {}: ***REDACTED***",
-                            original_var_name
+                            "Resolved env variable {original_var_name}: ***REDACTED***"
                         );
                     })
                     .map_err(|_| {
-                        debug_cred!("Failed to resolve env variable: {}", original_var_name);
-                        anyhow!("Environment variable '{}' not found", original_var_name)
+                        debug_cred!("Failed to resolve env variable: {original_var_name}");
+                        anyhow!("Environment variable '{original_var_name}' not found")
                     });
             }
         }
@@ -146,17 +145,16 @@ impl CredentialManager {
                 .map(|(i, _)| prefix_end + i)
                 .unwrap_or(input.len());
             let original_var_name = &input[prefix_end_char..]; // Skip prefix, keep everything after
-            debug_cred!("Resolving env variable: {}", original_var_name);
+            debug_cred!("Resolving env variable: {original_var_name}");
             return std::env::var(original_var_name)
                 .inspect(|_v| {
                     debug_cred!(
-                        "Resolved env variable {}: ***REDACTED***",
-                        original_var_name
+                        "Resolved env variable {original_var_name}: ***REDACTED***"
                     );
                 })
                 .map_err(|_| {
-                    debug_cred!("Failed to resolve env variable: {}", original_var_name);
-                    anyhow!("Environment variable '{}' not found", original_var_name)
+                    debug_cred!("Failed to resolve env variable: {original_var_name}");
+                    anyhow!("Environment variable '{original_var_name}' not found")
                 });
         }
 
@@ -170,25 +168,19 @@ impl CredentialManager {
         let home = std::env::var_os("USERPROFILE")
             .map(PathBuf::from)
             .ok_or_else(|| anyhow!("USERPROFILE environment variable not set"))?;
-        debug_cred!("USERPROFILE: {:?}", home);
+        debug_cred!("USERPROFILE: {home:?}");
 
         let claude_dir = home.join(".claude");
-        debug_cred!("claude_dir: {:?}", claude_dir);
+        debug_cred!("claude_dir: {claude_dir:?}");
 
         // Check both possible filenames — .credentials.json (dot prefix) and credentials.json
         let dot_path = claude_dir.join(".credentials.json");
         let plain_path = claude_dir.join("credentials.json");
 
-        debug_cred!(
-            "Checking dot_path: {:?} exists: {}",
-            dot_path,
-            dot_path.exists()
-        );
-        debug_cred!(
-            "Checking plain_path: {:?} exists: {}",
-            plain_path,
-            plain_path.exists()
-        );
+        let dot_path_exists = dot_path.exists();
+        let plain_path_exists = plain_path.exists();
+        debug_cred!("Checking dot_path: {dot_path:?} exists: {dot_path_exists}");
+        debug_cred!("Checking plain_path: {plain_path:?} exists: {plain_path_exists}");
 
         if dot_path.exists() {
             debug_cred!("Using dot_path");
@@ -213,22 +205,22 @@ impl CredentialManager {
         }
 
         let path = Self::claude_credentials_path()?;
-        debug_cred!("Reading credentials from: {:?}", path);
+        debug_cred!("Reading credentials from: {path:?}");
 
         let json_str = fs::read_to_string(&path).map_err(|e| {
-            debug_cred!("Failed to read file: {}", e);
+            debug_cred!("Failed to read file: {e}");
+            let path_display = path.display();
             anyhow!(
-                "Credential not found: failed to read {}. {}. \
-                 Make sure you are logged in to Claude Code.",
-                path.display(),
-                e
+                "Credential not found: failed to read {path_display}. {e}. \
+                 Make sure you are logged in to Claude Code."
             )
         })?;
-        debug_cred!("Read {} bytes from credentials file", json_str.len());
+        let json_len = json_str.len();
+        debug_cred!("Read {json_len} bytes from credentials file");
 
         let credentials: ClaudeOAuthCredentials = serde_json::from_str(&json_str).map_err(|e| {
-            debug_cred!("Failed to parse JSON: {}", e);
-            anyhow!("Failed to parse Claude credentials: {}", e)
+            debug_cred!("Failed to parse JSON: {e}");
+            anyhow!("Failed to parse Claude credentials: {e}")
         })?;
         debug_cred!("Successfully parsed credentials");
 
@@ -244,9 +236,9 @@ impl CredentialManager {
         // Read existing file to preserve fields we don't model (file belongs to Claude Code)
         let mut root: serde_json::Value = if path.exists() {
             let existing = fs::read_to_string(&path)
-                .map_err(|e| anyhow!("Failed to read credentials file: {}", e))?;
+                .map_err(|e| anyhow!("Failed to read credentials file: {e}"))?;
             serde_json::from_str(&existing).map_err(|e| {
-                anyhow!("Failed to parse credentials file (may be corrupted): {}", e)
+                anyhow!("Failed to parse credentials file (may be corrupted): {e}")
             })?
         } else {
             serde_json::json!({})
@@ -254,25 +246,25 @@ impl CredentialManager {
 
         // Update only the claudeAiOauth subtree
         let oauth_value = serde_json::to_value(&credentials.claude_ai_oauth)
-            .map_err(|e| anyhow!("Failed to serialize credentials: {}", e))?;
+            .map_err(|e| anyhow!("Failed to serialize credentials: {e}"))?;
         root["claudeAiOauth"] = oauth_value;
 
         // Ensure directory exists
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)
-                .map_err(|e| anyhow!("Failed to create .claude directory: {}", e))?;
+                .map_err(|e| anyhow!("Failed to create .claude directory: {e}"))?;
         }
 
         let json_str = serde_json::to_string_pretty(&root)
-            .map_err(|e| anyhow!("Failed to serialize credentials: {}", e))?;
+            .map_err(|e| anyhow!("Failed to serialize credentials: {e}"))?;
 
         // Atomic write: temp file + rename
         let temp_path = path.with_extension("json.tmp");
         fs::write(&temp_path, &json_str)
-            .map_err(|e| anyhow!("Failed to write credentials: {}", e))?;
+            .map_err(|e| anyhow!("Failed to write credentials: {e}"))?;
         fs::rename(&temp_path, &path).map_err(|e| {
             let _ = fs::remove_file(&temp_path);
-            anyhow!("Failed to save credentials: {}", e)
+            anyhow!("Failed to save credentials: {e}")
         })?;
 
         // Invalidate cache after writing new credentials
@@ -297,13 +289,13 @@ impl CredentialManager {
         // Check cache first - cache stores the resolved API key result
         if let Some(cached) = with_cache(|c| c.zai_get()) {
             debug_cred!("Returning cached Z.ai API key");
-            return cached.map_err(|e| anyhow!("Cached Z.ai API key resolution failed: {}", e));
+            return cached.map_err(|e| anyhow!("Cached Z.ai API key resolution failed: {e}"));
         }
 
         let blob = Self::read_credential(Self::ZAI_TARGET)?;
 
         let key_str =
-            String::from_utf8(blob).map_err(|e| anyhow!("Failed to decode API key: {}", e))?;
+            String::from_utf8(blob).map_err(|e| anyhow!("Failed to decode API key: {e}"))?;
 
         // Resolve environment variable if using {env:varname} syntax
         let key = Self::resolve_env_reference(&key_str)?;
@@ -333,13 +325,13 @@ impl CredentialManager {
         if let Some(cached) = with_cache(|c| c.amp_get()) {
             debug_cred!("Returning cached Amp session cookie");
             return cached
-                .map_err(|e| anyhow!("Cached Amp session cookie resolution failed: {}", e));
+                .map_err(|e| anyhow!("Cached Amp session cookie resolution failed: {e}"));
         }
 
         let blob = Self::read_credential(Self::AMP_TARGET)?;
 
         let cookie_str = String::from_utf8(blob)
-            .map_err(|e| anyhow!("Failed to decode session cookie: {}", e))?;
+            .map_err(|e| anyhow!("Failed to decode session cookie: {e}"))?;
 
         with_cache(|c| c.amp_set(Ok(cookie_str.clone())));
 
@@ -406,7 +398,7 @@ impl CredentialManager {
             );
 
             if result.is_err() {
-                return Err(anyhow!("Credential not found: {}", target_name));
+                return Err(anyhow!("Credential not found: {target_name}"));
             }
 
             let blob = std::slice::from_raw_parts(
@@ -444,7 +436,7 @@ impl CredentialManager {
             let result = CredWriteW(&credential, 0);
 
             if result.is_err() {
-                return Err(anyhow!("Failed to write credential: {}", target_name));
+                return Err(anyhow!("Failed to write credential: {target_name}"));
             }
 
             Ok(())
@@ -462,7 +454,7 @@ impl CredentialManager {
             );
 
             if result.is_err() {
-                return Err(anyhow!("Failed to delete credential: {}", target_name));
+                return Err(anyhow!("Failed to delete credential: {target_name}"));
             }
 
             Ok(())
