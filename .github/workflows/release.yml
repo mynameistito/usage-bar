@@ -17,9 +17,6 @@ jobs:
     env:
       LEFTHOOK: 0           # disable git hooks in CI
       CARGO_INCREMENTAL: "0"
-      # changesets/action writes .netrc under HOME, which is not set on
-      # windows-latest in this workflow context.
-      HOME: ${{ runner.temp }}
 
     steps:
       - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
@@ -58,5 +55,8 @@ jobs:
           title: "chore: version packages"
           commit: "chore: version packages"
         env:
+          # changesets/action writes .netrc under HOME, which is not set on
+          # windows-latest in this workflow context.
+          HOME: ${{ runner.temp }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
