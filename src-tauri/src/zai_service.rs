@@ -13,7 +13,7 @@ pub struct ZaiService;
 impl ZaiService {
     pub async fn zai_fetch_quota(client: Arc<reqwest::Client>) -> Result<ZaiUsageData> {
         debug_zai!("zai_fetch_quota: Starting request");
-        debug_net!("GET {}", ZAI_API_URL);
+        debug_net!("GET {ZAI_API_URL}");
 
         let api_key = CredentialManager::zai_read_api_key()?;
         debug_zai!("Using API key: ***REDACTED***");
@@ -26,7 +26,8 @@ impl ZaiService {
             .send()
             .await?;
 
-        debug_net!("Response status: {}", response.status());
+        let status = response.status();
+        debug_net!("Response status: {status}");
 
         match response.status() {
             StatusCode::UNAUTHORIZED => {
@@ -58,20 +59,16 @@ impl ZaiService {
 
     async fn handle_response(response: reqwest::Response) -> Result<ZaiUsageData> {
         let response_text = response.text().await?;
-        debug_zai!("Response body: {}", response_text);
+        debug_zai!("Response body: {response_text}");
 
         // Check for error responses in the body
         if response_text.contains("\"success\":false") {
-            return Err(anyhow!("Z.ai API error: {}", response_text));
+            return Err(anyhow!("Z.ai API error: {response_text}"));
         }
 
         let quota_response: ZaiQuotaResponse =
             serde_json::from_str(&response_text).map_err(|e| {
-                anyhow!(
-                    "Failed to parse quota response: {}\nResponse: {}",
-                    e,
-                    response_text
-                )
+                anyhow!("Failed to parse quota response: {e}\nResponse: {response_text}")
             })?;
 
         let mut token_usage: Option<TokenUsage> = None;
@@ -112,7 +109,7 @@ impl ZaiService {
             } else {
                 None
             };
-            debug_zai!("Inferred tier: {:?} from time_limit_total={}", tier, total);
+            debug_zai!("Inferred tier: {tier:?} from time_limit_total={total}");
             tier
         });
 
@@ -151,7 +148,7 @@ impl ZaiService {
         // Resolve environment variable if using {env:varname} syntax
         let api_key = CredentialManager::resolve_env_reference(api_key)?;
 
-        debug_net!("GET {} (validating key)", ZAI_API_URL);
+        debug_net!("GET {ZAI_API_URL} (validating key)");
 
         let response = client
             .get(ZAI_API_URL)
@@ -161,17 +158,18 @@ impl ZaiService {
             .send()
             .await
             .map_err(|e| {
-                debug_error!("Network error during validation: {}", e);
+                debug_error!("Network error during validation: {e}");
                 if e.is_timeout() {
                     anyhow!("Connection timed out - check your network")
                 } else if e.is_connect() {
                     anyhow!("Could not connect to Z.AI - check your network")
                 } else {
-                    anyhow!("Network error: {}", e)
+                    anyhow!("Network error: {e}")
                 }
             })?;
 
-        debug_net!("Validation response status: {}", response.status());
+        let status = response.status();
+        debug_net!("Validation response status: {status}");
 
         match response.status() {
             StatusCode::UNAUTHORIZED => {
@@ -195,7 +193,7 @@ impl ZaiService {
                 let body = response
                     .text()
                     .await
-                    .map_err(|e| anyhow!("Failed to read response: {}", e))?;
+                    .map_err(|e| anyhow!("Failed to read response: {e}"))?;
 
                 if body.contains("\"error\"") {
                     return Err(anyhow!("Invalid API key"));
@@ -207,10 +205,10 @@ impl ZaiService {
 
                 Ok(())
             }
-            _ => Err(anyhow!(
-                "Failed to validate API key (HTTP {})",
-                response.status()
-            )),
+            _ => {
+                let status = response.status();
+                Err(anyhow!("Failed to validate API key (HTTP {status})"))
+            }
         }
     }
 }

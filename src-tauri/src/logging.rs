@@ -18,7 +18,12 @@ pub const COLOR_GRAY: &str = "\x1b[90m"; // Timestamps
 #[cfg(debug_assertions)]
 macro_rules! debug_app {
     ($($arg:tt)*) => {
-        println!("{}[APP]{} {}", $crate::COLOR_CYAN, $crate::COLOR_RESET, format!($($arg)*));
+        println!(
+            "{color}[APP]{reset} {message}",
+            color = $crate::COLOR_CYAN,
+            reset = $crate::COLOR_RESET,
+            message = format!($($arg)*)
+        );
     };
 }
 
@@ -33,7 +38,12 @@ macro_rules! debug_app {
 #[cfg(debug_assertions)]
 macro_rules! debug_claude {
     ($($arg:tt)*) => {
-        println!("{}[CLAUDE]{} {}", $crate::COLOR_GREEN, $crate::COLOR_RESET, format!($($arg)*));
+        println!(
+            "{color}[CLAUDE]{reset} {message}",
+            color = $crate::COLOR_GREEN,
+            reset = $crate::COLOR_RESET,
+            message = format!($($arg)*)
+        );
     };
 }
 
@@ -48,7 +58,12 @@ macro_rules! debug_claude {
 #[cfg(debug_assertions)]
 macro_rules! debug_zai {
     ($($arg:tt)*) => {
-        println!("{}[ZAI]{} {}", $crate::COLOR_YELLOW, $crate::COLOR_RESET, format!($($arg)*));
+        println!(
+            "{color}[ZAI]{reset} {message}",
+            color = $crate::COLOR_YELLOW,
+            reset = $crate::COLOR_RESET,
+            message = format!($($arg)*)
+        );
     };
 }
 
@@ -63,7 +78,12 @@ macro_rules! debug_zai {
 #[cfg(debug_assertions)]
 macro_rules! debug_cred {
     ($($arg:tt)*) => {
-        println!("{}[CRED]{} {}", $crate::COLOR_MAGENTA, $crate::COLOR_RESET, format!($($arg)*));
+        println!(
+            "{color}[CRED]{reset} {message}",
+            color = $crate::COLOR_MAGENTA,
+            reset = $crate::COLOR_RESET,
+            message = format!($($arg)*)
+        );
     };
 }
 
@@ -78,7 +98,12 @@ macro_rules! debug_cred {
 #[cfg(debug_assertions)]
 macro_rules! debug_cache {
     ($($arg:tt)*) => {
-        println!("{}[CACHE]{} {}", $crate::COLOR_BLUE, $crate::COLOR_RESET, format!($($arg)*));
+        println!(
+            "{color}[CACHE]{reset} {message}",
+            color = $crate::COLOR_BLUE,
+            reset = $crate::COLOR_RESET,
+            message = format!($($arg)*)
+        );
     };
 }
 
@@ -93,7 +118,12 @@ macro_rules! debug_cache {
 #[cfg(debug_assertions)]
 macro_rules! debug_net {
     ($($arg:tt)*) => {
-        println!("{}[NET]{} {}", $crate::COLOR_BRIGHT_RED, $crate::COLOR_RESET, format!($($arg)*));
+        println!(
+            "{color}[NET]{reset} {message}",
+            color = $crate::COLOR_BRIGHT_RED,
+            reset = $crate::COLOR_RESET,
+            message = format!($($arg)*)
+        );
     };
 }
 
@@ -110,7 +140,12 @@ pub const COLOR_BRIGHT_CYAN: &str = "\x1b[96m";
 #[cfg(debug_assertions)]
 macro_rules! debug_amp {
     ($($arg:tt)*) => {
-        println!("{}[AMP]{} {}", $crate::COLOR_BRIGHT_CYAN, $crate::COLOR_RESET, format!($($arg)*));
+        println!(
+            "{color}[AMP]{reset} {message}",
+            color = $crate::COLOR_BRIGHT_CYAN,
+            reset = $crate::COLOR_RESET,
+            message = format!($($arg)*)
+        );
     };
 }
 
@@ -125,7 +160,12 @@ macro_rules! debug_amp {
 #[cfg(debug_assertions)]
 macro_rules! debug_error {
     ($($arg:tt)*) => {
-        println!("{}[ERROR]{} {}", $crate::COLOR_RED, $crate::COLOR_RESET, format!($($arg)*));
+        println!(
+            "{color}[ERROR]{reset} {message}",
+            color = $crate::COLOR_RED,
+            reset = $crate::COLOR_RESET,
+            message = format!($($arg)*)
+        );
     };
 }
 

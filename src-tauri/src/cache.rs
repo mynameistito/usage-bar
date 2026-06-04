@@ -48,7 +48,8 @@ impl<T: Clone> ResponseCache<T> {
             data,
             expires_at: Instant::now() + self.ttl,
         });
-        debug_cache!("Set: Cached data (TTL: {}s)", self.ttl.as_secs());
+        let ttl_seconds = self.ttl.as_secs();
+        debug_cache!("Set: Cached data (TTL: {ttl_seconds}s)");
     }
 
     pub fn clear(&self) {

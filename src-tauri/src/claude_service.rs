@@ -28,7 +28,7 @@ impl ClaudeService {
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_millis() as i64)
-            .map_err(|e| anyhow!("System clock error: {}", e))
+            .map_err(|e| anyhow!("System clock error: {e}"))
     }
 
     async fn handle_combined_response(
@@ -38,7 +38,7 @@ impl ClaudeService {
         let response_text = response.text().await?;
 
         let usage_response: UsageResponse = serde_json::from_str(&response_text)
-            .map_err(|e| anyhow!("Failed to parse usage response: {}", e))?;
+            .map_err(|e| anyhow!("Failed to parse usage response: {e}"))?;
 
         let extra_usage = usage_response.extra_usage.as_ref();
 
@@ -110,7 +110,7 @@ impl ClaudeService {
         client: Arc<reqwest::Client>,
     ) -> Result<(UsageData, ClaudeTierData)> {
         debug_claude!("claude_fetch_usage_and_tier: Starting request");
-        debug_net!("GET {}", USAGE_API_URL);
+        debug_net!("GET {USAGE_API_URL}");
 
         let credentials = CredentialManager::claude_read_credentials()?;
         let token = credentials.claude_ai_oauth.access_token.clone();
@@ -118,12 +118,13 @@ impl ClaudeService {
 
         let response = client
             .get(USAGE_API_URL)
-            .header("Authorization", format!("Bearer {}", token))
+            .header("Authorization", format!("Bearer {token}"))
             .header("anthropic-beta", "oauth-2025-04-20")
             .send()
             .await?;
 
-        debug_net!("Response status: {}", response.status());
+        let status = response.status();
+        debug_net!("Response status: {status}");
 
         match response.status() {
             StatusCode::UNAUTHORIZED => {
@@ -133,12 +134,13 @@ impl ClaudeService {
                 let token = refreshed_creds.claude_ai_oauth.access_token.clone();
                 let retry_response = client
                     .get(USAGE_API_URL)
-                    .header("Authorization", format!("Bearer {}", token))
+                    .header("Authorization", format!("Bearer {token}"))
                     .header("anthropic-beta", "oauth-2025-04-20")
                     .send()
                     .await?;
 
-                debug_net!("Retry response status: {}", retry_response.status());
+                let retry_status = retry_response.status();
+                debug_net!("Retry response status: {retry_status}");
 
                 match retry_response.status() {
                     status if status.is_success() => {
@@ -192,7 +194,7 @@ impl ClaudeService {
 
     pub async fn refresh_token(client: Arc<reqwest::Client>) -> Result<()> {
         debug_claude!("refresh_token: Starting token refresh");
-        debug_net!("POST {}", TOKEN_REFRESH_URL);
+        debug_net!("POST {TOKEN_REFRESH_URL}");
 
         let credentials = CredentialManager::claude_read_credentials()?;
 
@@ -209,12 +211,13 @@ impl ClaudeService {
             .send()
             .await?;
 
-        debug_net!("Response status: {}", response.status());
+        let status = response.status();
+        debug_net!("Response status: {status}");
 
         if !response.status().is_success() {
             let error_text = response.text().await?;
-            debug_error!("Token refresh failed: {}", error_text);
-            return Err(anyhow!("Token refresh failed: {}", error_text));
+            debug_error!("Token refresh failed: {error_text}");
+            return Err(anyhow!("Token refresh failed: {error_text}"));
         }
 
         let refresh_response: TokenRefreshResponse = response.json().await?;
@@ -222,10 +225,8 @@ impl ClaudeService {
         let now = Self::now_millis()?;
         let expires_at = now + (refresh_response.expires_in * 1000);
 
-        debug_claude!(
-            "Token refresh successful (new expiry in {}ms)",
-            refresh_response.expires_in * 1000
-        );
+        let expiry_ms = refresh_response.expires_in * 1000;
+        debug_claude!("Token refresh successful (new expiry in {expiry_ms}ms)");
 
         CredentialManager::claude_update_token(
             &refresh_response.access_token,
@@ -245,10 +246,7 @@ impl ClaudeService {
                             let buffer: i64 = TOKEN_EXPIRY_BUFFER_MS;
                             let expired = now + buffer >= expires_at;
                             debug_claude!(
-                                "Token expiry check: now={}, expires_at={}, expired={}",
-                                now,
-                                expires_at,
-                                expired
+                                "Token expiry check: now={now}, expires_at={expires_at}, expired={expired}"
                             );
                             expired
                         }
@@ -303,9 +301,7 @@ impl ClaudeService {
             "Pro".into()
         } else {
             debug_claude!(
-                "Unknown rate_limit_tier {:?} with billing {:?}; defaulting to Free",
-                tier,
-                billing
+                "Unknown rate_limit_tier {tier:?} with billing {billing:?}; defaulting to Free"
             );
             "Free".into()
         }
@@ -324,8 +320,7 @@ impl ClaudeService {
             "Enterprise".into()
         } else {
             debug_claude!(
-                "Unknown subscription type encountered: {:?}; defaulting to Free",
-                subscription_type
+                "Unknown subscription type encountered: {subscription_type:?}; defaulting to Free"
             );
             "Free".into()
         }

@@ -41,7 +41,7 @@ pub async fn claude_get_all(
 
     debug_claude!("Calling check_and_refresh_if_needed...");
     if let Err(e) = ClaudeService::check_and_refresh_if_needed(client.clone()).await {
-        debug_claude!("check_and_refresh_if_needed failed: {}", e);
+        debug_claude!("check_and_refresh_if_needed failed: {e}");
         return Err(e.to_string());
     }
     debug_claude!("check_and_refresh_if_needed succeeded");
@@ -55,7 +55,7 @@ pub async fn claude_get_all(
             Ok((usage_data, tier_data))
         }
         Err(e) => {
-            debug_claude!("claude_fetch_usage_and_tier failed: {}", e);
+            debug_claude!("claude_fetch_usage_and_tier failed: {e}");
             Err(e.to_string())
         }
     }
@@ -79,7 +79,7 @@ pub async fn claude_get_usage(
 
     debug_claude!("Calling check_and_refresh_if_needed...");
     if let Err(e) = ClaudeService::check_and_refresh_if_needed(client.clone()).await {
-        debug_claude!("check_and_refresh_if_needed failed: {}", e);
+        debug_claude!("check_and_refresh_if_needed failed: {e}");
         return Err(e.to_string());
     }
     debug_claude!("check_and_refresh_if_needed succeeded");
@@ -93,7 +93,7 @@ pub async fn claude_get_usage(
             Ok(usage_data)
         }
         Err(e) => {
-            debug_claude!("claude_fetch_usage_and_tier failed: {}", e);
+            debug_claude!("claude_fetch_usage_and_tier failed: {e}");
             Err(e.to_string())
         }
     }
@@ -117,7 +117,7 @@ pub async fn claude_get_tier(
 
     debug_claude!("Calling check_and_refresh_if_needed for tier...");
     if let Err(e) = ClaudeService::check_and_refresh_if_needed(client.clone()).await {
-        debug_claude!("check_and_refresh_if_needed failed: {}", e);
+        debug_claude!("check_and_refresh_if_needed failed: {e}");
         return Err(e.to_string());
     }
     debug_claude!("check_and_refresh_if_needed succeeded");
@@ -125,17 +125,15 @@ pub async fn claude_get_tier(
     debug_claude!("Calling claude_fetch_usage_and_tier for tier...");
     match ClaudeService::claude_fetch_usage_and_tier(client).await {
         Ok((usage_data, tier_data)) => {
-            debug_claude!(
-                "claude_fetch_usage_and_tier succeeded: plan={}",
-                tier_data.plan_name
-            );
+            let plan_name = &tier_data.plan_name;
+            debug_claude!("claude_fetch_usage_and_tier succeeded: plan={plan_name}");
             // Cache both results to avoid duplicate fetches
             usage_cache.0.set(usage_data);
             tier_cache.0.set(tier_data.clone());
             Ok(tier_data)
         }
         Err(e) => {
-            debug_claude!("claude_fetch_usage_and_tier failed: {}", e);
+            debug_claude!("claude_fetch_usage_and_tier failed: {e}");
             Err(e.to_string())
         }
     }
@@ -176,7 +174,7 @@ pub async fn zai_get_all(
             Ok((data, tier_data))
         }
         Err(e) => {
-            debug_zai!("zai_fetch_quota failed: {}", e);
+            debug_zai!("zai_fetch_quota failed: {e}");
             Err(e.to_string())
         }
     }
@@ -216,7 +214,7 @@ pub async fn zai_refresh_all(
             Ok((data, tier_data))
         }
         Err(e) => {
-            debug_zai!("zai_fetch_quota failed: {}", e);
+            debug_zai!("zai_fetch_quota failed: {e}");
             Err(e.to_string())
         }
     }
@@ -257,7 +255,7 @@ pub async fn zai_get_usage(
             Ok(data)
         }
         Err(e) => {
-            debug_zai!("zai_fetch_quota failed: {}", e);
+            debug_zai!("zai_fetch_quota failed: {e}");
             Err(e.to_string())
         }
     }
@@ -296,7 +294,7 @@ pub async fn zai_refresh_usage(
             Ok(data)
         }
         Err(e) => {
-            debug_zai!("zai_fetch_quota failed: {}", e);
+            debug_zai!("zai_fetch_quota failed: {e}");
             Err(e.to_string())
         }
     }
@@ -330,7 +328,7 @@ pub async fn zai_get_tier(
                 .tier_name
                 .clone()
                 .unwrap_or_else(|| "Unknown".to_string());
-            debug_zai!("zai_fetch_quota succeeded: plan={}", plan_name);
+            debug_zai!("zai_fetch_quota succeeded: plan={plan_name}");
             // Cache both results to avoid duplicate fetches
             usage_cache.0.set(data);
             let tier_data = crate::models::ZaiTierData { plan_name };
@@ -338,7 +336,7 @@ pub async fn zai_get_tier(
             Ok(tier_data)
         }
         Err(e) => {
-            debug_zai!("zai_fetch_quota failed: {}", e);
+            debug_zai!("zai_fetch_quota failed: {e}");
             Err(e.to_string())
         }
     }
@@ -370,7 +368,7 @@ pub async fn amp_get_usage(
             Ok(data)
         }
         Err(e) => {
-            debug_amp!("amp_fetch_usage failed: {}", e);
+            debug_amp!("amp_fetch_usage failed: {e}");
             Err(e.to_string())
         }
     }
@@ -399,7 +397,7 @@ pub async fn amp_refresh_usage(
             Ok(data)
         }
         Err(e) => {
-            debug_amp!("amp_fetch_usage failed: {}", e);
+            debug_amp!("amp_fetch_usage failed: {e}");
             Err(e.to_string())
         }
     }
@@ -409,7 +407,7 @@ pub async fn amp_refresh_usage(
 pub fn amp_check_session_cookie() -> bool {
     debug_cred!("amp_check_session_cookie called");
     let has_cookie = AmpService::amp_has_session_cookie();
-    debug_cred!("[Amp] has_session_cookie: {}", has_cookie);
+    debug_cred!("[Amp] has_session_cookie: {has_cookie}");
     has_cookie
 }
 
@@ -438,7 +436,7 @@ pub async fn amp_validate_session_cookie(
 pub fn zai_check_api_key() -> bool {
     debug_cred!("zai_check_api_key called");
     let has_key = ZaiService::zai_has_api_key();
-    debug_cred!("[Z.ai] has_api_key: {}", has_key);
+    debug_cred!("[Z.ai] has_api_key: {has_key}");
     has_key
 }
 
@@ -487,7 +485,8 @@ pub fn open_url(url: String) -> Result<(), String> {
         if !init_result.is_ok() {
             let hresult = init_result;
             if hresult.0 != 1 && hresult.0 != RPC_E_CHANGED_MODE {
-                return Err(format!("Failed to initialize COM: HRESULT={}", hresult.0));
+                let hresult_code = hresult.0;
+                return Err(format!("Failed to initialize COM: HRESULT={hresult_code}"));
             }
         }
 
@@ -505,10 +504,8 @@ pub fn open_url(url: String) -> Result<(), String> {
 
         // ShellExecuteW returns a value > 32 on success
         if result.0 as i32 <= 32 {
-            return Err(format!(
-                "Failed to open URL: error code {}",
-                result.0 as i32
-            ));
+            let error_code = result.0 as i32;
+            return Err(format!("Failed to open URL: error code {error_code}"));
         }
     }
     Ok(())
@@ -528,7 +525,7 @@ pub fn open_url(url: String) -> Result<(), String> {
         .status()
         .or_else(|_| std::process::Command::new("xdg-open").arg(&url).status())
         .map(|_| ())
-        .map_err(|e| format!("Failed to open URL: {}", e))
+        .map_err(|e| format!("Failed to open URL: {e}"))
 }
 
 #[tauri::command]
@@ -607,21 +604,21 @@ pub async fn refresh_all(
     let (claude, claude_error) = match claude_result {
         Ok(data) => (data, None),
         Err(e) => {
-            debug_claude!("refresh_all: Claude failed: {}", e);
+            debug_claude!("refresh_all: Claude failed: {e}");
             (None, Some(e))
         }
     };
     let (zai, zai_error) = match zai_result {
         Ok(data) => (data, None),
         Err(e) => {
-            debug_zai!("refresh_all: Z.ai failed: {}", e);
+            debug_zai!("refresh_all: Z.ai failed: {e}");
             (None, Some(e))
         }
     };
     let (amp, amp_error) = match amp_result {
         Ok(data) => (data, None),
         Err(e) => {
-            debug_amp!("refresh_all: Amp failed: {}", e);
+            debug_amp!("refresh_all: Amp failed: {e}");
             (None, Some(e))
         }
     };
