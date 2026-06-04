@@ -15,18 +15,18 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join } from "node:path";
 
 interface PackageJson {
   readonly version: string;
 }
 
 const root = process.cwd();
-const artifactDir = resolve(root, process.argv[2] ?? "dist");
 const { version } = JSON.parse(
   readFileSync(join(root, "package.json"), "utf8")
 ) as PackageJson;
 const tag = `v${version}`;
+const targets = ["x86_64-pc-windows-msvc", "aarch64-pc-windows-msvc"] as const;
 
 const run = (command: string, args: readonly string[]): string =>
   execFileSync(command, [...args], {
@@ -73,6 +73,32 @@ const collectInstallerAssets = (directory: string): string[] => {
   return assets.sort();
 };
 
+const collectTargetAssets = (): string[] => {
+  const assets: string[] = [];
+
+  for (const target of targets) {
+    const bundleDir = join(
+      root,
+      "src-tauri",
+      "target",
+      target,
+      "release",
+      "bundle"
+    );
+    const targetAssets = collectInstallerAssets(bundleDir);
+    const hasExecutable = targetAssets.some((asset) => asset.endsWith(".exe"));
+    const hasMsi = targetAssets.some((asset) => asset.endsWith(".msi"));
+
+    if (!(hasExecutable && hasMsi)) {
+      throw new Error(`Missing required installer files for ${target}`);
+    }
+
+    assets.push(...targetAssets);
+  }
+
+  return assets.sort();
+};
+
 const createReleaseNotes = (): string => {
   const changelog = readFileSync(join(root, "CHANGELOG.md"), "utf8");
   const escapedVersion = version.replace(/\./g, "\\.");
@@ -96,13 +122,18 @@ if (releaseExists()) {
   process.exit(0);
 }
 
-const assets = collectInstallerAssets(artifactDir);
+for (const target of targets) {
+  runInherit("bun", ["run", "tauri", "build", "--target", target]);
+}
+
+const assets = collectTargetAssets();
 
 if (assets.length === 0) {
-  throw new Error(`No installer assets found in ${artifactDir}`);
+  throw new Error("No installer assets found after building release targets");
 }
 
 const notesPath = createReleaseNotes();
+const targetCommit = run("git", ["rev-parse", "HEAD"]);
 
 try {
   runInherit("gh", [
@@ -114,7 +145,8 @@ try {
     tag,
     "--notes-file",
     notesPath,
-    "--verify-tag",
+    "--target",
+    targetCommit,
   ]);
   process.stdout.write(`Published GitHub release ${tag}.\n`);
 } finally {
