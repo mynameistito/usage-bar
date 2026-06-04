@@ -21,12 +21,29 @@ interface PackageJson {
   readonly version: string;
 }
 
+interface CommandError extends Error {
+  readonly stderr?: Buffer | string;
+}
+
 const root = process.cwd();
-const { version } = JSON.parse(
+const parsedPackageJson: unknown = JSON.parse(
   readFileSync(join(root, "package.json"), "utf8")
-) as PackageJson;
+);
+
+const isPackageJson = (value: unknown): value is PackageJson =>
+  typeof value === "object" &&
+  value !== null &&
+  "version" in value &&
+  typeof value.version === "string";
+
+if (!isPackageJson(parsedPackageJson)) {
+  throw new Error("Invalid package.json: missing string version");
+}
+
+const { version } = parsedPackageJson;
 const tag = `v${version}`;
 const targets = ["x86_64-pc-windows-msvc", "aarch64-pc-windows-msvc"] as const;
+const releaseNotFoundPattern = /release .* not found|no release found/i;
 
 const run = (command: string, args: readonly string[]): string =>
   execFileSync(command, [...args], {
@@ -43,8 +60,21 @@ const releaseExists = (): boolean => {
   try {
     run("gh", ["release", "view", tag]);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    const commandError = error as CommandError;
+    const stderr = commandError.stderr?.toString() ?? commandError.message;
+
+    if (releaseNotFoundPattern.test(stderr)) {
+      return false;
+    }
+
+    throw error;
+  }
+};
+
+const pushAll = (destination: string[], source: readonly string[]): void => {
+  for (const item of source) {
+    destination.push(item);
   }
 };
 
@@ -61,7 +91,7 @@ const collectInstallerAssets = (directory: string): string[] => {
     const stats = statSync(entryPath);
 
     if (stats.isDirectory()) {
-      assets.push(...collectInstallerAssets(entryPath));
+      pushAll(assets, collectInstallerAssets(entryPath));
       continue;
     }
 
@@ -93,7 +123,7 @@ const collectTargetAssets = (): string[] => {
       throw new Error(`Missing required installer files for ${target}`);
     }
 
-    assets.push(...targetAssets);
+    pushAll(assets, targetAssets);
   }
 
   return assets.sort();
