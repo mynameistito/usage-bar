@@ -55,5 +55,8 @@ jobs:
           title: "chore: version packages"
           commit: "chore: version packages"
         env:
+          # changesets/action writes .netrc under HOME, which is not set on
+          # windows-latest in this workflow context.
+          HOME: ${{ runner.temp }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
