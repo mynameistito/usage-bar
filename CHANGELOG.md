@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.2
+
+### Patch Changes
+
+- be6aa0a: Fix release publishing when the GitHub CLI reports a missing release on Windows.
+
 ## 1.1.1
 
 ### Patch Changes
