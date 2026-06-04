@@ -1,10 +1,11 @@
 use crate::amp_service::AmpService;
 use crate::claude_service::ClaudeService;
+use crate::codex_service::CodexService;
 use crate::credentials::CredentialManager;
 use crate::zai_service::ZaiService;
 use crate::{
-    AmpHttpClient, AmpUsageCache, ClaudeTierCache, ClaudeUsageCache, HttpClient, ZaiTierCache,
-    ZaiUsageCache,
+    AmpHttpClient, AmpUsageCache, ClaudeTierCache, ClaudeUsageCache, CodexTierCache,
+    CodexUsageCache, HttpClient, ZaiTierCache, ZaiUsageCache,
 };
 use std::sync::Arc;
 use tauri::State;
@@ -14,9 +15,11 @@ use crate::{debug_amp, debug_cache, debug_claude, debug_cred, debug_zai};
 #[derive(Debug, serde::Serialize)]
 pub struct RefreshAllResult {
     pub claude: Option<crate::models::UsageData>,
+    pub codex: Option<crate::models::CodexUsageData>,
     pub zai: Option<crate::models::ZaiUsageData>,
     pub amp: Option<crate::models::AmpUsageData>,
     pub claude_error: Option<String>,
+    pub codex_error: Option<String>,
     pub zai_error: Option<String>,
     pub amp_error: Option<String>,
 }
@@ -137,6 +140,77 @@ pub async fn claude_get_tier(
             Err(e.to_string())
         }
     }
+}
+
+#[tauri::command]
+pub async fn codex_get_all(
+    client: State<'_, HttpClient>,
+    usage_cache: State<'_, CodexUsageCache>,
+    tier_cache: State<'_, CodexTierCache>,
+) -> Result<(crate::models::CodexUsageData, crate::models::CodexTierData), String> {
+    if let (Some(usage), Some(tier)) = (usage_cache.0.get(), tier_cache.0.get()) {
+        debug_cache!("Returning cached Codex usage and tier data");
+        return Ok((usage, tier));
+    }
+
+    if !CodexService::codex_has_auth() {
+        return Err("Codex auth not configured".to_string());
+    }
+
+    match CodexService::codex_fetch_usage_and_tier(Arc::clone(&client.0)).await {
+        Ok((usage_data, tier_data)) => {
+            usage_cache.0.set(usage_data.clone());
+            tier_cache.0.set(tier_data.clone());
+            Ok((usage_data, tier_data))
+        }
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+#[tauri::command]
+pub async fn codex_refresh_all(
+    client: State<'_, HttpClient>,
+    usage_cache: State<'_, CodexUsageCache>,
+    tier_cache: State<'_, CodexTierCache>,
+) -> Result<(crate::models::CodexUsageData, crate::models::CodexTierData), String> {
+    usage_cache.0.clear();
+    tier_cache.0.clear();
+    codex_get_all(client, usage_cache, tier_cache).await
+}
+
+#[tauri::command]
+pub async fn codex_get_usage(
+    client: State<'_, HttpClient>,
+    usage_cache: State<'_, CodexUsageCache>,
+    tier_cache: State<'_, CodexTierCache>,
+) -> Result<crate::models::CodexUsageData, String> {
+    if let Some(data) = usage_cache.0.get() {
+        debug_cache!("Returning cached Codex usage data");
+        return Ok(data);
+    }
+
+    let (usage, _) = codex_get_all(client, usage_cache, tier_cache).await?;
+    Ok(usage)
+}
+
+#[tauri::command]
+pub async fn codex_get_tier(
+    client: State<'_, HttpClient>,
+    usage_cache: State<'_, CodexUsageCache>,
+    tier_cache: State<'_, CodexTierCache>,
+) -> Result<crate::models::CodexTierData, String> {
+    if let Some(data) = tier_cache.0.get() {
+        debug_cache!("Returning cached Codex tier data");
+        return Ok(data);
+    }
+
+    let (_, tier) = codex_get_all(client, usage_cache, tier_cache).await?;
+    Ok(tier)
+}
+
+#[tauri::command]
+pub fn codex_check_auth() -> bool {
+    CodexService::codex_has_auth()
 }
 
 #[tauri::command]
@@ -534,11 +608,14 @@ pub fn quit_app(app: tauri::AppHandle) {
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn refresh_all(
     client: State<'_, HttpClient>,
     amp_client: State<'_, AmpHttpClient>,
     claude_usage_cache: State<'_, ClaudeUsageCache>,
     claude_tier_cache: State<'_, ClaudeTierCache>,
+    codex_usage_cache: State<'_, CodexUsageCache>,
+    codex_tier_cache: State<'_, CodexTierCache>,
     zai_usage_cache: State<'_, ZaiUsageCache>,
     zai_tier_cache: State<'_, ZaiTierCache>,
     amp_usage_cache: State<'_, AmpUsageCache>,
@@ -548,12 +625,14 @@ pub async fn refresh_all(
     // Clear cache before force-refresh to ensure fresh data
     claude_usage_cache.0.clear();
     claude_tier_cache.0.clear();
+    codex_usage_cache.0.clear();
+    codex_tier_cache.0.clear();
     zai_usage_cache.0.clear();
     zai_tier_cache.0.clear();
     amp_usage_cache.0.clear();
 
     // Fetch all APIs in parallel using tokio::join!
-    let (claude_result, zai_result, amp_result) = tokio::join!(
+    let (claude_result, codex_result, zai_result, amp_result) = tokio::join!(
         async {
             if let Err(e) = ClaudeService::check_and_refresh_if_needed(client.clone()).await {
                 return Err(e.to_string());
@@ -565,6 +644,20 @@ pub async fn refresh_all(
                     Ok(Some(usage_data))
                 }
                 Err(e) => Err(e.to_string()),
+            }
+        },
+        async {
+            if CodexService::codex_has_auth() {
+                match CodexService::codex_fetch_usage_and_tier(client.clone()).await {
+                    Ok((usage_data, tier_data)) => {
+                        codex_usage_cache.0.set(usage_data.clone());
+                        codex_tier_cache.0.set(tier_data);
+                        Ok(Some(usage_data))
+                    }
+                    Err(e) => Err(e.to_string()),
+                }
+            } else {
+                Ok(None)
             }
         },
         async {
@@ -608,6 +701,10 @@ pub async fn refresh_all(
             (None, Some(e))
         }
     };
+    let (codex, codex_error) = match codex_result {
+        Ok(data) => (data, None),
+        Err(e) => (None, Some(e)),
+    };
     let (zai, zai_error) = match zai_result {
         Ok(data) => (data, None),
         Err(e) => {
@@ -625,9 +722,11 @@ pub async fn refresh_all(
 
     Ok(RefreshAllResult {
         claude,
+        codex,
         zai,
         amp,
         claude_error,
+        codex_error,
         zai_error,
         amp_error,
     })

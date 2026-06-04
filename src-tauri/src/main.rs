@@ -3,6 +3,7 @@
 mod amp_service;
 mod cache;
 mod claude_service;
+mod codex_service;
 mod commands;
 mod credentials;
 mod logging;
@@ -16,7 +17,10 @@ pub use logging::{
 };
 
 use cache::ResponseCache;
-use models::{AmpUsageData, ClaudeTierData, UsageData, ZaiTierData, ZaiUsageData};
+use models::{
+    AmpUsageData, ClaudeTierData, CodexTierData, CodexUsageData, UsageData, ZaiTierData,
+    ZaiUsageData,
+};
 use std::sync::Arc;
 use std::time::Duration;
 use tauri::{tray::TrayIconBuilder, Manager};
@@ -25,6 +29,8 @@ pub struct HttpClient(pub Arc<reqwest::Client>);
 pub struct AmpHttpClient(pub Arc<reqwest::Client>);
 pub struct ClaudeUsageCache(pub ResponseCache<UsageData>);
 pub struct ClaudeTierCache(pub ResponseCache<ClaudeTierData>);
+pub struct CodexUsageCache(pub ResponseCache<CodexUsageData>);
+pub struct CodexTierCache(pub ResponseCache<CodexTierData>);
 pub struct ZaiUsageCache(pub ResponseCache<ZaiUsageData>);
 pub struct ZaiTierCache(pub ResponseCache<ZaiTierData>);
 pub struct AmpUsageCache(pub ResponseCache<AmpUsageData>);
@@ -65,6 +71,8 @@ async fn main() -> anyhow::Result<()> {
             // - Short enough that manual refreshes feel responsive
             app.manage(ClaudeUsageCache(ResponseCache::new(30)));
             app.manage(ClaudeTierCache(ResponseCache::new(30)));
+            app.manage(CodexUsageCache(ResponseCache::new(30)));
+            app.manage(CodexTierCache(ResponseCache::new(30)));
             app.manage(ZaiUsageCache(ResponseCache::new(30)));
             app.manage(ZaiTierCache(ResponseCache::new(30)));
             app.manage(AmpUsageCache(ResponseCache::new(30)));
@@ -131,6 +139,11 @@ async fn main() -> anyhow::Result<()> {
             commands::claude_get_all,
             commands::claude_get_usage,
             commands::claude_get_tier,
+            commands::codex_get_all,
+            commands::codex_refresh_all,
+            commands::codex_get_usage,
+            commands::codex_get_tier,
+            commands::codex_check_auth,
             commands::zai_get_all,
             commands::zai_refresh_all,
             commands::zai_get_usage,
