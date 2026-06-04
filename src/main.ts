@@ -589,8 +589,6 @@ async function fetchCodexData(forceRefresh = false) {
     const command = forceRefresh ? "codex_refresh_all" : "codex_get_all";
     const [usageData, tierData] =
       await invoke<[CodexUsageData, CodexTierData]>(command);
-    hasCodexAuth = true;
-    updateCodexConnectionBadge(hasCodexAuth);
     renderCodexUsageData(dataContainer, errorContainer, usageData);
     updateCodexTier(tierData.plan_name);
 
