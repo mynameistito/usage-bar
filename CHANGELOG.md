@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.9
+
+### Patch Changes
+
+- 9d64e2f: Updated dependencies:
+  - @tauri-apps/api: ^2.10.1 → ^2.11.0
+- f9e2d49: Pinned GitHub Actions workflows to exact commit SHAs and Rust 1.88.0 for more reproducible CI and release builds. Also fixed Amp response preview logging so non-ASCII UTF-8 responses cannot panic during debug output.
+- f1fcbd1: Align the Rust Tauri dependency with the JavaScript Tauri packages so production builds pass version checks.
+
 ## 1.0.8
 
 ### Patch Changes
