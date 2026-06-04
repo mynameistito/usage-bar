@@ -10,15 +10,13 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 jobs:
   release:
     name: Release
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     permissions:
-      contents: write       # push tags, create releases
+      contents: write       # create releases and push tags
       pull-requests: write  # create / update the version PR
     env:
-      LEFTHOOK: 0           # disable git hooks in CI (pre-commit runs cargo:precheck which needs Linux GTK libs)
-    outputs:
-      released: ${{ steps.tag-release.outputs.released }}
-      tag: ${{ steps.tag-release.outputs.tag }}
+      LEFTHOOK: 0           # disable git hooks in CI
+      CARGO_INCREMENTAL: "0"
 
     steps:
       - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
@@ -30,103 +28,32 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
 
-      # When changeset files are present on main the action opens (or updates)
-      # a "Version Packages" PR.  When that PR is merged the changeset files
-      # are gone and `hasChangesets` becomes false — that is the signal to cut
-      # a release in the next step.
-      - name: Create version PR
-        id: changesets
-        uses: changesets/action@3841a0683d3cfa6dae0f9bb335290003010fe3f0 # v1.9.0
-        with:
-          version: bun run version
-          title: "chore: version packages"
-          commit: "chore: version packages"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Runs only after the version PR is merged (no more pending changesets).
-      # Checks if the tag already exists before creating to remain idempotent.
-      - name: Tag and create GitHub release
-        id: tag-release
-        if: steps.changesets.outputs.hasChangesets == 'false'
-        shell: bash
-        run: |
-          version=$(jq -r '.version' package.json)
-          tag="v${version}"
-
-          git fetch --tags
-          if git rev-parse --verify "refs/tags/${tag}" > /dev/null 2>&1; then
-            echo "Tag ${tag} already exists — skipping release."
-            echo "released=false" >> "$GITHUB_OUTPUT"
-            echo "tag=${tag}" >> "$GITHUB_OUTPUT"
-          else
-            if ! bun run release; then
-              echo "Error: Failed to create release"
-              exit 1
-            fi
-            echo "released=true" >> "$GITHUB_OUTPUT"
-            echo "tag=${tag}" >> "$GITHUB_OUTPUT"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build:
-    name: Build (${{ matrix.arch }})
-    needs: release
-    if: needs.release.outputs.released == 'true'
-    runs-on: windows-latest
-    permissions:
-      contents: write
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: x64
-            target: x86_64-pc-windows-msvc
-          - arch: arm64
-            target: aarch64-pc-windows-msvc
-
-    env:
-      LEFTHOOK: 0
-      CARGO_INCREMENTAL: "0"
-
-    steps:
-      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
-        with:
-          ref: ${{ needs.release.outputs.tag }}
-
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
           toolchain: 1.88.0
-          targets: ${{ matrix.target }}
+          targets: x86_64-pc-windows-msvc,aarch64-pc-windows-msvc
 
       - uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc # v2.9.1
         with:
           workspaces: src-tauri
-          key: ${{ matrix.target }}
+          key: release-windows
           save-always: true
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build Tauri app
-        run: bun run tauri build --target ${{ matrix.target }}
-
-      - name: Upload installers to release
-        shell: bash
-        run: |
-          if ! compgen -G "src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe" > /dev/null || \
-             ! compgen -G "src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi" > /dev/null; then
-            echo "Error: Missing required installer files"
-            exit 1
-          fi
-          gh release upload ${{ needs.release.outputs.tag }} \
-            src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe \
-            src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi
+      # When changeset files are present on main the action opens (or updates)
+      # a "Version Packages" PR. When that PR is merged, it runs the publish
+      # command below. The release script builds all installers before creating
+      # the GitHub Release, which keeps it compatible with immutable releases.
+      - name: Create version PR or publish release
+        uses: changesets/action@3841a0683d3cfa6dae0f9bb335290003010fe3f0 # v1.9.0
+        with:
+          version: bun run version
+          publish: bun run release
+          title: "chore: version packages"
+          commit: "chore: version packages"
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
