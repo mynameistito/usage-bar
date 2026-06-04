@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.3
+
+### Patch Changes
+
+- eabe0e9: Remove compromised repository setup hooks and add a security check that blocks reintroducing the setup payload.
+
 ## 1.1.2
 
 ### Patch Changes
