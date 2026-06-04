@@ -43,7 +43,8 @@ if (!isPackageJson(parsedPackageJson)) {
 const { version } = parsedPackageJson;
 const tag = `v${version}`;
 const targets = ["x86_64-pc-windows-msvc", "aarch64-pc-windows-msvc"] as const;
-const releaseNotFoundPattern = /release .* not found|no release found/i;
+const releaseNotFoundPattern =
+  /release not found|release .* not found|no release found/i;
 
 const run = (command: string, args: readonly string[]): string =>
   execFileSync(command, [...args], {
