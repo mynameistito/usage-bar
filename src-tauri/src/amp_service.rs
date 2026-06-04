@@ -89,7 +89,7 @@ impl AmpService {
 
         let body = response.text().await?;
         let body_len = body.len();
-        let body_preview = &body[..body_len.min(100)];
+        let body_preview: String = body.chars().take(100).collect();
         debug_amp!("Response body length: {body_len} bytes");
         debug_amp!("Response preview: {body_preview:?}");
 
