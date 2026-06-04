@@ -8,17 +8,17 @@ on:
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  release:
-    name: Release
+  prepare:
+    name: Prepare release
     runs-on: ubuntu-latest
     permissions:
-      contents: write       # push tags, create releases
+      contents: write       # push tags, check existing releases
       pull-requests: write  # create / update the version PR
     env:
       LEFTHOOK: 0           # disable git hooks in CI (pre-commit runs cargo:precheck which needs Linux GTK libs)
     outputs:
-      released: ${{ steps.tag-release.outputs.released }}
-      tag: ${{ steps.tag-release.outputs.tag }}
+      should_publish: ${{ steps.prepare-release.outputs.should_publish }}
+      tag: ${{ steps.prepare-release.outputs.tag }}
 
     steps:
       - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
@@ -48,38 +48,21 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Runs only after the version PR is merged (no more pending changesets).
-      # Checks if the tag already exists before creating to remain idempotent.
-      - name: Tag and create GitHub release
-        id: tag-release
+      # Creates/reuses the tag, but does not publish the GitHub Release yet.
+      - name: Prepare release tag
+        id: prepare-release
         if: steps.changesets.outputs.hasChangesets == 'false'
-        shell: bash
-        run: |
-          version=$(jq -r '.version' package.json)
-          tag="v${version}"
-
-          git fetch --tags
-          if git rev-parse --verify "refs/tags/${tag}" > /dev/null 2>&1; then
-            echo "Tag ${tag} already exists — skipping release."
-            echo "released=false" >> "$GITHUB_OUTPUT"
-            echo "tag=${tag}" >> "$GITHUB_OUTPUT"
-          else
-            if ! bun run release; then
-              echo "Error: Failed to create release"
-              exit 1
-            fi
-            echo "released=true" >> "$GITHUB_OUTPUT"
-            echo "tag=${tag}" >> "$GITHUB_OUTPUT"
-          fi
+        run: bun run prepare-release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build:
     name: Build (${{ matrix.arch }})
-    needs: release
-    if: needs.release.outputs.released == 'true'
+    needs: prepare
+    if: needs.prepare.outputs.should_publish == 'true'
     runs-on: windows-latest
     permissions:
-      contents: write
+      contents: read
 
     strategy:
       fail-fast: false
@@ -97,7 +80,7 @@ jobs:
     steps:
       - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
         with:
-          ref: ${{ needs.release.outputs.tag }}
+          ref: ${{ needs.prepare.outputs.tag }}
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
@@ -117,16 +100,43 @@ jobs:
       - name: Build Tauri app
         run: bun run tauri build --target ${{ matrix.target }}
 
-      - name: Upload installers to release
-        shell: bash
-        run: |
-          if ! compgen -G "src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe" > /dev/null || \
-             ! compgen -G "src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi" > /dev/null; then
-            echo "Error: Missing required installer files"
-            exit 1
-          fi
-          gh release upload ${{ needs.release.outputs.tag }} \
-            src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe \
+      - name: Upload installer artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: installers-${{ matrix.arch }}
+          if-no-files-found: error
+          path: |
+            src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe
             src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi
+
+  publish:
+    name: Publish release
+    needs: [prepare, build]
+    if: needs.prepare.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      LEFTHOOK: 0
+
+    steps:
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Download installer artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: installers-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish GitHub release
+        run: bun run release -- dist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
