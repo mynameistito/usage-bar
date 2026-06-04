@@ -28,7 +28,8 @@
     "sync-version": "bun scripts/sync-cargo-version.ts",
     "release": "bun scripts/publish-release.ts",
     "prepare": "lefthook install",
-    "regenerate-icon": "node scripts/svg-to-png.js"
+    "regenerate-icon": "node scripts/svg-to-png.js",
+    "security:check": "bun scripts/security-check.ts"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.0"
