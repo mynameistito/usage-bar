@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1
+
+### Patch Changes
+
+- 34b1a3f: Update the release workflow to publish immutable-compatible GitHub Releases with all installer assets attached at creation time.
+- 30aec9e: Set the Windows release workflow home directory for the Changesets publish step.
+
 ## 1.1.0
 
 ### Minor Changes
