@@ -161,3 +161,163 @@ pub struct AmpUsageData {
     #[serde(deserialize_with = "deserialize_expires_at")]
     pub resets_at: Option<i64>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CodexUsageData {
+    pub session_usage: Option<CodexWindowUsage>,
+    pub weekly_usage: Option<CodexWindowUsage>,
+    pub credits: Option<CodexCredits>,
+    pub tier_name: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CodexTierData {
+    pub plan_name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CodexWindowUsage {
+    pub percentage: f64,
+    /// Epoch milliseconds.
+    pub resets_at: Option<i64>,
+    pub window_seconds: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CodexCredits {
+    pub has_credits: bool,
+    pub unlimited: bool,
+    pub balance: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CodexAuthFile {
+    #[serde(rename = "OPENAI_API_KEY", default)]
+    pub openai_api_key: Option<String>,
+    #[serde(default)]
+    pub tokens: Option<CodexAuthTokens>,
+    #[serde(default)]
+    pub last_refresh: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CodexAuthTokens {
+    pub access_token: String,
+    pub refresh_token: Option<String>,
+    #[serde(default)]
+    pub id_token: Option<String>,
+    #[serde(default)]
+    pub account_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CodexUsageResponse {
+    #[serde(default)]
+    pub plan_type: Option<String>,
+    #[serde(default)]
+    pub rate_limit: Option<CodexRateLimitDetails>,
+    #[serde(default)]
+    pub credits: Option<CodexUsageCredits>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CodexRateLimitDetails {
+    #[serde(default)]
+    pub primary_window: Option<CodexUsageWindow>,
+    #[serde(default)]
+    pub secondary_window: Option<CodexUsageWindow>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CodexUsageWindow {
+    #[serde(deserialize_with = "deserialize_f64_from_number_or_string")]
+    pub used_percent: f64,
+    #[serde(deserialize_with = "deserialize_i64_from_number_or_string")]
+    pub reset_at: i64,
+    #[serde(deserialize_with = "deserialize_i64_from_number_or_string")]
+    pub limit_window_seconds: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CodexUsageCredits {
+    #[serde(default)]
+    pub has_credits: bool,
+    #[serde(default)]
+    pub unlimited: bool,
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_optional_f64_from_number_or_string")]
+    pub balance: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CodexRefreshResponse {
+    pub access_token: String,
+    #[serde(default)]
+    pub refresh_token: Option<String>,
+    #[serde(default)]
+    pub id_token: Option<String>,
+}
+
+fn deserialize_f64_from_number_or_string<'de, D>(deserializer: D) -> Result<f64, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::{self, Deserialize};
+    use serde_json::Value;
+
+    match Value::deserialize(deserializer)? {
+        Value::Number(number) => number
+            .as_f64()
+            .ok_or_else(|| de::Error::custom("invalid number for f64")),
+        Value::String(value) => value
+            .parse::<f64>()
+            .map_err(|_| de::Error::custom("invalid string for f64")),
+        _ => Err(de::Error::custom("expected number or numeric string")),
+    }
+}
+
+fn deserialize_i64_from_number_or_string<'de, D>(deserializer: D) -> Result<i64, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::{self, Deserialize};
+    use serde_json::Value;
+
+    match Value::deserialize(deserializer)? {
+        Value::Number(number) => number
+            .as_i64()
+            .or_else(|| number.as_f64().map(|value| value as i64))
+            .ok_or_else(|| de::Error::custom("invalid number for i64")),
+        Value::String(value) => value
+            .parse::<i64>()
+            .or_else(|_| value.parse::<f64>().map(|value| value as i64))
+            .map_err(|_| de::Error::custom("invalid string for i64")),
+        _ => Err(de::Error::custom("expected number or numeric string")),
+    }
+}
+
+fn deserialize_optional_f64_from_number_or_string<'de, D>(
+    deserializer: D,
+) -> Result<Option<f64>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::{self, Deserialize};
+    use serde_json::Value;
+
+    match Value::deserialize(deserializer)? {
+        Value::Null => Ok(None),
+        Value::Number(number) => number
+            .as_f64()
+            .map(Some)
+            .ok_or_else(|| de::Error::custom("invalid number for optional f64")),
+        Value::String(value) if value.trim().is_empty() => Ok(None),
+        Value::String(value) => value
+            .parse::<f64>()
+            .map(Some)
+            .map_err(|_| de::Error::custom("invalid string for optional f64")),
+        _ => Err(de::Error::custom(
+            "expected number, numeric string, or null",
+        )),
+    }
+}

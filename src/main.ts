@@ -7,12 +7,14 @@ const POLL_INTERVAL = 300_000; // 5 minutes
 
 let pollingTimer: number | null = null;
 let claudeLastRefresh: Date | null = null;
+let codexLastRefresh: Date | null = null;
 let zaiLastRefresh: Date | null = null;
 let ampLastRefresh: Date | null = null;
 let timestampTimer: number | null = null;
 
 // Renamed from hasAmpSession to match backend naming (amp_has_session_cookie).
 let hasAmpCookie = false;
+let hasCodexAuth = false;
 
 // Cache for API key check to avoid spamming logs
 let cachedZaiApiKeyCheck: boolean | null = null;
@@ -159,6 +161,29 @@ function updateAmpConnectionBadge(hasCookie: boolean): void {
   );
 }
 
+function updateCodexConnectionBadge(hasAuth: boolean): void {
+  const codexConnectedStatus = document.getElementById(
+    "codex-connected-status"
+  );
+  if (!codexConnectedStatus) {
+    return;
+  }
+  createOrUpdateConnectionBadge(
+    codexConnectedStatus,
+    "codex-header-badge",
+    hasAuth
+  );
+}
+
+async function refreshCodexAuthState(): Promise<boolean> {
+  const hasAuthNow = await invoke<boolean>("codex_check_auth");
+  if (hasAuthNow !== hasCodexAuth) {
+    hasCodexAuth = hasAuthNow;
+    updateCodexConnectionBadge(hasCodexAuth);
+  }
+  return hasAuthNow;
+}
+
 interface ClaudeUsageData {
   extra_usage_enabled: boolean;
   extra_usage_monthly_limit: number | null;
@@ -192,6 +217,27 @@ interface ZaiTierData {
   plan_name: string;
 }
 
+interface CodexUsageData {
+  credits?: {
+    balance?: number | null;
+    has_credits: boolean;
+    unlimited: boolean;
+  } | null;
+  session_usage?: CodexWindowUsage | null;
+  tier_name?: string | null;
+  weekly_usage?: CodexWindowUsage | null;
+}
+
+interface CodexWindowUsage {
+  percentage: number;
+  resets_at?: number | null;
+  window_seconds?: number | null;
+}
+
+interface CodexTierData {
+  plan_name: string;
+}
+
 interface AmpUsageData {
   hourly_replenishment: number;
   quota: number;
@@ -215,6 +261,7 @@ async function openSettings(): Promise<void> {
 
   try {
     const hasZaiApiKey = await checkZaiApiKey();
+    const hasCodexAuthNow = await invoke<boolean>("codex_check_auth");
     const hasAmpCookieNow = await invoke<boolean>("amp_check_session_cookie");
     const content = document.getElementById("content");
 
@@ -231,6 +278,7 @@ async function openSettings(): Promise<void> {
           await invoke("zai_delete_api_key");
         },
         onZaiKeyChanged: refreshZaiUI,
+        checkCodexAuth: refreshCodexAuthState,
         checkAmpSessionCookie: async () =>
           invoke<boolean>("amp_check_session_cookie"),
         validateAmpSessionCookie: async (cookie: string) => {
@@ -249,6 +297,7 @@ async function openSettings(): Promise<void> {
         onClose: closeSettings,
       },
       hasZaiApiKey,
+      hasCodexAuthNow,
       hasAmpCookieNow
     );
 
@@ -319,8 +368,12 @@ async function loadContent() {
     hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
     updateAmpConnectionBadge(hasAmpCookie);
 
+    hasCodexAuth = await refreshCodexAuthState();
+    updateCodexConnectionBadge(hasCodexAuth);
+
     await Promise.allSettled([
       fetchClaudeData(),
+      fetchCodexData(),
       fetchZaiData(),
       ...(hasAmpCookie ? [fetchAmpData(false, true)] : []),
     ]);
@@ -331,8 +384,8 @@ async function loadContent() {
     setupTabSwitching();
 
     const savedTab = localStorage.getItem("activeTab");
-    if (savedTab === "zai" || savedTab === "amp") {
-      switchTab(savedTab as "zai" | "amp");
+    if (savedTab === "codex" || savedTab === "zai" || savedTab === "amp") {
+      switchTab(savedTab as "codex" | "zai" | "amp");
     } else {
       switchTab("claude");
     }
@@ -361,26 +414,33 @@ async function loadContent() {
 
 function setupTabSwitching() {
   const tabClaude = document.getElementById("tab-claude");
+  const tabCodex = document.getElementById("tab-codex");
   const tabZai = document.getElementById("tab-zai");
   const tabAmp = document.getElementById("tab-amp");
 
   tabClaude?.addEventListener("click", () => switchTab("claude"));
+  tabCodex?.addEventListener("click", () => switchTab("codex"));
   tabZai?.addEventListener("click", () => switchTab("zai"));
   tabAmp?.addEventListener("click", () => switchTab("amp"));
 }
 
-function switchTab(tab: "claude" | "zai" | "amp") {
+function switchTab(tab: "claude" | "codex" | "zai" | "amp") {
   localStorage.setItem("activeTab", tab);
 
   const claudeView = document.getElementById("claude-view");
+  const codexView = document.getElementById("codex-view");
   const zaiView = document.getElementById("zai-view");
   const ampView = document.getElementById("amp-view");
   const tabClaude = document.getElementById("tab-claude");
+  const tabCodex = document.getElementById("tab-codex");
   const tabZai = document.getElementById("tab-zai");
   const tabAmp = document.getElementById("tab-amp");
 
   if (claudeView) {
     claudeView.style.display = tab === "claude" ? "block" : "none";
+  }
+  if (codexView) {
+    codexView.style.display = tab === "codex" ? "block" : "none";
   }
   if (zaiView) {
     zaiView.style.display = tab === "zai" ? "block" : "none";
@@ -391,6 +451,9 @@ function switchTab(tab: "claude" | "zai" | "amp") {
 
   if (tabClaude) {
     tabClaude.classList.toggle("active", tab === "claude");
+  }
+  if (tabCodex) {
+    tabCodex.classList.toggle("active", tab === "codex");
   }
   if (tabZai) {
     tabZai.classList.toggle("active", tab === "zai");
@@ -510,6 +573,132 @@ async function fetchClaudeData() {
       tierEl.title = String(error);
     }
   }
+}
+
+async function fetchCodexData(forceRefresh = false) {
+  const errorContainer = document.getElementById("codex-error");
+  const dataContainer = document.getElementById("codex-data");
+  const errorMessage = document.getElementById("codex-error-message");
+
+  if (!(errorContainer && dataContainer && errorMessage)) {
+    return;
+  }
+
+  try {
+    await refreshCodexAuthState();
+    const command = forceRefresh ? "codex_refresh_all" : "codex_get_all";
+    const [usageData, tierData] =
+      await invoke<[CodexUsageData, CodexTierData]>(command);
+    renderCodexUsageData(dataContainer, errorContainer, usageData);
+    updateCodexTier(tierData.plan_name);
+
+    codexLastRefresh = new Date();
+    updateTimestamp("codex");
+  } catch (error) {
+    showCodexError(String(error), errorContainer, dataContainer, errorMessage);
+  }
+}
+
+function renderCodexUsageData(
+  dataContainer: HTMLElement,
+  errorContainer: HTMLElement,
+  usageData: CodexUsageData
+): void {
+  errorContainer.style.display = "none";
+  dataContainer.style.display = "block";
+  dataContainer.innerHTML = "";
+
+  appendCodexWindowGauge(dataContainer, "Session", usageData.session_usage);
+  appendCodexWindowGauge(dataContainer, "Weekly", usageData.weekly_usage);
+
+  if (usageData.credits?.has_credits) {
+    dataContainer.appendChild(createCodexCreditsSection(usageData));
+  }
+}
+
+function appendCodexWindowGauge(
+  dataContainer: HTMLElement,
+  title: string,
+  usage: CodexWindowUsage | null | undefined
+): void {
+  if (!usage) {
+    return;
+  }
+
+  dataContainer.appendChild(
+    createUsageGauge({
+      title,
+      utilization: usage.percentage / 100,
+      resetsAt: usage.resets_at ? new Date(usage.resets_at).toISOString() : "",
+    })
+  );
+}
+
+function showCodexError(
+  errorMsg: string,
+  errorContainer: HTMLElement,
+  dataContainer: HTMLElement,
+  errorMessage: HTMLElement
+): void {
+  if (isCodexAuthError(errorMsg)) {
+    hasCodexAuth = false;
+    updateCodexConnectionBadge(hasCodexAuth);
+    dataContainer.style.display = "none";
+    errorContainer.style.display = "none";
+    updateCodexTier("");
+    return;
+  }
+
+  errorMessage.textContent = errorMsg;
+  errorContainer.style.display = "flex";
+  dataContainer.style.display = "none";
+  updateCodexTier("Error", errorMsg);
+}
+
+function isCodexAuthError(errorMsg: string): boolean {
+  const lower = errorMsg.toLowerCase();
+  return (
+    lower.includes("not configured") ||
+    lower.includes("re-authenticate") ||
+    lower.includes("sign in") ||
+    lower.includes("expired or invalid") ||
+    lower.includes("contains no access token")
+  );
+}
+
+function updateCodexTier(text: string, title = ""): void {
+  const tierEl = document.getElementById("codex-tier");
+  if (!tierEl) {
+    return;
+  }
+  tierEl.textContent = text;
+  tierEl.title = title;
+}
+
+function createCodexCreditsSection(usageData: CodexUsageData): HTMLElement {
+  const infoSection = document.createElement("div");
+  infoSection.className = "info-section";
+
+  const infoTitle = document.createElement("div");
+  infoTitle.className = "info-section-header";
+  const titleSpan = document.createElement("span");
+  titleSpan.className = "info-section-title";
+  titleSpan.textContent = "Credits";
+  infoTitle.appendChild(titleSpan);
+  infoSection.appendChild(infoTitle);
+
+  const creditsRow = document.createElement("div");
+  creditsRow.className = "info-row";
+  if (usageData.credits?.unlimited) {
+    creditsRow.textContent = "Unlimited credits";
+  } else if (typeof usageData.credits?.balance === "number") {
+    creditsRow.textContent = `${usageData.credits.balance.toFixed(0)} credits remaining`;
+  } else {
+    creditsRow.textContent = "Credits enabled";
+  }
+  infoSection.appendChild(creditsRow);
+
+  return infoSection;
 }
 
 async function fetchZaiData(forceRefresh = false) {
@@ -693,7 +882,7 @@ async function refreshAmpUI(): Promise<void> {
   }
 }
 
-function updateTimestamp(provider: "claude" | "zai" | "amp") {
+function updateTimestamp(provider: "claude" | "codex" | "zai" | "amp") {
   const el = document.getElementById(`${provider}-updated`);
   if (!el) {
     return;
@@ -702,6 +891,8 @@ function updateTimestamp(provider: "claude" | "zai" | "amp") {
   let lastRefresh: Date | null = null;
   if (provider === "claude") {
     lastRefresh = claudeLastRefresh;
+  } else if (provider === "codex") {
+    lastRefresh = codexLastRefresh;
   } else if (provider === "zai") {
     lastRefresh = zaiLastRefresh;
   } else {
@@ -728,6 +919,7 @@ function updateTimestamp(provider: "claude" | "zai" | "amp") {
 
 function updateAllTimestamps(): void {
   updateTimestamp("claude");
+  updateTimestamp("codex");
   updateTimestamp("zai");
   updateTimestamp("amp");
 }
@@ -745,6 +937,7 @@ function startTimestampUpdater() {
 async function doRefresh(forceRefresh: boolean): Promise<void> {
   await Promise.allSettled([
     fetchClaudeData(),
+    fetchCodexData(forceRefresh),
     fetchZaiData(forceRefresh),
     fetchAmpData(forceRefresh),
   ]);

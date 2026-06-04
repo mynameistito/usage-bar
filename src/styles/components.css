@@ -89,12 +89,14 @@
   letter-spacing: -0.02em;
 }
 
-.zai-header-status {
+.zai-header-status,
+.codex-header-status {
   display: flex;
   align-items: center;
 }
 
-.zai-header-badge {
+.zai-header-badge,
+.codex-header-badge {
   display: inline-flex;
   gap: 4px;
   align-items: center;
@@ -107,25 +109,29 @@
   transition: all 0.15s ease;
 }
 
-.zai-header-badge-connected {
+.zai-header-badge-connected,
+.codex-header-badge-connected {
   color: var(--color-status-success);
   background: hsl(var(--status-success) / 0.1);
   border-color: hsl(var(--status-success) / 0.2);
 }
 
-.zai-header-badge-disconnected {
+.zai-header-badge-disconnected,
+.codex-header-badge-disconnected {
   color: hsl(var(--status-warning));
   background: hsl(var(--status-warning) / 0.15);
   border-color: hsl(var(--status-warning) / 0.3);
 }
 
-.zai-header-badge-icon {
+.zai-header-badge-icon,
+.codex-header-badge-icon {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.zai-header-badge-label {
+.zai-header-badge-label,
+.codex-header-badge-label {
   line-height: 1;
 }
 

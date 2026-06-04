@@ -6,6 +6,7 @@ const APP_VERSION = packageJson.version ?? "dev";
 
 export interface SettingsCallbacks {
   checkAmpSessionCookie: () => Promise<boolean>;
+  checkCodexAuth: () => Promise<boolean>;
   checkZaiApiKey: () => Promise<boolean>;
   deleteAmpSessionCookie: () => Promise<void>;
   deleteZaiApiKey: () => Promise<void>;
@@ -70,6 +71,7 @@ function createEyeIcon(crossed: boolean): SVGElement {
 export function createSettingsView(
   callbacks: SettingsCallbacks,
   hasZaiApiKey: boolean,
+  hasCodexAuth: boolean,
   hasAmpCookie: boolean
 ): HTMLElement {
   const root = document.createElement("div");
@@ -83,6 +85,11 @@ export function createSettingsView(
 
   const zaiSection = createZaiSection(callbacks, hasZaiApiKey);
   content.appendChild(zaiSection);
+
+  content.appendChild(createDivider());
+
+  const codexSection = createCodexSection(callbacks, hasCodexAuth);
+  content.appendChild(codexSection);
 
   content.appendChild(createDivider());
 
@@ -100,6 +107,66 @@ export function createSettingsView(
   root.appendChild(aboutSection);
 
   return root;
+}
+
+function createCodexSection(
+  callbacks: SettingsCallbacks,
+  hasAuth: boolean
+): HTMLElement {
+  const section = document.createElement("div");
+  section.className = "settings-section";
+
+  const sectionTitle = document.createElement("div");
+  sectionTitle.className = "settings-section-title";
+  sectionTitle.textContent = "CODEX CLI AUTH";
+  section.appendChild(sectionTitle);
+
+  const container = document.createElement("div");
+  container.className = "settings-credential-connected";
+
+  const row = document.createElement("div");
+  row.className = "settings-credential-row";
+
+  const statusLeft = document.createElement("div");
+  statusLeft.className = "settings-credential-status";
+
+  const dot = document.createElement("span");
+  dot.className = hasAuth
+    ? "gauge-dot status-success"
+    : "gauge-dot status-warning";
+
+  const statusText = document.createElement("span");
+  statusText.textContent = hasAuth
+    ? "Codex auth.json detected"
+    : "Run codex to sign in";
+
+  statusLeft.appendChild(dot);
+  statusLeft.appendChild(statusText);
+
+  const actions = document.createElement("div");
+  actions.className = "settings-credential-actions";
+
+  const refreshButton = document.createElement("button");
+  refreshButton.className = "btn btn-ghost";
+  refreshButton.textContent = "Refresh";
+  refreshButton.addEventListener("click", async () => {
+    const hasAuthNow = await callbacks.checkCodexAuth();
+    section.replaceWith(createCodexSection(callbacks, hasAuthNow));
+  });
+
+  actions.appendChild(refreshButton);
+
+  row.appendChild(statusLeft);
+  row.appendChild(actions);
+  container.appendChild(row);
+
+  const desc = document.createElement("div");
+  desc.className = "settings-credential-desc";
+  desc.textContent = "Usage Bar reads ~/.codex/auth.json created by Codex CLI.";
+  container.appendChild(desc);
+
+  section.appendChild(container);
+  return section;
 }
 
 function createHeader(callbacks: SettingsCallbacks): HTMLElement {
