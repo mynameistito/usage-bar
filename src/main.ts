@@ -175,6 +175,15 @@ function updateCodexConnectionBadge(hasAuth: boolean): void {
   );
 }
 
+async function refreshCodexAuthState(): Promise<boolean> {
+  const hasAuthNow = await invoke<boolean>("codex_check_auth");
+  if (hasAuthNow !== hasCodexAuth) {
+    hasCodexAuth = hasAuthNow;
+    updateCodexConnectionBadge(hasCodexAuth);
+  }
+  return hasAuthNow;
+}
+
 interface ClaudeUsageData {
   extra_usage_enabled: boolean;
   extra_usage_monthly_limit: number | null;
@@ -269,7 +278,7 @@ async function openSettings(): Promise<void> {
           await invoke("zai_delete_api_key");
         },
         onZaiKeyChanged: refreshZaiUI,
-        checkCodexAuth: async () => invoke<boolean>("codex_check_auth"),
+        checkCodexAuth: refreshCodexAuthState,
         checkAmpSessionCookie: async () =>
           invoke<boolean>("amp_check_session_cookie"),
         validateAmpSessionCookie: async (cookie: string) => {
@@ -359,7 +368,7 @@ async function loadContent() {
     hasAmpCookie = await invoke<boolean>("amp_check_session_cookie");
     updateAmpConnectionBadge(hasAmpCookie);
 
-    hasCodexAuth = await invoke<boolean>("codex_check_auth");
+    hasCodexAuth = await refreshCodexAuthState();
     updateCodexConnectionBadge(hasCodexAuth);
 
     await Promise.allSettled([
@@ -576,9 +585,12 @@ async function fetchCodexData(forceRefresh = false) {
   }
 
   try {
+    await refreshCodexAuthState();
     const command = forceRefresh ? "codex_refresh_all" : "codex_get_all";
     const [usageData, tierData] =
       await invoke<[CodexUsageData, CodexTierData]>(command);
+    hasCodexAuth = true;
+    updateCodexConnectionBadge(hasCodexAuth);
     renderCodexUsageData(dataContainer, errorContainer, usageData);
     updateCodexTier(tierData.plan_name);
 
@@ -630,7 +642,9 @@ function showCodexError(
   dataContainer: HTMLElement,
   errorMessage: HTMLElement
 ): void {
-  if (errorMsg.includes("not configured")) {
+  if (isCodexAuthError(errorMsg)) {
+    hasCodexAuth = false;
+    updateCodexConnectionBadge(hasCodexAuth);
     dataContainer.style.display = "none";
     errorContainer.style.display = "none";
     updateCodexTier("");
@@ -641,6 +655,17 @@ function showCodexError(
   errorContainer.style.display = "flex";
   dataContainer.style.display = "none";
   updateCodexTier("Error", errorMsg);
+}
+
+function isCodexAuthError(errorMsg: string): boolean {
+  const lower = errorMsg.toLowerCase();
+  return (
+    lower.includes("not configured") ||
+    lower.includes("re-authenticate") ||
+    lower.includes("sign in") ||
+    lower.includes("expired or invalid") ||
+    lower.includes("contains no access token")
+  );
 }
 
 function updateCodexTier(text: string, title = ""): void {

@@ -7,6 +7,7 @@ use reqwest::StatusCode;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
+use tokio::fs as async_fs;
 
 use crate::{debug_error, debug_net};
 
@@ -35,7 +36,7 @@ impl CodexService {
     pub async fn codex_fetch_usage_and_tier(
         client: Arc<reqwest::Client>,
     ) -> Result<(CodexUsageData, CodexTierData)> {
-        let mut auth = Self::read_auth()?;
+        let mut auth = Self::read_auth_async().await?;
         let mut response = Self::fetch_usage(client.clone(), &auth).await;
 
         if matches!(response, Err(CodexFetchError::Unauthorized)) {
@@ -81,9 +82,22 @@ impl CodexService {
         serde_json::from_str(&json).map_err(|e| anyhow!("Failed to parse Codex auth.json: {e}"))
     }
 
-    fn write_auth(auth: &CodexAuthFile) -> Result<()> {
+    async fn read_auth_async() -> Result<CodexAuthFile> {
         let path = Self::auth_path()?;
-        let existing = fs::read_to_string(&path).unwrap_or_else(|_| "{}".to_string());
+        let path_display = path.display();
+        let json = async_fs::read_to_string(&path).await.map_err(|e| {
+            anyhow!(
+                "Codex auth not found: failed to read {path_display}. {e}. Run `codex` to sign in."
+            )
+        })?;
+        serde_json::from_str(&json).map_err(|e| anyhow!("Failed to parse Codex auth.json: {e}"))
+    }
+
+    async fn write_auth_async(auth: &CodexAuthFile) -> Result<()> {
+        let path = Self::auth_path()?;
+        let existing = async_fs::read_to_string(&path)
+            .await
+            .unwrap_or_else(|_| "{}".to_string());
         let mut root: serde_json::Value =
             serde_json::from_str(&existing).unwrap_or_else(|_| serde_json::json!({}));
 
@@ -95,11 +109,15 @@ impl CodexService {
         let json = serde_json::to_string_pretty(&root)
             .map_err(|e| anyhow!("Failed to serialize Codex auth.json: {e}"))?;
         let temp_path = path.with_extension("json.tmp");
-        fs::write(&temp_path, json).map_err(|e| anyhow!("Failed to write Codex auth.json: {e}"))?;
-        fs::rename(&temp_path, &path).map_err(|e| {
-            let _ = fs::remove_file(&temp_path);
-            anyhow!("Failed to save Codex auth.json: {e}")
-        })
+        async_fs::write(&temp_path, json)
+            .await
+            .map_err(|e| anyhow!("Failed to write Codex auth.json: {e}"))?;
+        if let Err(e) = async_fs::rename(&temp_path, &path).await {
+            let _ = async_fs::remove_file(&temp_path).await;
+            return Err(anyhow!("Failed to save Codex auth.json: {e}"));
+        }
+
+        Ok(())
     }
 
     async fn fetch_usage(
@@ -111,7 +129,7 @@ impl CodexService {
             .tokens
             .as_ref()
             .and_then(|tokens| tokens.account_id.as_deref());
-        let url = Self::usage_url();
+        let url = Self::usage_url_async().await;
         debug_net!("GET {url}");
 
         let mut request = client
@@ -194,7 +212,7 @@ impl CodexService {
         if refreshed.id_token.is_some() {
             tokens.id_token = refreshed.id_token;
         }
-        Self::write_auth(&auth)?;
+        Self::write_auth_async(&auth).await?;
 
         Ok(auth)
     }
@@ -214,8 +232,8 @@ impl CodexService {
             })
     }
 
-    fn usage_url() -> String {
-        let base = Self::chatgpt_base_url();
+    async fn usage_url_async() -> String {
+        let base = Self::chatgpt_base_url_async().await;
         let normalized = normalize_url(&base);
         let path = if normalized.contains("/backend-api") {
             CODEX_USAGE_PATH
@@ -225,30 +243,16 @@ impl CodexService {
         format!("{normalized}{path}")
     }
 
-    fn chatgpt_base_url() -> String {
+    async fn chatgpt_base_url_async() -> String {
         let Ok(config_path) = Self::auth_path().map(|path| path.with_file_name("config.toml"))
         else {
             return CODEX_DEFAULT_BASE_URL.to_string();
         };
-        let Ok(config) = fs::read_to_string(config_path) else {
+        let Ok(config) = async_fs::read_to_string(config_path).await else {
             return CODEX_DEFAULT_BASE_URL.to_string();
         };
 
-        for raw_line in config.lines() {
-            let line = raw_line.split('#').next().unwrap_or_default().trim();
-            let Some((key, value)) = line.split_once('=') else {
-                continue;
-            };
-            if key.trim() != "chatgpt_base_url" {
-                continue;
-            }
-            let value = value.trim().trim_matches('"').trim_matches('\'');
-            if !value.is_empty() {
-                return value.to_string();
-            }
-        }
-
-        CODEX_DEFAULT_BASE_URL.to_string()
+        parse_chatgpt_base_url(&config).unwrap_or_else(|| CODEX_DEFAULT_BASE_URL.to_string())
     }
 
     fn map_usage_response(response: CodexUsageResponse) -> CodexUsageData {
@@ -312,6 +316,24 @@ fn normalize_url(value: &str) -> String {
         trimmed.push_str("/backend-api");
     }
     trimmed
+}
+
+fn parse_chatgpt_base_url(config: &str) -> Option<String> {
+    for raw_line in config.lines() {
+        let line = raw_line.split('#').next().unwrap_or_default().trim();
+        let Some((key, value)) = line.split_once('=') else {
+            continue;
+        };
+        if key.trim() != "chatgpt_base_url" {
+            continue;
+        }
+        let value = value.trim().trim_matches('"').trim_matches('\'');
+        if !value.is_empty() {
+            return Some(value.to_string());
+        }
+    }
+
+    None
 }
 
 fn format_plan_name(plan: String) -> String {
