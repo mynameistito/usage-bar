@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+
+### Minor Changes
+
+- 6151a9c: Add Codex usage support via Codex CLI OAuth credentials.
+
 ## 1.0.9
 
 ### Patch Changes
